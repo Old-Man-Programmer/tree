@@ -1,0 +1,18 @@
+  This is a handy little utility to display a tree view of directories that
+I wrote some time ago and just added color support to.  I've decided that
+since no one else has done something simular I would go ahead and release
+it, even though it's barely a 1st year CS student hack.  I've found it damn
+handy to peruse a directory tree though, specially when someone is trying to
+hide something from you.
+
+  If you don't like the way it looks let me know how you think it should be
+formatted.  Personally I'm beginning to think the permissions and size and
+other file info should be shown after the filename, not before.
+
+  As always, feel free to use and abuse this peice of fluff.  Feel free to
+suggest modifications to it, but I'm not going to take criticisms on this
+one, since quite frankly, if you can't code something like this yourself,
+what the hell are you complaining about?
+
+						- Steve Baker
+						  ice@mama.indstate.edu

@@ -1,0 +1,16 @@
+Version 1.1
+  - Made some changes to the Makefile to insure proper installation and for
+    multi-architecture support and a bug-fix.
+  - Made root directory colorized if dircolors is enabled.
+  - Put []'s around permission and size info, 'cause I think it looks better.
+  - Added -A option to enable ANSI-lines hack.
+  - Added some sanity checks for dircolors support.
+  - Added -P <pattern> to list only those files that match the wildcard
+    given in <pattern>.
+  - Fixed error where relative symbolic links to directories would not be
+    followed when the -l option was used.
+  - Made uid 0 the same as anyone else (-a was default for uid 0)
+  - Added -x directive to stay on one filesystem (ala find -xdev).
+
+Version 1.0
+  - The original, a model of perfection...

@@ -1,0 +1,118 @@
+.\" $Copyright: $
+.\" Copyright (c) 1996 by Steve Baker
+.\" All Rights reserved
+.\"
+.\" This software is provided as is without any express or implied
+.\" warranties, including, without limitation, the implied warranties
+.\" of merchantability and fitness for a particular purpose.
+.\"
+...
+.V= $Header: tree.1 1.1 1996 $
+.TH TREE 1 "\*(V)" "UNIX Programmer's Manual"
+.SH NAME
+tree \- list contents of directories in a tree-like format.
+.SH SYNOPSIS
+\fBtree\fP [ \fB-adflpsFiCnAx\fP ] [ \fB-P \fI pattern\fP ] [ \fIdirectory\fP ... ]
+.br
+.SH DESCRIPTION
+\fITree\fP is a recursive directory listing program that produces a depth
+indented listing of files, which is colorized ala \fIdircolors\fP if the \fBLS_COLORS\fP
+environment variable is set and output is to tty.  With no arguments,
+\fItree\fP lists the files in the current directory.  When directory
+arguments are given, \fItree\fP lists all the files and/or directories found
+in the given directories each in turn.  Upon completion of listing all
+files/directories found, \fItree\fP returns the total number of files and/or
+directories listed.
+
+By default, when a symbolic link is encountered, the path that the symbolic
+link refers to is printed after the name of the link in the format:
+.br
+
+    name -> real-path
+.br
+
+If the `\fB-l\fP' option is given and the symbolic link refers to an actual
+directory, then \fItree\fP will follow the path of the symbolic link as if
+it were a real directory.
+.br
+
+.SH OPTIONS
+\fITree\fP understands the following command line switches:
+
+.TP
+.B -a
+All files are printed.  By default tree does not print hidden files (those
+beginning with a dot `.').  In no event does tree print the file system
+constructs `.' (current directory) and `..' (previous directory).
+.PP
+.TP
+.B -d
+List directories only.
+.PP
+.TP
+.B -f
+Prints the full path prefix for each file.
+.PP
+.TP
+.B -i
+Makes tree not print the indentation lines, useful when used in conjunction
+with the \fB-f\fP option.
+.PP
+.TP
+.B -l
+Follows symbolic links if they point to directories, as if they were directories.
+.PP
+.TP
+.B -x
+Stay on the current file-system only.  Ala \fBfind \fI-xdev\fP.
+.PP
+.TP
+\fB-P \fIpattern\fP
+List only those files that match the wild-card \fIpattern\fP.  Note: you must use
+the \fI-a\fP option to also consider those files beginning with a dot `.' for
+matching.
+.TP
+.B -p
+Print the protections for each file (as per ls -l).
+.PP
+.TP
+.B -s
+Print the size of each file along with the name.
+.PP
+.TP
+.B -F
+Append a `/' for directories, a `=' for socket files and a `*' for
+executable files as per ls -F
+.PP
+.TP
+.B -n
+Turn colorization off always, over-ridden by the \fB-C\fP option.
+.PP
+.TP
+.B -C
+Turn colorization on always, unless the LS_COLORS environment variable
+is not set.  Useful to colorize output to a pipe.
+.PP
+.TP
+.B -A
+Turn on ANSI line graphics hack when printing the indentation lines.
+.PP
+.br
+.SH FILES
+/etc/DIR_COLORS		System color database.
+.br
+~/.dircolors			Users color database.
+.br
+
+.SH ENVIRONMENT
+\fBLS_COLORS\fP		Color information created by dircolors
+
+.SH AUTHOR
+Steve Baker (ice@mama.indstate.edu)
+
+.SH BUGS
+None known.  Not heavily tested.  Needs a few more options, ala ls.
+
+.SH SEE ALSO
+.BR dircolors (1L),
+.BR ls (1L)
