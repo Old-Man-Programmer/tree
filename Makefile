@@ -9,12 +9,18 @@
 CC=gcc
 CFLAGS=-O2 -Wall -fomit-frame-pointer #-m486
 LDFLAGS=-s
+# Uncomment for OS X:
+#CC=cc
+#CFLAGS=-O2 -Wall -fomit-frame-pointer -no-cpp-precomp
+#LDFLAGS=
+
+prefix = /usr/local
 
 VERSION=1.4
 TREE_DEST=tree
-BINDIR=/usr/local/bin
+BINDIR=${prefix}/bin
 MAN=tree.1
-MANDIR=/usr/man/man1
+MANDIR=${prefix}/man/man1
 
 all:	tree
 

@@ -1,4 +1,6 @@
 Version 1.4
+  - Fixed several memory leaks
+  - Added --dirsfirst option to list directories first.
   - Fixed formatting error when unable to open directories.
   - Fixed bug in parse_dir_colors().
   - Changed -I to also ignore directories.

@@ -41,6 +41,7 @@ A. Karthik
 
 Roger Luethi
   - Spotted memory over-allocation bug in read_dir().
+  - Submitted several patches to fix various memory leaks.
 
 Daniel Lee
   - Reported that Tru64 defines TRUE/FALSE in sys/types.h (OSF1 standard?)
