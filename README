@@ -10,7 +10,7 @@ hide something from you.
   ftp://mama.indstate.edu/linux/tree/
 
   If you don't like the way it looks let me know how you think it should be
-formatted. Free free to use and abuse and do with as you please.  Also feel
+formatted. Feel free to use and abuse and do with as you please.  Also feel
 free to suggest modifications and additions.
 
   Thanks go out so the following people who have helped bring tree to the
@@ -49,6 +49,14 @@ Daniel Lee
 Paolo Violini
   - Found bug in tree that caused it to seg-fault if 50 file arguments where
     given and directory coloring was turned on.
+
+Mitsuaki Masuhara
+  - Discovered tree crashed on missing arguments.
+  - Discovered that tree did not properly encode characters in filenames
+    when used as URLs when using the -H option.
+
+Johan Fredrik
+  - Pointed out that tree did not list large files.
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

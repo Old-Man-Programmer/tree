@@ -6,6 +6,14 @@
  * warranties, including, without limitation, the implied warranties
  * of merchantability and fitness for a particular purpose.
  */
+
+#ifdef LINUX_BIGFILE
+#  define _LARGEFILE64_SOURCE
+#else
+#  define stat64 stat
+#  define lstat64 lstat
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -22,11 +30,12 @@
 #include <grp.h>
 #include <locale.h>
 
-static char *version = "$Version: $ tree v1.4b1 (c) 1996 - 2002 by Steve Baker, Thomas Moore $";
-static char *hversion= "tree v1.4b1 \251 1996 - 2002 by Steve Baker and Thomas Moore\
-<BR>HTML output hacked and copyleft \251 1998 by Francesc Rocher\
-<BR>This software is experimental. Send commends and/or
-<BR>suggestions to <A HREF=\"mailto:rocher@econ.udg.es\">rocher@econ.udg.es</A>";
+static char *version = "$Version: $ tree v1.4b3 (c) 1996 - 2002 by Steve Baker, Thomas Moore $";
+static char *hversion= "\t\t\t\ttree v1.4b3 \251 1996 - 2002 by Steve Baker and Thomas Moore\
+\n\t\t\t\t<br>HTML output hacked and copyleft \251 1998 by Francesc Rocher\
+\n\t\t\t\t<br>This software is experimental. Send commends and/or\
+\n\t\t\t\t<br>suggestions to <a href=\"mailto:rocher@econ.udg.es\">rocher@econ.udg.es</a>";
+
 
 #define scopy(x)	strcpy(xmalloc(strlen(x)+1),(x))
 #define MAXDIRLEVEL	4096	/* BAD, it's possible to overflow this. */
@@ -46,7 +55,11 @@ struct _info {
   u_char isfifo : 1;
   u_char orphan : 1;
   u_short mode, lnkmode, uid, gid;
+#ifdef LINUX_BIGFILE
+  long long size;
+#else
   u_long size;
+#endif
   time_t atime, ctime, mtime;
   dev_t dev;
   ino_t inode;
@@ -135,7 +148,7 @@ int main(int argc, char **argv)
 {
   char **dirname = NULL;
   int i,j,n,p,q,dtotal,ftotal,colored = FALSE;
-  struct stat st;
+  struct stat64 st;
 
   q = p = dtotal = ftotal = 0;
   aflag = dflag = fflag = lflag = pflag = sflag = Fflag = uflag = gflag = FALSE;
@@ -203,9 +216,17 @@ int main(int argc, char **argv)
 	  xdev = TRUE;
 	  break;
 	case 'P':
+	  if (argv[n] == NULL) {
+	    fprintf(stderr,"tree: missing argument to -P option.\n");
+	    exit(1);
+	  }
 	  pattern = argv[n++];
 	  break;
 	case 'I':
+	  if (argv[n] == NULL) {
+	    fprintf(stderr,"tree: missing argument to -I option.\n");
+	    exit(1);
+	  }
 	  ipattern = argv[n++];
 	  break;
 	case 'A':
@@ -222,6 +243,10 @@ int main(int argc, char **argv)
 	  break;
 	case 'H':
 	  Hflag = TRUE;
+	  if (argv[n] == NULL) {
+	    fprintf(stderr,"tree: missing argument to -H option.\n");
+	    exit(1);
+	  }
 	  host = argv[n++];
 	  sp = "&nbsp;";
 	  break;
@@ -307,43 +332,51 @@ int main(int argc, char **argv)
 
   if (Hflag) {
     fprintf(outfile,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n");
-    fprintf(outfile,"<HTML>\n");
-    fprintf(outfile,"<HEAD>\n");
-    fprintf(outfile,"\t<TITLE>Tree Output</TITLE>\n");
-    fprintf(outfile,"\t<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=iso-8859-1\">\n");
-    fprintf(outfile,"\t<META NAME=\"Author\" CONTENT=\"Made by 'tree'\">\n");
-    fprintf(outfile,"\t<META NAME=\"GENERATOR\" CONTENT=\"Linux\">\n");
-    fprintf(outfile,"\t\t<STYLE type=\"text/css\">\n\t\t<!-- \n");
-    fprintf(outfile,"\t\t  BODY { font-family : courier, arial, sans-serif; }\n");
-    fprintf(outfile,"\t\t  .VERSION { font-family : arial, sans-serif; }\n");
-    if (force_color && !nolinks) {
-      fprintf(outfile,"\t\t  A.NORM:link { color: black; background-color: transparent;}\n");
-      fprintf(outfile,"\t\t  A.FIFO:link { color: purple; background-color: transparent;}\n");
-      fprintf(outfile,"\t\t  A.CHAR:link { color: yellow; background-color: transparent;}\n");
-      fprintf(outfile,"\t\t  A.DIR:link  { color: blue; background-color: transparent;}\n");
-      fprintf(outfile,"\t\t  A.BLOCK:link { color: yellow; background-color: transparent;}\n");
-      fprintf(outfile,"\t\t  A.LINK:link { color: aqua; background-color: transparent;}\n");
-      fprintf(outfile,"\t\t  A.SOCK:link { color: fuchsia; background-color: transparent;}\n");
-      fprintf(outfile,"\t\t  A.EXEC:link { color: green; background-color: transparent;}\n");
-    }
-    fprintf(outfile,"\t\t-->\n\t\t</STYLE>\n");
-    fprintf(outfile,"</HEAD>\n");
-    fprintf(outfile,"<BODY>\n");
-    fprintf(outfile,"<H1>Directory Tree</H1>\n<P>");
+    fprintf(outfile,"<html>\n");
+    fprintf(outfile,"\t<head>\n");
+    fprintf(outfile,"\t\t<title>Tree Output</title>\n");
+    fprintf(outfile,"\t\t<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\">\n");
+    fprintf(outfile,"\t\t<meta name=\"Author\" content=\"Made by 'tree'\">\n");
+    fprintf(outfile,"\t\t<meta name=\"GENERATOR\" content=\"Linux\">\n");
+    fprintf(outfile,"\t\t<style type=\"text/css\">\n\t\t\t<!-- \n");
+    fprintf(outfile,"\t\t\tBODY { font-family : courier, monospace, sans-serif; }\n");
+    fprintf(outfile,"\t\t\tP { font-weight: normal; font-family : courier, monospace, sans-serif; color: black; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\tB { font-weight: normal; color: black; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\tA:visited { font-weight : normal; text-decoration : none; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n");
+    fprintf(outfile,"\t\t\tA:link    { font-weight : normal; text-decoration : none; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n");
+    fprintf(outfile,"\t\t\tA:hover   { color : #000000; font-weight : normal; text-decoration : underline; background-color : yellow; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n");
+    fprintf(outfile,"\t\t\tA:active  { color : #000000; font-weight: normal; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n");
+    fprintf(outfile,"\t\t\t.VERSION { font-weight: small; font-family : arial, sans-serif; }\n");
+
+    /* We can use CSS for nolinks as well */
+    fprintf(outfile,"\t\t\t.NORM { color: black; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\t.FIFO { color: purple; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\t.CHAR { color: yellow; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\t.DIR  { color: blue; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\t.BLOCK { color: yellow; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\t.LINK { color: aqua; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\t.SOCK { color: fuchsia; background-color: transparent;}\n");
+    fprintf(outfile,"\t\t\t.EXEC { color: green; background-color: transparent;}\n");
+
+    fprintf(outfile,"\t\t\t-->\n\t\t</style>\n");
+    fprintf(outfile,"\t</head>\n");
+    fprintf(outfile,"\t<body>\n");
+    fprintf(outfile,"\t\t<h1>Directory Tree</h1>\n\t\t\t<p>");
+
     fflag = FALSE;
     if (nolinks) {
-      if (force_color) fprintf(outfile, "<font color=black>%s</font>\n",host);
+      if (force_color) fprintf(outfile, "<b class=\"NORM\">%s</b>\n",host);
       else fprintf(outfile,"%s\n",host);
     } else {
-      if (force_color) fprintf(outfile,"<A CLASS=\"NORM\" HREF=\"%s\">%s</A>\n",host,host);
-      else fprintf(outfile,"<A HREF=\"%s\">%s</A>\n",host,host);
+      if (force_color) fprintf(outfile,"<a class=\"NORM\" href=\"%s\">%s</a>\n",host,host);
+      else fprintf(outfile,"<a href=\"%s\">%s</A>\n",host,host);
     }
     curdir = gnu_getcwd();
   }
 
   if (dirname) {
     for(colored=i=0;dirname[i];i++,colored=0) {
-      if ((n = lstat(dirname[i],&st)) >= 0) {
+      if ((n = lstat64(dirname[i],&st)) >= 0) {
 	saveino(st.st_ino, st.st_dev);
 	if (colorize) colored = color(st.st_mode,dirname[i],n<0,FALSE);
       }
@@ -361,7 +394,7 @@ int main(int argc, char **argv)
       }
     }
   } else {
-    if ((n = lstat(".",&st)) >= 0) {
+    if ((n = lstat64(".",&st)) >= 0) {
       saveino(st.st_ino, st.st_dev);
       if (colorize) colored = color(st.st_mode,".",n<0,FALSE);
     }
@@ -371,7 +404,7 @@ int main(int argc, char **argv)
   }
 
   if (Hflag)
-    fprintf(outfile,"<BR><BR>");
+    fprintf(outfile,"\t\t<br><br>\n\t\t</p>\n\t\t<p>\n");
 
   if (!noreport) {
     if (dflag)
@@ -381,13 +414,13 @@ int main(int argc, char **argv)
   }
 
   if (Hflag) {
-    fprintf(outfile,"<BR><BR>\n");
-    fprintf(outfile,"<HR>\n");
-    fprintf(outfile,"<P CLASS=\"VERSION\">\n");
+    fprintf(outfile,"\t\t<br><br>\n\t\t</p>\n");
+    fprintf(outfile,"\t\t<hr>\n");
+    fprintf(outfile,"\t\t<p class=\"VERSION\">\n");
     fprintf(outfile,"%s\n",hversion);
-    fprintf(outfile,"</P>\n");
-    fprintf(outfile,"</BODY>\n");
-    fprintf(outfile,"</HTML>\n");
+    fprintf(outfile,"\t\t</p>\n");
+    fprintf(outfile,"\t</body>\n");
+    fprintf(outfile,"</html>\n");
   }
 
   if (outfilename != NULL) fclose(outfile);
@@ -443,7 +476,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   char *path, nlf = FALSE, colored = FALSE;
   long pathsize = 0;
   struct _info **dir, **sav;
-  struct stat sb;
+  struct stat64 sb;
   int n,m,e;
   char hclr[20], *hdir, *hcmd;
 
@@ -455,7 +488,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   }
 
   if (xdev && lev == 0) {
-    stat(d,&sb);
+    stat64(d,&sb);
     dev = sb.st_dev;
   }
 
@@ -484,7 +517,11 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     if (pflag) sprintf(path+strlen(path), " %s", prot((*dir)->mode));
     if (uflag) sprintf(path+strlen(path), " %-8.8s", uidtoname((*dir)->uid));
     if (gflag) sprintf(path+strlen(path), " %-8.8s", gidtoname((*dir)->gid));
+#ifdef LINUX_BIGFILE
+    if (sflag) sprintf(path+strlen(path), " %11lld", (*dir)->size);
+#else
     if (sflag) sprintf(path+strlen(path), " %9ld", (*dir)->size);
+#endif
     if (Dflag) sprintf(path+strlen(path), " %s", do_date((*dir)->mtime));
     if (path[0] == ' ') {
       path[0] = '[';
@@ -514,7 +551,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     if (Hflag) {
       if (Rflag && (lev == Level) && (*dir)->isdir) {
 	if (nolinks) fprintf(outfile,"%s",(*dir)->name);
-	else fprintf(outfile,"<A HREF=\"%s%s/%s/00Tree.html\">%s</A>",host,d+1,(*dir)->name,(*dir)->name);
+	else fprintf(outfile,"<a href=\"%s%s/%s/00Tree.html\">%s</a>",host,d+1,(*dir)->name,(*dir)->name);
 
 	hdir = gnu_getcwd();
 	if (sizeof(char) * (strlen(hdir)+strlen(d)+strlen((*dir)->name)+2) > pathsize)
@@ -530,13 +567,18 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 	free(hcmd);
       } else {
 	if (nolinks) {
-	  if (force_color)
-	    fprintf(outfile, "<font color=%s>%s</font>",
-		    (*dir)->isdir  ? "blue"  :
-		    (*dir)->isexe  ? "green" :
-		    (*dir)->isfifo ? "purple":
-		    (*dir)->issok  ? "fuchsia" : "black", (*dir)->name);
-	  else
+	  if (force_color) {
+	   /*
+	    * Note that the B element has been set to normal weight in the
+	    * style portion of the output. so using <b> will just gives us a element
+	    * for which we can assign a color class to.
+	    */
+	    fprintf(outfile, "<b class=\"%s\">%s</b>",
+		    (*dir)->isdir ?  "DIR"  :
+		    (*dir)->isexe ?  "EXEC" :
+		    (*dir)->isfifo ? "FIFO" :
+		    (*dir)->issok ?  "SOCK" : "NORM", (*dir)->name);
+	  } else
 	    fprintf(outfile,"%s%s",(*dir)->name,(*dir)->isdir? "/" : "");
 	} else {
 	  if (force_color) {
@@ -545,16 +587,28 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 		    (*dir)->isexe ?  "EXEC" :
 		    (*dir)->isfifo ? "FIFO" :
 		    (*dir)->issok ?  "SOCK" : "NORM");
-	    fprintf(outfile,"<A CLASS=\"%s\" HREF=\"%s%s/%s%s\">%s%s</A>", hclr, host,d+1,(*dir)->name,
+	    fprintf(outfile,"<a class=\"%s\" href=\"%s%s/%s%s\">%s%s</a>", hclr, host,d+1,(*dir)->name,
 		    ((*dir)->isdir?"/":""),(*dir)->name,((*dir)->isdir?"/":""));
-	  } else fprintf(outfile,"<A HREF=\"%s%s/%s%s\">%s%s</A>",host, d+1, (*dir)->name,
+	  } else fprintf(outfile,"<a href=\"%s%s/%s%s\">%s%s</a>",host, d+1, (*dir)->name,
 			 (*dir)->isdir? "/" : "", (*dir)->name, (*dir)->isdir? "/" : "" );
 	  }
       }
     } else printit(path);
 
+	// FIXME  symbolic links which are directories are showing up
+	// 	   with a / after thier name. directories which are directories
+	// 	   are getting a double // after its name. I believe the problem
+	// 	   is right in this area here
+	// 	  	-ted
+	// 	  		i just noticed that if nolinks is specified, the extra
+	// 	  		/ after directories disappears, and symlinks have nothing
+	// 	  		after thier name
+	//
+	// FIXME  Executable files are being marked as such only if they are executable
+	// 	   by everyone, and not so if they are executable only by the owner/group
+	// 	   (this, of course, might be intentional.. but i thought i would mention it)
+	// 	   	-ted
     if (colored) fprintf(outfile,"%s",endcode);
-    
     if (Fflag && !(*dir)->lnk) {
       if (!dflag && (*dir)->isdir) fprintf(outfile,"/");
       else if ((*dir)->issok) fprintf(outfile,"=");
@@ -620,7 +674,7 @@ struct _info **read_dir(char *dir, int *n)
   static long pathsize = PATH_MAX+1, lbufsize = PATH_MAX+1;
   struct _info **dl;
   struct dirent *ent;
-  struct stat lst,st;
+  struct stat64 lst,st;
   DIR *d;
   int ne, p = 0, len, rs;
 
@@ -641,8 +695,8 @@ struct _info **read_dir(char *dir, int *n)
 
     if (strlen(dir)+strlen(ent->d_name)+2 > pathsize) path = xrealloc(path,pathsize=(strlen(dir)+strlen(ent->d_name)+4096));
     sprintf(path,"%s/%s",dir,ent->d_name);
-    if (lstat(path,&lst) < 0) continue;
-    if ((rs = stat(path,&st)) < 0) st.st_mode = 0;
+    if (lstat64(path,&lst) < 0) continue;
+    if ((rs = stat64(path,&st)) < 0) st.st_mode = 0;
 
     if ((lst.st_mode & S_IFMT) != S_IFDIR && !(((st.st_mode & S_IFMT) == S_IFLNK) && lflag)) {
       if (pattern && patmatch(ent->d_name,pattern) != 1) continue;
@@ -688,7 +742,7 @@ struct _info **read_dir(char *dir, int *n)
     dl[p]->isdir = ((st.st_mode & S_IFMT) == S_IFDIR);
     dl[p]->issok = ((st.st_mode & S_IFMT) == S_IFSOCK);
     dl[p]->isfifo = ((st.st_mode & S_IFMT) == S_IFIFO);
-    dl[p++]->isexe = (st.st_mode & S_IEXEC) | (st.st_mode & (S_IEXEC>>3)) | (st.st_mode & (S_IEXEC>>6));
+    dl[p++]->isexe = ((st.st_mode & S_IEXEC) | (st.st_mode & (S_IEXEC>>3)) | (st.st_mode & (S_IEXEC>>6))) ? 1 : 0;
   }
   closedir(d);
   *n = p;
@@ -844,7 +898,7 @@ void indent()
       }
     }
   } else {
-    if (Hflag) fprintf(outfile,"<BR>%s%s%s",sp,sp,sp);
+    if (Hflag) fprintf(outfile,"\t\t\t\t<br>%s%s%s",sp,sp,sp);
     for(i=0;dirs[i];i++) {
       if (dirs[i+1]) {
 	if (dirs[i] == 1) fprintf(outfile,"|%s%s ",sp,sp);
@@ -993,6 +1047,46 @@ void printit(char *s)
   }
 }
 
+void html_encode(FILE *fd, char *s)
+{
+  for(;*s;s++) {
+    switch(*s) {
+      case '<':
+	fputs("&lt;",fd);
+	break;
+      case '>':
+	fputs("&gt;",fd);
+	break;
+      case '&':
+	fputs("&amp;",fd);
+	break;
+      case '"':
+	fputs("&quot;",fd);
+	break;
+      default:
+	if (isprint(*s)) fputc(*s,fd);
+	else fputc('?',fd);
+	break;
+    }
+  }
+}
+
+void url_encode(FILE *fd, char *s)
+{
+  for(;*s;s++) {
+    switch(*s) {
+      case ' ':
+      case '<':
+      case '>':
+      case '&':
+      case '"':
+      case '?':
+      case '+':
+      default:
+    }
+  }
+}
+
 void saveino(ino_t inode, dev_t device)
 {
   struct inotable *it, *ip, *pp;
@@ -1129,7 +1223,6 @@ void parse_dir_colors()
 	e->nxt = ext;
 	ext = e;
       }
-    default:
     }
   }
 

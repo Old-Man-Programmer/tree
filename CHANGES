@@ -1,4 +1,6 @@
 Version 1.4
+  - Added large file support under Linux.
+  - Fixed crashing on missing command line arguments.
   - Fixed several memory leaks
   - Added --dirsfirst option to list directories first.
   - Fixed formatting error when unable to open directories.

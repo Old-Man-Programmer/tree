@@ -7,11 +7,15 @@
 # of merchant-ability and fitness for a particular purpose.
 
 CC=gcc
-CFLAGS=-O2 -Wall -fomit-frame-pointer #-m486
+CFLAGS=-O2 -Wall -fomit-frame-pointer -DLINUX_BIGFILE #-m486
 LDFLAGS=-s
 # Uncomment for OS X:
 #CC=cc
 #CFLAGS=-O2 -Wall -fomit-frame-pointer -no-cpp-precomp
+#LDFLAGS=
+# Uncomment for HP/UX:
+#CC=cc
+#CFLAGS=-Ae +O2 +DAportable -Wall
 #LDFLAGS=
 
 prefix = /usr/local
