@@ -1,3 +1,19 @@
+Version 1.2
+  - Added -D to print the date of the last modification.
+  - Added -t option to sort by last modification time (ala ls -t).
+  - Added -I <pattern>, simular to the -P option except tree does not print
+    those files which match the pattern.
+  - Made tree print non-printable characters in filenames in standard unix
+    carrot notation.
+  - Added -N option to make tree print filenames without any processing.
+  - Added -q option to make tree print non-printable characters in filenames
+    as question marks.
+  - Added `|' to -F output and made it only print character type after the
+    link on sym-links, not on the symlink name itself.
+  - Added -u option to display username/uid, and -g option to display group
+    name/gid.
+  - Fully (pass the salt) implemented dircolors support.
+
 Version 1.1
   - Made some changes to the Makefile to insure proper installation and for
     multi-architecture support and a bug-fix.

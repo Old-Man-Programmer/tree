@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1995 by Steve Baker
+# Copyright (c) 1996,1997 by Steve Baker
 # All Rights reserved
 #
 # This software is provided as is without any express or implied

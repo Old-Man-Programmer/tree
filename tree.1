@@ -7,12 +7,12 @@
 .\" of merchantability and fitness for a particular purpose.
 .\"
 ...
-.V= $Header: tree.1 1.1 1996 $
+.V= $Header: tree.1 1.2 1996,1997 $
 .TH TREE 1 "\*(V)" "UNIX Programmer's Manual"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
-\fBtree\fP [ \fB-adflpsFiCnAx\fP ] [ \fB-P \fI pattern\fP ] [ \fIdirectory\fP ... ]
+\fBtree\fP [ \fB-adfgilnpqstuxACDFN\fP ] [ \fB-P\fP \fIpattern\fP ] [ \fB-I\fP \fIpattern\fP ] [ \fIdirectory\fP ... ]
 .br
 .SH DESCRIPTION
 \fITree\fP is a recursive directory listing program that produces a depth
@@ -70,7 +70,15 @@ Stay on the current file-system only.  Ala \fBfind \fI-xdev\fP.
 \fB-P \fIpattern\fP
 List only those files that match the wild-card \fIpattern\fP.  Note: you must use
 the \fI-a\fP option to also consider those files beginning with a dot `.' for
-matching.
+matching.  Valid wildcard operators are `*' (any zero or more characters), `?' (any
+single character), `[...]' (any single character listed between brackets (optional -
+(dash) for character range may be used: ex: [A-Z]), and `[^...]' (any single character
+not listed in brackets).
+.PP
+.TP
+.B -I \fIpattern\fP
+Do not list those files that match the wild-card \fIpattern\fP.
+.PP
 .TP
 .B -p
 Print the protections for each file (as per ls -l).
@@ -80,9 +88,34 @@ Print the protections for each file (as per ls -l).
 Print the size of each file along with the name.
 .PP
 .TP
+.B -u
+Print the username, or UID # if no username is available, of the file.
+.PP
+.TP
+.B -g
+Print the group name, or GID # if no group name is available, of the file.
+.PP
+.TP
+.B -D
+Print the date of the last modification time for the file listed.
+.PP
+.TP
 .B -F
-Append a `/' for directories, a `=' for socket files and a `*' for
-executable files as per ls -F
+Append a `/' for directories, a `=' for socket files, a `*' for executable files
+and a `|' for FIFO's, as per ls -F
+.PP
+.TP
+.B -q
+Print non-printable characters in filenames as question marks instead of the default
+carrot notation.
+.PP
+.TP
+.B -N
+Print non-printable characters as is instead of the default carrot notation.
+.PP
+.TP
+.B -t
+Sort the output by last modification time instead of alphabetically.
 .PP
 .TP
 .B -n
