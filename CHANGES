@@ -1,3 +1,20 @@
+Version 1.4
+  - Fixed formatting error when unable to open directories.
+  - Fixed bug in parse_dir_colors().
+  - Changed -I to also ignore directories.
+  - Added --nolinks command to turn off hyperlinks with the HTML output.
+  - Fixed several memory leaks in listdir().
+  - Some additional code cleanup in listdir().
+  - Some systems may define TRUE/FALSE, so don't create the enums for TRUE
+    and FALSE if that's the case.
+  - Fixed over-allocation bug in read_dir().
+  - Added crude beginnings of color output for HTML via CSS (Ted Tiberio
+    ttiberio@rochester.rr.com).
+  - Fixed buffer overflow problem in dircolors parsing.
+  - Fixed recursive symlink detection.
+  - Added --inodes and --device options.
+  - Added --noreport option.
+
 Version 1.3
   - Fixed long pathname problem by dynamically allocating the path.
   - Added recursive symlink detection.

@@ -1,5 +1,5 @@
 .\" $Copyright: $
-.\" Copyright (c) 1996 - 1999 by Steve Baker
+.\" Copyright (c) 1996 - 2001 by Steve Baker
 .\" All Rights reserved
 .\"
 .\" This software is provided as is without any express or implied
@@ -7,7 +7,7 @@
 .\" of merchantability and fitness for a particular purpose.
 .\"
 ...
-.V= $Header: tree.1 1.3 1996 - 1999 $
+.V= $Header: tree.1 1.4 1996 - 2001 $
 .TH TREE 1 "\*(V)" "UNIX Programmer's Manual"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
@@ -48,6 +48,19 @@ Outputs a verbose usage listing.
 Outputs the version of tree.
 .PP
 .TP
+.B --inodes
+Prints the inode number of the file or directory
+.PP
+.TP
+.B --device
+Prints the device number to which the file or directory belongs
+.PP
+.TP
+.B --noreport
+Omits printing of the file and directory report at the end of the tree
+listing.
+.PP
+.TP
 .B -a
 All files are printed.  By default tree does not print hidden files (those
 beginning with a dot `.').  In no event does tree print the file system
@@ -77,7 +90,7 @@ detected.
 Stay on the current file-system only.  Ala \fBfind \fI-xdev\fP.
 .PP
 .TP
-\fB-P \fIpattern\fP
+\fB -P \fIpattern\fP
 List only those files that match the wild-card \fIpattern\fP.  Note: you must use
 the \fI-a\fP option to also consider those files beginning with a dot `.' for
 matching.  Valid wildcard operators are `*' (any zero or more characters), `?' (any
@@ -149,24 +162,25 @@ Turn on ANSI line graphics hack when printing the indentation lines.
 Turn on ASCII line graphics (useful when using linux console mode fonts).
 .PP
 .TP
-.B \fB-L \fIlevel\fP
+.B -L \fIlevel\fP
 Max display depth of the directory tree.
 .PP
 .TP
-.B \fB-R\fP
+.B -R
 Recursively cross down the tree each \fIlevel\fP directories (see \fB-L\fP
 option), and at each of them execute \fBtree\fP again adding `-o 00Tree.html'
 as a new option.
 .PP
 .TP
-.B \fB-H \fIbaseHREF\fP
+.B -H \fIbaseHREF\fP
 Turn on HTML output, including HTTP references. Useful for ftp sites.
 \fIbaseHREF\fP gives the base ftp location when using HTML output. That is, the local
 directory may be `/local/ftp/pub', but it must be referenced as
 `ftp://hostname.organization.domain/pub' (\fIbaseHREF\fP should be
-`ftp://hostname.organization.domain/'). Hint: don't use colorization and/or
-ANSI lines with this option, and don't give more than one directory in the
-directory list.
+`ftp://hostname.organization.domain'). Hint: don't use ANSI lines with this option,
+and don't give more than one directory in the directory list. If you wish to
+use colors via CCS stylesheet, use the -C option in addition to this option
+to force color output.
 .PP
 .br
 .SH FILES

@@ -32,6 +32,23 @@ Mitja Lacen
   - Discovered bug where tree will segmentation fault on long pathnames.
   - Discovered in -L argument processing.
 
+Nathaniel Delage
+  - Discovered problem with recursive symlink detection
+
+A. Karthik
+  - Suggested option to remove file and directory report at end of tree
+    listing.
+
+Roger Luethi
+  - Spotted memory over-allocation bug in read_dir().
+
+Daniel Lee
+  - Reported that Tru64 defines TRUE/FALSE in sys/types.h (OSF1 standard?)
+
+Paolo Violini
+  - Found bug in tree that caused it to seg-fault if 50 file arguments where
+    given and directory coloring was turned on.
+
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
 

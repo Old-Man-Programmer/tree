@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 1999 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2001 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This software is provided as is without any express or implied
@@ -20,9 +20,10 @@
 #include <limits.h>
 #include <pwd.h>
 #include <grp.h>
+#include <locale.h>
 
-static char *version = "$Version: $ tree v1.3 (c) 1996 - 1999 by Steve Baker, Thomas Moore $";
-static char *hversion= "tree v1.3 \251 1996 - 1999 by Steve Baker and Thomas Moore\
+static char *version = "$Version: $ tree v1.4b1 (c) 1996 - 2002 by Steve Baker, Thomas Moore $";
+static char *hversion= "tree v1.4b1 \251 1996 - 2002 by Steve Baker and Thomas Moore\
 <BR>HTML output hacked and copyleft \251 1998 by Francesc Rocher\
 <BR>This software is experimental. Send commends and/or
 <BR>suggestions to <A HREF=\"mailto:rocher@econ.udg.es\">rocher@econ.udg.es</A>";
@@ -33,13 +34,16 @@ static char *hversion= "tree v1.3 \251 1996 - 1999 by Steve Baker and Thomas Moo
 #define MINIT		30	/* number of dir entries to initially allocate */
 #define MINC		20	/* allocation increment */
 
-enum {FALSE=0, TRUE};
+#ifndef TRUE
+enum bool {FALSE=0, TRUE};
+#endif
+
 enum {ALPHA, TIME};	/* sort type */
 
-u_char dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-u_char qflag, Nflag, Dflag;
-u_char sort = ALPHA;
-u_char noindent, force_color, nocolor, xdev;
+int dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
+int qflag, Nflag, Dflag, inodeflag, devflag;
+int sort = ALPHA;
+int noindent, force_color, nocolor, xdev, noreport, nolinks;
 char *pattern = NULL, *ipattern = NULL, *host = NULL, *sp = " ";
 
 u_char Hflag, Rflag;
@@ -89,17 +93,27 @@ enum {
 
 char colorize = FALSE, ansilines = FALSE, asciilines = FALSE;
 char *term, termmatch = FALSE, istty;
+char *leftcode = NULL, *rightcode = NULL, *endcode = NULL;
 
 char *norm_flgs = NULL, *file_flgs = NULL, *dir_flgs = NULL, *link_flgs = NULL;
 char *fifo_flgs = NULL, *sock_flgs = NULL, *block_flgs = NULL, *char_flgs = NULL;
-char *exec_flgs = NULL, *orphan_flgs = NULL, *missing_flgs = NULL, *leftcode = NULL;
-char *rightcode = NULL, *endcode = NULL;
+char *exec_flgs = NULL, *orphan_flgs = NULL, *missing_flgs = NULL;
+
+char *vgacolor[] = {
+  "black", "red", "green", "yellow", "blue", "fuchsia", "aqua", "white",
+  NULL, NULL,
+  "transparent", "red", "green", "yellow", "blue", "fuchsia", "aqua", "black"
+};
+
+struct colortable {
+  char *term_flg, *CSS_name, *font_fg, *font_bg;
+} colortable[11];
 
 struct extensions {
   char *ext;
-  char *flgs;
+  char *term_flg, *CSS_name, *web_fg, *web_bg, *web_extattr;
   struct extensions *nxt;
-} *ext;
+} *ext = NULL;
 
 
 /* Function prototypes: */
@@ -125,8 +139,11 @@ int main(int argc, char **argv)
   q = p = dtotal = ftotal = 0;
   aflag = dflag = fflag = lflag = pflag = sflag = Fflag = uflag = gflag = FALSE;
   Dflag = qflag = Nflag = Hflag = Rflag = FALSE;
+  inodeflag = devflag = FALSE;
   Level = -1;
-  noindent = force_color = nocolor = xdev = FALSE;
+  noindent = force_color = nocolor = xdev = noreport = nolinks = FALSE;
+
+  setlocale(LC_CTYPE, "");
 
   for(i = 0;i < 256; i++) {
     utable[i] = NULL;
@@ -136,7 +153,7 @@ int main(int argc, char **argv)
 
   for(n=i=1;i<argc;i=n) {
     n++;
-    if (argv[i][0] == '-') {
+    if (argv[i][0] == '-' && argv[i][1]) {
       for(j=1;argv[i][j];j++) {
 	switch(argv[i][j]) {
 	case 'N':
@@ -232,6 +249,26 @@ int main(int argc, char **argv)
 	      printf("%.*s\n",(int)strlen(v)-1,v);
 	      exit(0);
 	    }
+	    if (!strcmp("--inodes",argv[i])) {
+	      j = strlen(argv[i])-1;
+	      inodeflag=TRUE;
+	      break;
+	    }
+	    if (!strcmp("--device",argv[i])) {
+	      j = strlen(argv[i])-1;
+	      devflag=TRUE;
+	      break;
+	    }
+	    if (!strcmp("--noreport",argv[i])) {
+	      j = strlen(argv[i])-1;
+	      noreport = TRUE;
+	      break;
+	    }
+	    if (!strcmp("--nolinks",argv[i])) {
+	      j = strlen(argv[i])-1;
+	      nolinks = TRUE;
+	      break;
+	    }
 	  }
 	default:
 	  fprintf(stderr,"tree: Invalid argument -`%c'.\n",argv[i][j]);
@@ -242,21 +279,20 @@ int main(int argc, char **argv)
       }
     } else {
       if (!dirname) dirname = (char **)xmalloc(sizeof(char *) * (q=MINIT));
-      else if (p == (q-1)) dirname = (char **)xrealloc(dirname,sizeof(char *) * (q+=MINC));
+      else if (p == (q-2)) dirname = (char **)xrealloc(dirname,sizeof(char *) * (q+=MINC));
       dirname[p++] = scopy(argv[i]);
     }
   }
   if (p) dirname[p] = NULL;
 
-  if (outfilename != NULL) {
+  if (outfilename == NULL) outfile = stdout;
+  else {
     outfile = fopen(outfilename,"w");
     if (outfile == NULL) {
       fprintf(stderr,"tree: invalid filename '%s'\n",outfilename);
       exit(1);
     }
   }
-  else
-    outfile = stdout;
 
   parse_dir_colors();
 
@@ -264,16 +300,38 @@ int main(int argc, char **argv)
     Rflag = FALSE;
 
   if (Hflag) {
+    fprintf(outfile,"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n");
+    fprintf(outfile,"<HTML>\n");
     fprintf(outfile,"<HEAD>\n");
-    fprintf(outfile,"<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=iso-8859-1\">\n");
-    fprintf(outfile,"<META NAME=\"Author\" CONTENT=\"Made by 'tree'\">\n");
-    fprintf(outfile,"<META NAME=\"GENERATOR\" CONTENT=\"Linux\">\n");
+    fprintf(outfile,"\t<TITLE>Tree Output</TITLE>\n");
+    fprintf(outfile,"\t<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=iso-8859-1\">\n");
+    fprintf(outfile,"\t<META NAME=\"Author\" CONTENT=\"Made by 'tree'\">\n");
+    fprintf(outfile,"\t<META NAME=\"GENERATOR\" CONTENT=\"Linux\">\n");
+    fprintf(outfile,"\t\t<STYLE type=\"text/css\">\n\t\t<!-- \n");
+    fprintf(outfile,"\t\t  BODY { font-family : courier, arial, sans-serif; }\n");
+    fprintf(outfile,"\t\t  .VERSION { font-family : arial, sans-serif; }\n");
+    if (force_color && !nolinks) {
+      fprintf(outfile,"\t\t  A.NORM:link { color: black; background-color: transparent;}\n");
+      fprintf(outfile,"\t\t  A.FIFO:link { color: purple; background-color: transparent;}\n");
+      fprintf(outfile,"\t\t  A.CHAR:link { color: yellow; background-color: transparent;}\n");
+      fprintf(outfile,"\t\t  A.DIR:link  { color: blue; background-color: transparent;}\n");
+      fprintf(outfile,"\t\t  A.BLOCK:link { color: yellow; background-color: transparent;}\n");
+      fprintf(outfile,"\t\t  A.LINK:link { color: aqua; background-color: transparent;}\n");
+      fprintf(outfile,"\t\t  A.SOCK:link { color: fuchsia; background-color: transparent;}\n");
+      fprintf(outfile,"\t\t  A.EXEC:link { color: green; background-color: transparent;}\n");
+    }
+    fprintf(outfile,"\t\t-->\n\t\t</STYLE>\n");
     fprintf(outfile,"</HEAD>\n");
     fprintf(outfile,"<BODY>\n");
-    fprintf(outfile,"<H1><BR>Directory Tree</H1>\n");
-    fprintf(outfile,"<FONT FACE=\"Courier New,Courier\">\n");
+    fprintf(outfile,"<H1>Directory Tree</H1>\n<P>");
     fflag = FALSE;
-    fprintf(outfile,"<A HREF=\"%s\">%s</A>\n",host,host);
+    if (nolinks) {
+      if (force_color) fprintf(outfile, "<font color=black>%s</font>\n",host);
+      else fprintf(outfile,"%s\n",host);
+    } else {
+      if (force_color) fprintf(outfile,"<A CLASS=\"NORM\" HREF=\"%s\">%s</A>\n",host,host);
+      else fprintf(outfile,"<A HREF=\"%s\">%s</A>\n",host,host);
+    }
     curdir = gnu_getcwd();
   }
 
@@ -288,7 +346,7 @@ int main(int argc, char **argv)
       if (!Hflag) listdir(dirname[i],&dtotal,&ftotal,0,0);
       else {
 	if (chdir(dirname[i])) {
-	  fprintf(stderr,"%s [error opening dir]\n",dirname[i]);
+	  fprintf(outfile,"%s [error opening dir]\n",dirname[i]);
 	  exit(1);
 	} else {
 	  listdir(".",&dtotal,&ftotal,0,0);
@@ -296,8 +354,7 @@ int main(int argc, char **argv)
 	}
       }
     }
-  }
-  else {
+  } else {
     if ((n = lstat(".",&st)) >= 0) {
       saveino(st.st_ino, st.st_dev);
       if (colorize) colored = color(st.st_mode,".",n<0,FALSE);
@@ -310,24 +367,24 @@ int main(int argc, char **argv)
   if (Hflag)
     fprintf(outfile,"<BR><BR>");
 
-  if (dflag)
-    fprintf(outfile,"\n%d director%s\n",dtotal,(dtotal==1? "y":"ies"));
-  else
-    fprintf(outfile,"\n%d director%s, %d file%s\n",dtotal,(dtotal==1? "y":"ies"),ftotal,(ftotal==1? "":"s"));
+  if (!noreport) {
+    if (dflag)
+      fprintf(outfile,"\n%d director%s\n",dtotal,(dtotal==1? "y":"ies"));
+    else
+      fprintf(outfile,"\n%d director%s, %d file%s\n",dtotal,(dtotal==1? "y":"ies"),ftotal,(ftotal==1? "":"s"));
+  }
 
   if (Hflag) {
-    fprintf(outfile,"</FONT>\n");
     fprintf(outfile,"<BR><BR>\n");
-    fprintf(outfile,"<HR WIDTH=\"35%%\" ALIGN=\"LEFT\">\n");
-    fprintf(outfile,"<FONT FACE=\"Arial, Helvetica\">\n");
+    fprintf(outfile,"<HR>\n");
+    fprintf(outfile,"<P CLASS=\"VERSION\">\n");
     fprintf(outfile,"%s\n",hversion);
-    fprintf(outfile,"</FONT>\n");
+    fprintf(outfile,"</P>\n");
     fprintf(outfile,"</BODY>\n");
     fprintf(outfile,"</HTML>\n");
   }
 
-  if (outfilename != NULL)
-    fclose(outfile);
+  if (outfilename != NULL) fclose(outfile);
 
   return 0;
 }
@@ -336,10 +393,10 @@ void usage(int n)
 {
   switch(n) {
     case 1:
-      fprintf(stderr,"usage: tree [-adfgilnpqstuxACDFNS] [-H baseHREF] [-L level [-R]] [-P pattern]\n\t[-I pattern] [-o filename] [--version] [--help] [<directory list>]\n");
+      fprintf(stderr,"usage: tree [-adfgilnpqstuxACDFNS] [-H baseHREF] [-L level [-R]] [-P pattern]\n\t[-I pattern] [-o filename] [--version] [--help] [--inodes] [--device]\n\t[--noreport] [<directory list>]\n");
       break;
     case 2:
-      fprintf(stderr,"usage: tree [-adfgilnpqstuxACDFNS] [-H baseHREF] [-L level [-R]] [-P pattern]\n\t[-I pattern] [-o filename] [--version] [--help] [<directory list>]\n");
+      fprintf(stderr,"usage: tree [-adfgilnpqstuxACDFNS] [-H baseHREF] [-L level [-R]] [-P pattern]\n\t[-I pattern] [-o filename] [--version] [--help] [--inodes] [--device]\n\t[--noreport] [<directory list>]\n");
       fprintf(stderr,"    -a          All files are listed.\n");
       fprintf(stderr,"    -d          List directories only.\n");
       fprintf(stderr,"    -l          Follow symbolic links like directories.\n");
@@ -364,7 +421,10 @@ void usage(int n)
       fprintf(stderr,"    -I pattern  Do not list files that match the given pattern.\n");
       fprintf(stderr,"    -H baseHREF Prints out HTML format with baseHREF as top directory.\n");
       fprintf(stderr,"    -R          Rerun tree when max dir level reached.\n");
-      fprintf(stderr,"    -o file     output to file instead of stdout.\n");
+      fprintf(stderr,"    -o file     Output to file instead of stdout.\n");
+      fprintf(stderr,"    --inodes    Print inode number of each file.\n");
+      fprintf(stderr,"    --device    Print device ID number to which each file belongs.\n");
+      fprintf(stderr,"    --noreport  Turn off file/directory count at end of tree listing.\n");
   }
   exit(0);
 }
@@ -378,8 +438,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   struct stat sb;
   int n,m,e;
   int (*cmpfunc)() = cmp;
-
-  char *hdir, *hpath, hcmd[1024];
+  char hclr[20], *hdir, *hcmd;
 
   path=malloc(pathsize=4096);
 
@@ -395,7 +454,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 
   sav = dir = read_dir(d,&n);
   if (!dir && n) {
-    fprintf(stderr," [error opening dir]\n");
+    fprintf(outfile," [error opening dir]\n");
     return;
   }
   if (!n) {
@@ -410,54 +469,87 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     if (strcmp((*dir)->name,"00Tree.html") != 0) {
       if (!noindent) indent();
 
-      if (pflag || sflag || uflag || gflag || Dflag) fprintf(outfile,"[");
-      if (pflag) fprintf(outfile,"%s",prot((*dir)->mode));
-      if (pflag && (uflag || gflag || sflag || Dflag)) fprintf(outfile,"%s",sp);
-      if (uflag) fprintf(outfile,"%-8.8s",uidtoname((*dir)->uid));
-      if (uflag && (gflag || sflag || Dflag)) fprintf(outfile,"%s",sp);
-      if (gflag) fprintf(outfile,"%-8.8s",gidtoname((*dir)->gid));
-      if (gflag && (sflag || Dflag)) fprintf(outfile,"%s",sp);
-      if (sflag) fprintf(outfile,"%9ld",(*dir)->size);
-      if (sflag && Dflag) fprintf(outfile,"%s",sp);
-      if (Dflag) fprintf(outfile,"%s",do_date((*dir)->mtime));
-      if (pflag || sflag || uflag || gflag || Dflag) fprintf(outfile,"]%s%s",sp,sp);
+      path[0] = 0;
+      if (inodeflag) sprintf(path," %7ld",(*dir)->inode);
+      if (devflag) sprintf(path+strlen(path), " %3d", (int)(*dir)->dev);
+      if (pflag) sprintf(path+strlen(path), " %s", prot((*dir)->mode));
+      if (uflag) sprintf(path+strlen(path), " %-8.8s", uidtoname((*dir)->uid));
+      if (gflag) sprintf(path+strlen(path), " %-8.8s", gidtoname((*dir)->gid));
+      if (sflag) sprintf(path+strlen(path), " %9ld", (*dir)->size);
+      if (Dflag) sprintf(path+strlen(path), " %s", do_date((*dir)->mtime));
+      if (path[0] == ' ') {
+	path[0] = '[';
+	if (Hflag) {
+	  int i;
+	  for(i=0;path[i];i++) {
+	    if (path[i] == ' ') fprintf(outfile,"%s",sp);
+	    else fprintf(outfile,"%c", path[i]);
+	  }
+	  fprintf(outfile,"]%s%s", sp, sp);
+	} else fprintf(outfile, "%s]  ",path);
+      }
 
       if (colorize)
 	colored = color((*dir)->mode,(*dir)->name,(*dir)->orphan,FALSE);
 
       if (fflag) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
+	if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize) path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
 	sprintf(path,"%s/%s",d,(*dir)->name);
       } else {
-	if (strlen((*dir)->name)+1 > pathsize) path=xrealloc(path,pathsize=(strlen((*dir)->name)+1024));
+	if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize) path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
 	sprintf(path,"%s",(*dir)->name);
       }
 
-      if (Hflag)
+      if (Hflag) {
 	if (Rflag && (lev == Level) && (*dir)->isdir) {
-	  fprintf(outfile,"<A HREF=\"%s%s/%s/00Tree.html\">%s</A>",host,d+1,(*dir)->name,(*dir)->name);
+	  if (nolinks) fprintf(outfile,"%s",(*dir)->name);
+	  else fprintf(outfile,"<A HREF=\"%s%s/%s/00Tree.html\">%s</A>",host,d+1,(*dir)->name,(*dir)->name);
+
 	  hdir = gnu_getcwd();
-	  hpath = (char *) xmalloc(sizeof(char)*(strlen(hdir)+strlen(d)+strlen((*dir)->name)+2));
-	  sprintf(hpath,"%s%s/%s",hdir,d+1,(*dir)->name);
-	  fprintf(stderr,"Entering directory %s\n",hpath);
-	  /*	fprintf(stderr,"tree -n -H %s%s/%s -L %d -R -o 00Tree.html %s\n",
-		host,d+1,(*dir)->name,Level+1,hpath);*/
-	  sprintf(hcmd,"tree -n -H %s%s/%s -L %d -R -o %s/00Tree.html %s\n",
-		  host,d+1,(*dir)->name,Level+1,hpath,hpath);
+	  if (sizeof(char) * (strlen(hdir)+strlen(d)+strlen((*dir)->name)+2) > pathsize)
+	    path = xrealloc(path, pathsize = sizeof(char) * (strlen(hdir)+strlen(d)+strlen((*dir)->name) + 1024));
+
+	  sprintf(path,"%s%s/%s",hdir,d+1,(*dir)->name);
+	  fprintf(stderr,"Entering directory %s\n",path);
+
+	  hcmd = xmalloc(sizeof(char) * (49 + strlen(host) + strlen(d) + strlen((*dir)->name)) + 10 + (2*strlen(path)));
+	  sprintf(hcmd,"tree -n -H %s%s/%s -L %d -R -o %s/00Tree.html %s\n", host,d+1,(*dir)->name,Level+1,path,path);
 	  system(hcmd);
+	  free(hdir);
+	  free(hcmd);
+	} else {
+	  if (nolinks) {
+	    if (force_color)
+	      fprintf(outfile, "<font color=%s>%s</font>",
+		      (*dir)->isdir  ? "blue"  :
+		      (*dir)->isexe  ? "green" :
+		      (*dir)->isfifo ? "purple":
+		      (*dir)->issok  ? "fuchsia" : "black", (*dir)->name);
+	    else
+	      fprintf(outfile,"%s%s",(*dir)->name,(*dir)->isdir? "/" : "");
+	  } else {
+	    if (force_color) {
+	      sprintf(hclr, "%s",
+		      (*dir)->isdir ?  "DIR"  :
+		      (*dir)->isexe ?  "EXEC" :
+		      (*dir)->isfifo ? "FIFO" :
+		      (*dir)->issok ?  "SOCK" : "NORM");
+	      fprintf(outfile,"<A CLASS=\"%s\" HREF=\"%s%s/%s%s\">%s%s</A>", hclr, host,d+1,(*dir)->name,
+		      ((*dir)->isdir?"/":""),(*dir)->name,((*dir)->isdir?"/":""));
+	    } else fprintf(outfile,"<A HREF=\"%s%s/%s%s\">%s%s</A>",host, d+1, (*dir)->name,
+			   (*dir)->isdir? "/" : "", (*dir)->name, (*dir)->isdir? "/" : "" );
+	  }
 	}
-	else
-	  fprintf(outfile,"<A HREF=\"%s%s/%s%s\">%s%s</A>",host,d+1,(*dir)->name,
-		  ((*dir)->isdir?"/":""),(*dir)->name,((*dir)->isdir?"/":""));
-      else printit(path);
+      } else printit(path);
 
       if (colored) fprintf(outfile,"%s",endcode);
     
-      if (Fflag && !(*dir)->lnk)
+      if (Fflag && !(*dir)->lnk) {
 	if (!dflag && (*dir)->isdir) fprintf(outfile,"/");
 	else if ((*dir)->issok) fprintf(outfile,"=");
 	else if ((*dir)->isfifo) fprintf(outfile,"|");
 	else if (!(*dir)->isdir && (*dir)->isexe) fprintf(outfile,"*");
+      }
 
       if ((*dir)->lnk && !Hflag) {
 	fprintf(outfile,"%s->%s",sp,sp);
@@ -508,6 +600,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     else dir++;
   }
   dirs[lev] = 0;
+  free(path);
   free_dir(sav);
 }
 
@@ -543,14 +636,14 @@ struct _info **read_dir(char *dir, int *n)
 
     if ((lst.st_mode & S_IFMT) != S_IFDIR && !(((st.st_mode & S_IFMT) == S_IFLNK) && lflag)) {
       if (pattern && patmatch(ent->d_name,pattern) != 1) continue;
-      if (ipattern && patmatch(ent->d_name,ipattern) == 1) continue;
     }
+    if (ipattern && patmatch(ent->d_name,ipattern) == 1) continue;
 
     if (dflag && ((st.st_mode & S_IFMT) != S_IFDIR)) continue;
     if (pattern && ((st.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue;
 
 
-    if (p == (ne-1)) dl = (struct _info **)xrealloc(dl,sizeof(struct _info) * (ne += MINC));
+    if (p == (ne-1)) dl = (struct _info **)xrealloc(dl,sizeof(struct _info *) * (ne += MINC));
     dl[p] = (struct _info *)xmalloc(sizeof(struct _info));
 
     dl[p]->name = scopy(ent->d_name);
@@ -558,7 +651,7 @@ struct _info **read_dir(char *dir, int *n)
     dl[p]->uid = lst.st_uid;
     dl[p]->gid = lst.st_gid;
     dl[p]->size = lst.st_size;
-    dl[p]->dev = lst.st_dev;
+    dl[p]->dev = st.st_dev;
     dl[p]->inode = st.st_ino;
     dl[p]->lnk = NULL;
     dl[p]->orphan = FALSE;
@@ -942,6 +1035,8 @@ void parse_dir_colors()
   int i;
   struct extensions *e;
 
+  if (Hflag) return;
+
   if ((s=getenv("TERM")) == NULL) {
     colorize = FALSE;
     return;
@@ -1014,12 +1109,9 @@ void parse_dir_colors()
       if (c[1]) {
 	e = xmalloc(sizeof(struct extensions));
 	e->ext = scopy(c[0]+1);
-	e->flgs = scopy(c[1]);
-	if (ext == NULL) ext = e;
-	else {
-	  e->nxt = ext;
-	  ext = e;
-	}
+	e->term_flg = scopy(c[1]);
+	e->nxt = ext;
+	ext = e;
       }
     default:
     }
@@ -1040,16 +1132,20 @@ void parse_dir_colors()
 
 char **parse(char *b)
 {
-  static char *arg[100];
+  static int n = 1000;
+  static char **arg = NULL;
   int i;
 
+  if (!arg) arg = malloc(sizeof(char *) * n);
   for(i=0;*b;b++) {
     while(*b && *b == ':') b++;
+    if (i == (n-1)) arg = realloc(arg,sizeof(char *) * (n+=500));
     arg[i++] = b;
     while(*b && *b != ':') b++;
     if (!*b) break;
     *b = 0;
   }
+  if (i == (n-1)) arg = realloc(arg,sizeof(char *) * (n+=50));
   arg[i] = NULL;
   return arg;
 }
@@ -1107,7 +1203,7 @@ int color(u_short mode, char *name, char orphan, char islink)
   l = strlen(name);
   for(e=ext;e;e=e->nxt) {
     if (!strcmp(name+(l-strlen(e->ext)),e->ext)) {
-      fprintf(outfile,"%s%s%s",leftcode,e->flgs,rightcode);
+      fprintf(outfile,"%s%s%s",leftcode,e->term_flg,rightcode);
       return TRUE;
     }
   }

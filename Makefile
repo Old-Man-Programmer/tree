@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 1999 by Steve Baker
+# Copyright (c) 1996 - 2001 by Steve Baker
 # All Rights reserved
 #
 # This software is provided as is without any express or implied
@@ -10,7 +10,7 @@ CC=gcc
 CFLAGS=-O2 -Wall -fomit-frame-pointer #-m486
 LDFLAGS=-s
 
-VERSION=1.3
+VERSION=1.4
 TREE_DEST=tree
 BINDIR=/usr/local/bin
 MAN=tree.1
@@ -24,21 +24,22 @@ tree:	tree.o
 tree.o:	tree.c
 
 clean:
-	if [ -e $(TREE_DEST) ]; then rm $(TREE_DEST); fi
-	if [ -e tree.o ]; then rm *.o; fi
+	if [ -x $(TREE_DEST) ]; then rm $(TREE_DEST); fi
+	if [ -f tree.o ]; then rm *.o; fi
 	rm -f *~
 
 install:
-	install -d $(BINDIR) $(MANDIR)
+	install -d $(BINDIR)
+	install -d $(MANDIR)
 	if [ -e $(TREE_DEST) ]; then \
 		install -s $(TREE_DEST) $(BINDIR)/$(TREE_DEST); \
 	fi
 	install $(MAN) $(MANDIR)/$(MAN)
 
 distclean:
-	if [ -e tree.o ]; then rm *.o; fi
+	if [ -f tree.o ]; then rm *.o; fi
 	rm -f *~
 	
 
 dist:	distclean
-	tar zcf ../tree-$(VERSION).tgz -C .. tree-$(VERSION)/
+	tar zcf ../tree-$(VERSION).tgz -C .. `cat .tarball`
