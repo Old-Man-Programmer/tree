@@ -2,16 +2,38 @@
 I wrote some time ago and just added color support to.  I've decided that
 since no one else has done something simular I would go ahead and release
 it, even though it's barely a 1st year CS student hack.  I've found it damn
-handy to peruse a directory tree though, specially when someone is trying to
+handy to peruse a directory tree though, especially when someone is trying to
 hide something from you.
 
-  If you don't like the way it looks let me know how you think it should be
-formatted.
+  The main distribution site for tree is here:
 
-  As always, feel free to use and abuse this peice of fluff.  Feel free to
-suggest modifications to it, but I'm not going to take criticisms on this
-one, since quite frankly, if you can't code something like this yourself,
-what the hell are you complaining about?
+  ftp://mama.indstate.edu/linux/tree/
+
+  If you don't like the way it looks let me know how you think it should be
+formatted. Free free to use and abuse and do with as you please.  Also feel
+free to suggest modifications and additions.
+
+  Thanks go out so the following people who have helped bring tree to the
+pinnacle of perfection that it is: ;)
+
+Francesc Rocher
+  - Added HTML output (-H).
+  - Added options -o, -L and -R.
+
+Gerald Scheidl
+  - Added -S option to print ASCII graphics lines for use under linux
+    console when an alternate console font has been selected (might also
+    work under DOS telnet).
+
+Guido Socher (and others)
+  - Made tree more portable.  Should compile under solaris.
+
+Mitja Lacen
+  - Discovered bug where tree will segmentation fault on long pathnames.
+  - Discovered in -L argument processing.
+
+And many others whom I've failed to keep track of.  I should have started
+this list years ago.
 
 						- Steve Baker
 						  ice@mama.indstate.edu

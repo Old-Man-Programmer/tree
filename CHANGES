@@ -1,3 +1,19 @@
+Version 1.3
+  - Fixed long pathname problem by dynamically allocating the path.
+  - Added recursive symlink detection.
+  - Added --help and --version options.
+  - When -C is used and LS_COLORS is undefined, tree uses a default color
+    scheme (thus -C always forces color output now).
+  - Added -S to show ASCII tree lines (Gerald Scheidl)
+  - Made tree more portable (Guido Socher and others)
+
+  Following options curtsey of Francesc Rocher:
+  - Added -o <filename> to redirect the output.
+  - Added -H <baseHRef> to print the tree in HTML format.
+  - Added -L to set the maximum level of directories to print.
+  - Added -R to recursively reestart the search at the level given by `-L'
+    option (adding as well `-o 00Tree.html').
+
 Version 1.2
   - Added -D to print the date of the last modification.
   - Added -t option to sort by last modification time (ala ls -t).

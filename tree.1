@@ -1,5 +1,5 @@
 .\" $Copyright: $
-.\" Copyright (c) 1996 by Steve Baker
+.\" Copyright (c) 1996 - 1999 by Steve Baker
 .\" All Rights reserved
 .\"
 .\" This software is provided as is without any express or implied
@@ -7,12 +7,12 @@
 .\" of merchantability and fitness for a particular purpose.
 .\"
 ...
-.V= $Header: tree.1 1.2 1996,1997 $
+.V= $Header: tree.1 1.3 1996 - 1999 $
 .TH TREE 1 "\*(V)" "UNIX Programmer's Manual"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
-\fBtree\fP [ \fB-adfgilnpqstuxACDFN\fP ] [ \fB-P\fP \fIpattern\fP ] [ \fB-I\fP \fIpattern\fP ] [ \fIdirectory\fP ... ]
+\fBtree\fP [ \fB-adfgilnopqstuxACDFNS\fP ] [ \fB-L\fP \fIlevel\fP [ \fB-R\fP ]] [ \fB-H\fP \fIbaseHREF\fP ] [ \fB-P\fP \fIpattern\fP ] [ \fB-I\fP \fIpattern\fP ] [ \fIdirectory\fP ... ]
 .br
 .SH DESCRIPTION
 \fITree\fP is a recursive directory listing program that produces a depth
@@ -40,6 +40,14 @@ it were a real directory.
 \fITree\fP understands the following command line switches:
 
 .TP
+.B --help
+Outputs a verbose usage listing.
+.PP
+.TP
+.B --version
+Outputs the version of tree.
+.PP
+.TP
 .B -a
 All files are printed.  By default tree does not print hidden files (those
 beginning with a dot `.').  In no event does tree print the file system
@@ -60,7 +68,9 @@ with the \fB-f\fP option.
 .PP
 .TP
 .B -l
-Follows symbolic links if they point to directories, as if they were directories.
+Follows symbolic links if they point to directories, as if they were
+directories. Symbolic links that will result in recursion are avoided when
+detected.
 .PP
 .TP
 .B -x
@@ -82,6 +92,10 @@ Do not list those files that match the wild-card \fIpattern\fP.
 .TP
 .B -p
 Print the protections for each file (as per ls -l).
+.PP
+.TP
+.B -o \fIfilename\fP
+Send output to \fIfilename\fP.
 .PP
 .TP
 .B -s
@@ -123,12 +137,36 @@ Turn colorization off always, over-ridden by the \fB-C\fP option.
 .PP
 .TP
 .B -C
-Turn colorization on always, unless the LS_COLORS environment variable
-is not set.  Useful to colorize output to a pipe.
+Turn colorization on always, using built-in color defaults if the LS_COLORS
+environment variable is not set.  Useful to colorize output to a pipe.
 .PP
 .TP
 .B -A
 Turn on ANSI line graphics hack when printing the indentation lines.
+.PP
+.TP
+.B -S
+Turn on ASCII line graphics (useful when using linux console mode fonts).
+.PP
+.TP
+.B \fB-L \fIlevel\fP
+Max display depth of the directory tree.
+.PP
+.TP
+.B \fB-R\fP
+Recursively cross down the tree each \fIlevel\fP directories (see \fB-L\fP
+option), and at each of them execute \fBtree\fP again adding `-o 00Tree.html'
+as a new option.
+.PP
+.TP
+.B \fB-H \fIbaseHREF\fP
+Turn on HTML output, including HTTP references. Useful for ftp sites.
+\fIbaseHREF\fP gives the base ftp location when using HTML output. That is, the local
+directory may be `/local/ftp/pub', but it must be referenced as
+`ftp://hostname.organization.domain/pub' (\fIbaseHREF\fP should be
+`ftp://hostname.organization.domain/'). Hint: don't use colorization and/or
+ANSI lines with this option, and don't give more than one directory in the
+directory list.
 .PP
 .br
 .SH FILES
@@ -142,10 +180,13 @@ Turn on ANSI line graphics hack when printing the indentation lines.
 
 .SH AUTHOR
 Steve Baker (ice@mama.indstate.edu)
+.br
+HTML output hacked by Francesc Rocher (rocher@econ.udg.es)
 
 .SH BUGS
-None known.  Not heavily tested.  Needs a few more options, ala ls.
+None known.  Not heavily tested.  Could use a few more options, ala ls.
 
 .SH SEE ALSO
 .BR dircolors (1L),
-.BR ls (1L)
+.BR ls (1L),
+.BR find (1L)
