@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2001 by Steve Baker
+# Copyright (c) 1996 - 2004 by Steve Baker
 # All Rights reserved
 #
 # This software is provided as is without any express or implied
@@ -7,20 +7,33 @@
 # of merchant-ability and fitness for a particular purpose.
 
 CC=gcc
-CFLAGS=-O2 -Wall -fomit-frame-pointer -DLINUX_BIGFILE #-m486
+#CFLAGS=-ggdb -Wall -DLINUX_BIGFILE
+CFLAGS=-O2 -Wall -fomit-frame-pointer -DLINUX_BIGFILE
 LDFLAGS=-s
+
+# Uncomment for FreeBSD:
+#CC=gcc
+#CFLAGS=-O2 -Wall -fomit-frame-pointer
+#LDFLAGS=-s
+
 # Uncomment for OS X:
 #CC=cc
 #CFLAGS=-O2 -Wall -fomit-frame-pointer -no-cpp-precomp
 #LDFLAGS=
+
 # Uncomment for HP/UX:
 #CC=cc
 #CFLAGS=-Ae +O2 +DAportable -Wall
 #LDFLAGS=
 
+# Uncomment for OS/2:
+#CC=gcc
+#CFLAGS=-02 -Wall -fomit-frame-pointer -Zomf -Zsmall-conv
+#LDFLAGS=-s -Zomf -Zsmall-conv
+
 prefix = /usr/local
 
-VERSION=1.4
+VERSION=1.5.0
 TREE_DEST=tree
 BINDIR=${prefix}/bin
 MAN=tree.1
