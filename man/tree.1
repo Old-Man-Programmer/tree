@@ -1,5 +1,5 @@
 .\" $Copyright: $
-.\" Copyright (c) 1996 - 2004 by Steve Baker
+.\" Copyright (c) 1996 - 2007 by Steve Baker
 .\" All Rights reserved
 .\"
 .\" This program is free software; you can redistribute it and/or modify
@@ -17,11 +17,11 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "\*(V)" "Tree 1.5.0"
+.TH TREE 1 "\*(V)" "Tree 1.5.1.1"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
-\fBtree\fP [\fB-adfgilnopqrstuxACDFNS\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fIdirectory\fP ...]
+\fBtree\fP [\fB-adfghilnopqrstuxACDFNS\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fIdirectory\fP ...]
 .br
 .SH DESCRIPTION
 \fITree\fP is a recursive directory listing program that produces a depth
@@ -105,11 +105,17 @@ listing.
 .PP
 .TP
 .B -p
-Print the protections for each file (as per ls -l).
+Print the file type and permissions for each file (as per ls -l).
 .PP
 .TP
 .B -s
-Print the size of each file along with the name.
+Print the size of each file in bytes along with the name.
+.PP
+.TP
+.B -h
+Print the size of each file but in a more human readable way, e.g. appending a
+size letter for kilobytes (K), megabytes (M), gigabytes (G), terrabytes (T),
+petabytes (P) and exabytes (E).
 .PP
 .TP
 .B -u
@@ -139,7 +145,7 @@ and a `|' for FIFO's, as per ls -F
 .TP
 .B -q
 Print non-printable characters in filenames as question marks instead of the default
-carrot notation.
+caret notation.
 .PP
 .TP
 .B -N
@@ -237,7 +243,13 @@ Charsets and OS/2 support by Kyosuke Tokoro (NBG01720@nifty.ne.jp)
 .SH BUGS
 Tree does not prune "empty" directories when the -P and -I options are used.
 Tree prints directories as it comes to them, so cannot accumulate information
-on files and directories beneath the directory it is printing. Probably more.
+on files and directories beneath the directory it is printing.
+
+The -h option rounds to the nearest whole number unlike the ls implementation
+of -h which rounds up always.  The IEC standard names for powers of 2
+cooresponding to metric powers of 10 (KiBi, et al.) are gay.
+
+Probably more.
 
 .SH SEE ALSO
 .BR dircolors (1L),

@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2004 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2007 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,13 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef LINUX_BIGFILE
-#  define _LARGEFILE64_SOURCE
-#else
-#  define stat64 stat
-#  define lstat64 lstat
-#endif
-
+#include <features.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -48,7 +42,6 @@
    * But the OS/2 does not support symbolic links and doesn't have lstat() function.
    */
 #  define         lstat          stat
-#  define         PATH_MAX       _MAX_PATH
 #  define         strcasecmp     stricmp
   /* Following two functions, getcwd() and chdir() don't support for drive letters.
    * To implement support them, use _getcwd2() and _chdir2().
@@ -61,8 +54,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
-static char *version ="$Version: $ tree v1.5.0 (c) 1996 - 2004 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
-static char *hversion="\t\t\t tree v1.5.0 %s 1996 - 2004 by Steve Baker and Thomas Moore <br>\n"
+static char *version ="$Version: $ tree v1.5.1.1 (c) 1996 - 2007 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
+static char *hversion="\t\t\t tree v1.5.1.1 %s 1996 - 2007 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
 
@@ -84,11 +77,7 @@ struct _info {
   u_char isfifo : 1;
   u_char orphan : 1;
   u_short mode, lnkmode, uid, gid;
-#ifdef LINUX_BIGFILE
-  long long size;
-#else
-  u_long size;
-#endif
+  off_t size;
   time_t atime, ctime, mtime;
   dev_t dev;
   ino_t inode;
@@ -167,7 +156,8 @@ char *gnu_getcwd();
 struct _info **read_dir(char *, int *);
 void html_encode(FILE *, char *), url_encode(FILE *, char *);
 const char *getcharset(void);
-void initlinedraw(void);
+void initlinedraw(int);
+void psize(char *buf, off_t size);
 #ifdef __EMX__
   char *prot(long);
 #else
@@ -176,7 +166,7 @@ void initlinedraw(void);
 
 /* Globals */
 int dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-int qflag, Nflag, Dflag, inodeflag, devflag;
+int qflag, Nflag, Dflag, inodeflag, devflag, hflag;
 int noindent, force_color, nocolor, xdev, noreport, nolinks;
 char *pattern = NULL, *ipattern = NULL, *host = NULL, *title = "Directory Tree", *sp = " ";
 const char *charset=NULL;
@@ -189,20 +179,25 @@ char *sLevel, *curdir, *outfilename = NULL;
 FILE *outfile;
 int *dirs, maxdirs;
 
+#ifdef CYGWIN
+extern int MB_CUR_MAX;
+#else
 extern size_t MB_CUR_MAX;
+#endif
 
 int main(int argc, char **argv)
 {
   char **dirname = NULL;
   int i,j,n,p,q,dtotal,ftotal,colored = FALSE;
-  struct stat64 st;
+  struct stat st;
 
   q = p = dtotal = ftotal = 0;
   aflag = dflag = fflag = lflag = pflag = sflag = Fflag = uflag = gflag = FALSE;
-  Dflag = qflag = Nflag = Hflag = Rflag = FALSE;
+  Dflag = qflag = Nflag = Hflag = Rflag = hflag = FALSE;
   noindent = force_color = nocolor = xdev = noreport = nolinks = FALSE;
   inodeflag = devflag = FALSE;
   dirs = xmalloc(sizeof(int) * (maxdirs=4096));
+  dirs[0] = 0;
   Level = -1;
 
   setlocale(LC_CTYPE, "");
@@ -230,6 +225,10 @@ int main(int argc, char **argv)
 	  break;
 	case 's':
 	  sflag = TRUE;
+	  break;
+	case 'h':
+	  hflag = TRUE;
+	  sflag = TRUE; /* Assume they also want -s */
 	  break;
 	case 'u':
 	  uflag = TRUE;
@@ -362,13 +361,20 @@ int main(int argc, char **argv)
 	    }
 	    if (!strncmp("--charset",argv[i],9)){
 	      j = 9;
-	      if (*(argv[i]+j) == '=')
+	      if (*(argv[i]+j) == '=') {
 		if (*(charset=(argv[i]+10))) {
 		  j = strlen(argv[i])-1;
 		  break;
 		}
-	      if (argv[n] != NULL)
+	      }
+	      if (argv[n] != NULL) {
 		charset=argv[n++];
+		j = strlen(argv[i])-1;
+	      } else {
+		initlinedraw(1);
+		exit(1);
+	      }
+	      break;
 	    }
 	  }
 	default:
@@ -405,7 +411,7 @@ int main(int argc, char **argv)
   }
 
   parse_dir_colors();
-  initlinedraw();
+  initlinedraw(0);
 
   if (Rflag && (Level == -1))
     Rflag = FALSE;
@@ -460,7 +466,13 @@ int main(int argc, char **argv)
 
   if (dirname) {
     for(colored=i=0;dirname[i];i++,colored=0) {
-      if ((n = lstat64(dirname[i],&st)) >= 0) {
+      if (fflag) {
+	do {
+	  j=strlen(dirname[i]);
+	  if (j > 1 && dirname[i][j-1] == '/') dirname[i][--j] = 0;
+	} while (j > 1 && dirname[i][j-1] == '/');
+      }
+      if ((n = lstat(dirname[i],&st)) >= 0) {
 	saveino(st.st_ino, st.st_dev);
 	if (colorize) colored = color(st.st_mode,dirname[i],n<0,FALSE);
       }
@@ -478,7 +490,7 @@ int main(int argc, char **argv)
       }
     }
   } else {
-    if ((n = lstat64(".",&st)) >= 0) {
+    if ((n = lstat(".",&st)) >= 0) {
       saveino(st.st_ino, st.st_dev);
       if (colorize) colored = color(st.st_mode,".",n<0,FALSE);
     }
@@ -513,7 +525,7 @@ int main(int argc, char **argv)
 }
 
 /*
-usage: tree [-adfgilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]
+usage: tree [-adfghilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]
 	[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]
 	[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]
 	[<directory list>]
@@ -522,10 +534,10 @@ void usage(int n)
 {
   switch(n) {
     case 1:
-      fprintf(stderr,"usage: tree [-adfgilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]\n\t[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]\n\t[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]\n\t[<directory list>]\n");
+      fprintf(stderr,"usage: tree [-adfghilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]\n\t[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]\n\t[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]\n\t[<directory list>]\n");
       break;
     case 2:
-      fprintf(stderr,"usage: tree [-adfgilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]\n\t[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]\n\t[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]\n\t[<directory list>]\n");
+      fprintf(stderr,"usage: tree [-adfghilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]\n\t[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]\n\t[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]\n\t[<directory list>]\n");
       fprintf(stderr,"    -a          All files are listed.\n");
       fprintf(stderr,"    -d          List directories only.\n");
       fprintf(stderr,"    -l          Follow symbolic links like directories.\n");
@@ -537,6 +549,7 @@ void usage(int n)
       fprintf(stderr,"    -u          Displays file owner or UID number.\n");
       fprintf(stderr,"    -g          Displays file group owner or GID number.\n");
       fprintf(stderr,"    -s          Print the size in bytes of each file.\n");
+      fprintf(stderr,"    -h          Print the size in a more human readable way.\n");
       fprintf(stderr,"    -D          Print the date of last modification.\n");
       fprintf(stderr,"    -F          Appends '/', '=', '*', or '|' as per ls -F.\n");
       fprintf(stderr,"    -r          Sort files in reverse alphanumeric order.\n");
@@ -569,7 +582,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   char *path, nlf = FALSE, colored = FALSE;
   long pathsize = 0;
   struct _info **dir, **sav;
-  struct stat64 sb;
+  struct stat sb;
   int n,m,e;
   char hclr[20], *hdir, *hcmd;
 
@@ -581,7 +594,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   }
 
   if (xdev && lev == 0) {
-    stat64(d,&sb);
+    stat(d,&sb);
     dev = sb.st_dev;
   }
 
@@ -606,7 +619,11 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     if (!noindent) indent();
 
     path[0] = 0;
+#ifdef __USE_FILE_OFFSET64
+    if (inodeflag) sprintf(path," %7lld",(*dir)->inode);
+#else
     if (inodeflag) sprintf(path," %7ld",(*dir)->inode);
+#endif
     if (devflag) sprintf(path+strlen(path), " %3d", (int)(*dir)->dev);
 #ifdef __EMX__
     if (pflag) sprintf(path+strlen(path), " %s",prot((*dir)->attr));
@@ -615,11 +632,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 #endif
     if (uflag) sprintf(path+strlen(path), " %-8.8s", uidtoname((*dir)->uid));
     if (gflag) sprintf(path+strlen(path), " %-8.8s", gidtoname((*dir)->gid));
-#ifdef LINUX_BIGFILE
-    if (sflag) sprintf(path+strlen(path), " %11lld", (*dir)->size);
-#else
-    if (sflag) sprintf(path+strlen(path), " %9ld", (*dir)->size);
-#endif
+    if (sflag) psize(path+strlen(path),(*dir)->size);
     if (Dflag) sprintf(path+strlen(path), " %s", do_date((*dir)->mtime));
     if (path[0] == ' ') {
       path[0] = '[';
@@ -639,7 +652,8 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     if (fflag) {
       if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
 	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      sprintf(path,"%s/%s",d,(*dir)->name);
+      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
+      else sprintf(path,"%s/%s",d,(*dir)->name);
     } else {
       if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
 	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
@@ -742,7 +756,8 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 	      listdir((*dir)->lnk,dt,ft,lev+1,dev);
 	    else {
 	      if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	      sprintf(path,"%s/%s",d,(*dir)->lnk);
+	      if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
+	      else sprintf(path,"%s/%s",d,(*dir)->lnk);
 	      listdir(path,dt,ft,lev+1,dev);
 	    }
 	    nlf = TRUE;
@@ -750,7 +765,8 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 	}
       } else if (!(xdev && dev != (*dir)->dev)) {
 	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	sprintf(path,"%s/%s",d,(*dir)->name);
+	if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
+	else sprintf(path,"%s/%s",d,(*dir)->name);
 	saveino((*dir)->inode, (*dir)->dev);
 	listdir(path,dt,ft,lev+1,dev);
 	nlf = TRUE;
@@ -771,13 +787,14 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 struct _info **read_dir(char *dir, int *n)
 {
   static char *path = NULL, *lbuf = NULL;
-  static long pathsize = PATH_MAX+1, lbufsize = PATH_MAX+1;
+  static long pathsize, lbufsize;
   struct _info **dl;
   struct dirent *ent;
-  struct stat64 lst,st;
+  struct stat lst,st;
   DIR *d;
   int ne, p = 0, len, rs;
 
+  pathsize = lbufsize = strlen(dir)+4096;
   if (path == NULL) {
     path=xmalloc(pathsize);
     lbuf=xmalloc(lbufsize);
@@ -795,8 +812,8 @@ struct _info **read_dir(char *dir, int *n)
 
     if (strlen(dir)+strlen(ent->d_name)+2 > pathsize) path = xrealloc(path,pathsize=(strlen(dir)+strlen(ent->d_name)+4096));
     sprintf(path,"%s/%s",dir,ent->d_name);
-    if (lstat64(path,&lst) < 0) continue;
-    if ((rs = stat64(path,&st)) < 0) st.st_mode = 0;
+    if (lstat(path,&lst) < 0) continue;
+    if ((rs = stat(path,&st)) < 0) st.st_mode = 0;
 
 #ifndef __EMX__
     if ((lst.st_mode & S_IFMT) != S_IFDIR && !(((st.st_mode & S_IFMT) == S_IFLNK) && lflag)) {
@@ -1208,6 +1225,19 @@ void printit(unsigned char *s)
   }
 }
 
+void psize(char *buf, off_t size)
+{
+  char *unit="BKMGTPEZY";
+  int idx;
+
+  if (!hflag) sprintf(buf, sizeof(off_t) == sizeof(long long)? " %11lld" : " %9ld", size);
+  else {
+    for (idx=size<1024?0:1; size >= (1024*1024); idx++,size>>=10);
+    if (!idx) sprintf(buf, " %4d", (int)size);
+    else sprintf(buf, ((size>>10) >= 10)? " %3.0f%c" : " %3.1f%c", (float)size/(float)1024,unit[idx]);
+  }
+}
+
 void html_encode(FILE *fd, char *s)
 {
   for(;*s;s++) {
@@ -1327,7 +1357,7 @@ void parse_dir_colors()
   }
 
   s = getenv("LS_COLORS");
-  if (s == NULL && force_color) s = ":no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
+  if ((s == NULL || strlen(s) == 0) && force_color) s = ":no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
 
 
   if (s == NULL || (!force_color && (nocolor || !isatty(1)))) {
@@ -1473,14 +1503,6 @@ int color(u_short mode, char *name, char orphan, char islink)
       }
     }
   }
-  l = strlen(name);
-  for(e=ext;e;e=e->nxt) {
-   xl = strlen(e->ext);
-   if (!strcmp((l>xl)?name+(l-xl):name,e->ext)) {
-      fprintf(outfile,"%s%s%s",leftcode,e->term_flg,rightcode);
-      return TRUE;
-    }
-  }
   switch(mode & S_IFMT) {
   case S_IFIFO:
     if (!fifo_flgs) return FALSE;
@@ -1514,11 +1536,19 @@ int color(u_short mode, char *name, char orphan, char islink)
       fprintf(outfile,"%s%s%s",leftcode,exec_flgs,rightcode);
       return TRUE;
     }
+    /* not a directory, link, special device, etc, so check for extension match */
+    l = strlen(name);
+    for(e=ext;e;e=e->nxt) {
+      xl = strlen(e->ext);
+      if (!strcmp((l>xl)?name+(l-xl):name,e->ext)) {
+	fprintf(outfile,"%s%s%s",leftcode,e->term_flg,rightcode);
+	return TRUE;
+      }
+    }
     return FALSE;
   }
   return FALSE;
 }
-
 
 /*
  * Charsets provided by Kyosuke Tokoro (NBG01720@nifty.ne.jp)
@@ -1590,7 +1620,7 @@ const char *getcharset(void)
 #endif
 }
 
-void initlinedraw(void)
+void initlinedraw(int flag)
 {
   const static char*latin1_3[]={
     "ISO-8859-1", "ISO-8859-1:1987", "ISO_8859-1", "latin1", "l1", "IBM819",
@@ -1672,7 +1702,14 @@ void initlinedraw(void)
   };
   const char**s;
 
-  if(charset)
+  if (flag) {
+    fprintf(stderr,"tree: missing argument to --charset, valid charsets include:\n");
+    for(linedraw=cstable;linedraw->name;++linedraw)
+      for(s=linedraw->name;*s;++s)
+	fprintf(stderr,"  %s\n",*s);
+    return;
+  }
+  if (charset)
     for(linedraw=cstable;linedraw->name;++linedraw)
       for(s=linedraw->name;*s;++s)
 	if(!strcasecmp(charset,*s))

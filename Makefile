@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2004 by Steve Baker
+# Copyright (c) 1996 - 2007 by Steve Baker
 # All Rights reserved
 #
 # This software is provided as is without any express or implied
@@ -7,14 +7,21 @@
 # of merchant-ability and fitness for a particular purpose.
 
 CC=gcc
-#CFLAGS=-ggdb -Wall -DLINUX_BIGFILE
-CFLAGS=-O2 -Wall -fomit-frame-pointer -DLINUX_BIGFILE
+#CFLAGS=-ggdb -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS=-O2 -Wall -fomit-frame-pointer -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 LDFLAGS=-s
 
 # Uncomment for FreeBSD:
 #CC=gcc
 #CFLAGS=-O2 -Wall -fomit-frame-pointer
 #LDFLAGS=-s
+
+# Uncomment for Cygwin:
+#CC=gcc
+#CFLAGS=-O2 -Wall -fomit-frame-pointer -DCYGWIN
+#LDFLAGS=-s
+#TREE_DEST=tree.exe
+## Comment out TREE_DEST definition below as well for Cygwin
 
 # Uncomment for OS X:
 #CC=cc
@@ -31,9 +38,9 @@ LDFLAGS=-s
 #CFLAGS=-02 -Wall -fomit-frame-pointer -Zomf -Zsmall-conv
 #LDFLAGS=-s -Zomf -Zsmall-conv
 
-prefix = /usr/local
+prefix = /usr
 
-VERSION=1.5.0
+VERSION=1.5.1.1
 TREE_DEST=tree
 BINDIR=${prefix}/bin
 MAN=tree.1
@@ -57,7 +64,7 @@ install:
 	if [ -e $(TREE_DEST) ]; then \
 		install -s $(TREE_DEST) $(BINDIR)/$(TREE_DEST); \
 	fi
-	install $(MAN) $(MANDIR)/$(MAN)
+	install man/$(MAN) $(MANDIR)/$(MAN)
 
 distclean:
 	if [ -f tree.o ]; then rm *.o; fi

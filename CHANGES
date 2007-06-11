@@ -1,3 +1,16 @@
+Version 1.5.1.1
+  - Regression in HTML output, fixed formatting issues.
+
+Version 1.5.1
+  - Remove extraneous / at end of user input directory names when using -f
+    option (Zurd)
+  - List available charsets if --charset option is missing charset argument.
+  - Fixed --charset option processing bug.
+  - Fixed missing <br>'s when -i option used with -H.
+  - Added -h option for human readable output.
+  - Colorization bugfix for special files and directories (make tree behave as
+    ls does)
+
 Version 1.5.0
   - Added -T option to change title and H1 header in HTML output.
   - Added -r option to reverse alpha sort output, ala. 'ls -r'.

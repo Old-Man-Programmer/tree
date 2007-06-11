@@ -53,6 +53,7 @@ Mitsuaki Masuhara
   - Discovered tree crashed on missing arguments.
   - Discovered that tree did not properly encode characters in filenames
     when used as URLs when using the -H option.
+  - Fixed issue with --charset option processing.
 
 Johan Fredrik
   - Pointed out that tree did not list large files.
@@ -78,6 +79,23 @@ Kyosuke Tokoro
 Florian Ernst
   - Debian maintainer who pointed out problems and applied fire to feet to fix
     stuff.
+
+Jack Cuyler
+  - Suggested -h option for human readable output for -s, ala ls -lh.
+
+Jonathon Cranford
+  - Supplied patch to make tree under cygwin.
+
+Richard Houser
+  - Provided patch to fix a colorization bug when dealing with special
+    files and directories that seem to have an extension.
+
+Zurd (?)
+  - Suggested removing trailing slash on user supplied directory names if -f
+    option is used.
+
+John Nintendud
+  - Pointed out broken HTML output in 1.5.1.
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
