@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2007 by Steve Baker
+# Copyright (c) 1996 - 2008 by Steve Baker
 # All Rights reserved
 #
 # This software is provided as is without any express or implied
@@ -7,8 +7,8 @@
 # of merchant-ability and fitness for a particular purpose.
 
 CC=gcc
-#CFLAGS=-ggdb -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS=-O2 -Wall -fomit-frame-pointer -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+#CFLAGS=-ggdb -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS=-O2 -Wall -fomit-frame-pointer -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 LDFLAGS=-s
 
 # Uncomment for FreeBSD:
@@ -40,7 +40,7 @@ LDFLAGS=-s
 
 prefix = /usr
 
-VERSION=1.5.1.1
+VERSION=1.5.1.2
 TREE_DEST=tree
 BINDIR=${prefix}/bin
 MAN=tree.1

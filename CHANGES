@@ -1,3 +1,7 @@
+Version 1.5.1.2
+  - Fixed compile issues related to MB_CUR_MAX on non-linux machines.
+  - Removed unecessary features.h
+
 Version 1.5.1.1
   - Regression in HTML output, fixed formatting issues.
 

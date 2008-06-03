@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2007 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2008 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <features.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -54,8 +53,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
-static char *version ="$Version: $ tree v1.5.1.1 (c) 1996 - 2007 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
-static char *hversion="\t\t\t tree v1.5.1.1 %s 1996 - 2007 by Steve Baker and Thomas Moore <br>\n"
+static char *version ="$Version: $ tree v1.5.1.2 (c) 1996 - 2008 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
+static char *hversion="\t\t\t tree v1.5.1.2 %s 1996 - 2008 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
 
@@ -179,10 +178,13 @@ char *sLevel, *curdir, *outfilename = NULL;
 FILE *outfile;
 int *dirs, maxdirs;
 
-#ifdef CYGWIN
+#if defined (CYGWIN)
 extern int MB_CUR_MAX;
-#else
+#elif defined (LINUX)
 extern size_t MB_CUR_MAX;
+#else 
+#define MB_CUR_MAX mb_cur_max
+int mb_cur_max = 0;
 #endif
 
 int main(int argc, char **argv)
