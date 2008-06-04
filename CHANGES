@@ -1,16 +1,3 @@
-Version 1.5.2.2
-  - Set locale before checking MB_CUR_MAX.
-  - Added HP-NonStop platform support (Craig McDaniel <craigmcd@gmail.com>)
-  - Fixed to support 32 bit UID/GIDs.
-  - Added Solaris build options to Makefile (edit and uncomment to use).
-    Provided by Wang Quanhong
-
-Version 1.5.2.1
-  - Added strverscmp.c file for os's without strverscmp.  Source file is
-    attributed to: Jean-Franois Bignolles <bignolle@ecoledoc.ibp.fr>
-  - Try different approach to MB_CUR_MAX problem.
-  - Changed the argument to printit() to be signed char to avoid warnings.
-
 Version 1.5.2
   - Added --filelimit X option to not descend directories that have more than
     X number of files in them.

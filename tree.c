@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2009 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2008 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,15 +26,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef __TANDEM
-#  include <strings.h>
-#  define S_IEXEC  S_IXUSR
-#  define S_IREAD  S_IRUSR
-#  define S_IWRITE S_IWUSR
-#else
-#   include <sys/file.h>
-#endif
 #include <dirent.h>
+#include <sys/file.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <limits.h>
@@ -62,8 +55,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
-static char *version ="$Version: $ tree v1.5.2.2 (c) 1996 - 2009 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
-static char *hversion="\t\t\t tree v1.5.2.2 %s 1996 - 2009 by Steve Baker and Thomas Moore <br>\n"
+static char *version ="$Version: $ tree v1.5.2 (c) 1996 - 2008 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
+static char *hversion="\t\t\t tree v1.5.2 %s 1996 - 2008 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
 
@@ -84,9 +77,7 @@ struct _info {
   u_char isexe  : 1;
   u_char isfifo : 1;
   u_char orphan : 1;
-  u_short mode, lnkmode;
-  uid_t uid;
-  gid_t gid;
+  u_short mode, lnkmode, uid, gid;
   off_t size;
   time_t atime, ctime, mtime;
   dev_t dev;
@@ -159,7 +150,7 @@ int dirsfirstsort(struct _info **, struct _info **);
 int findino(ino_t, dev_t);
 void *xmalloc(size_t), *xrealloc(void *, size_t);
 void listdir(char *, int *, int *, u_long, dev_t), usage(int);
-void parse_dir_colors(), printit(char *), free_dir(struct _info **), indent();
+void parse_dir_colors(), printit(unsigned char *), free_dir(struct _info **), indent();
 void saveino(ino_t, dev_t);
 char **split(char *, char *, int *);
 char *gidtoname(int), *uidtoname(int), *do_date(time_t);
@@ -173,11 +164,6 @@ void psize(char *buf, off_t size);
   char *prot(long);
 #else
   char *prot(u_short);
-#endif
-
-/* We use the strverscmp.c file if we're not linux */
-#if ! defined (LINUX)
-int strverscmp (const char *s1, const char *s2);
 #endif
 
 /* Globals */
@@ -195,8 +181,15 @@ char *sLevel, *curdir, *outfilename = NULL;
 FILE *outfile;
 int *dirs, maxdirs;
 
-int mb_cur_max;
-
+/* Until I get rid of this hack, make it linux/cygwin only: */
+#if defined (CYGWIN)
+extern int MB_CUR_MAX;
+#elif defined (LINUX)
+extern size_t MB_CUR_MAX;
+#else 
+#define MB_CUR_MAX mb_cur_max
+int mb_cur_max = 0;
+#endif
 
 int main(int argc, char **argv)
 {
@@ -215,13 +208,6 @@ int main(int argc, char **argv)
   Level = -1;
 
   setlocale(LC_CTYPE, "");
-
-/* Until I get rid of this hack, make it linux/cygwin/HP nonstop only: */
-#if defined (LINUX) || defined (CYGWIN) || defined (__TANDEM)
-  mb_cur_max = (int)MB_CUR_MAX;
-#else
-  mb_cur_max = 1;
-#endif
 
   memset(utable,0,sizeof(utable));
   memset(gtable,0,sizeof(gtable));
@@ -1235,7 +1221,7 @@ char *gidtoname(int gid)
   return t->name;
 }
 
-void printit(char *s)
+void printit(unsigned char *s)
 {
   int c;
 
@@ -1243,7 +1229,7 @@ void printit(char *s)
     fprintf(outfile,"%s",s);
     return;
   }
-  if (mb_cur_max > 1) {
+  if (MB_CUR_MAX > 1) {
     wchar_t *ws, *tp;
     ws = xmalloc(sizeof(wchar_t)* (c=(strlen(s)+1)));
     if (mbstowcs(ws,s,c) > 0) {
@@ -1259,7 +1245,7 @@ void printit(char *s)
     free(ws);
   }
   for(;*s;s++) {
-    c = (unsigned char)*s;
+    c = *s;
 #ifdef __EMX__
     if(_nls_is_dbcs_lead(*(unsigned char*)s)){
       putc(*s,outfile);
@@ -1269,7 +1255,7 @@ void printit(char *s)
       if (isprint(c)) putc(c,outfile);
       else {
 	if (qflag) {
-	  if (mb_cur_max > 1 && c > 127) putc(c,outfile);
+	  if (MB_CUR_MAX > 1 && c > 127) putc(c,outfile);
 	  else putc('?',outfile);
 	} else {
 	  if (c < ' ') fprintf(outfile,"^%c",c+'@');
