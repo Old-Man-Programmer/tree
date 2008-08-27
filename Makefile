@@ -6,52 +6,62 @@
 # warranties, including, without limitation, the implied warranties
 # of merchant-ability and fitness for a particular purpose.
 
-CC=gcc
-#CFLAGS=-ggdb -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS=-O2 -Wall -fomit-frame-pointer -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-LDFLAGS=-s
-
-# Uncomment for FreeBSD:
-#CC=gcc
-#CFLAGS=-O2 -Wall -fomit-frame-pointer
-#LDFLAGS=-s
-
-# Uncomment for Cygwin:
-#CC=gcc
-#CFLAGS=-O2 -Wall -fomit-frame-pointer -DCYGWIN
-#LDFLAGS=-s
-#TREE_DEST=tree.exe
-## Comment out TREE_DEST definition below as well for Cygwin
-
-# Uncomment for OS X:
-#CC=cc
-#CFLAGS=-O2 -Wall -fomit-frame-pointer -no-cpp-precomp
-#LDFLAGS=
-
-# Uncomment for HP/UX:
-#CC=cc
-#CFLAGS=-Ae +O2 +DAportable -Wall
-#LDFLAGS=
-
-# Uncomment for OS/2:
-#CC=gcc
-#CFLAGS=-02 -Wall -fomit-frame-pointer -Zomf -Zsmall-conv
-#LDFLAGS=-s -Zomf -Zsmall-conv
-
 prefix = /usr
 
-VERSION=1.5.1.2
+CC=gcc
+
+VERSION=1.5.2.1
 TREE_DEST=tree
 BINDIR=${prefix}/bin
 MAN=tree.1
 MANDIR=${prefix}/man/man1
 
+# Uncomment options below for your particular OS:
+
+# Linux defaults:
+#CFLAGS=-ggdb -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS=-O2 -Wall -fomit-frame-pointer -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+LDFLAGS=-s
+
+# Uncomment for FreeBSD:
+#CFLAGS=-O2 -Wall -fomit-frame-pointer
+#LDFLAGS=-s
+#XOBJS=strverscmp.o
+
+# Uncomment for Cygwin:
+#CFLAGS=-O2 -Wall -fomit-frame-pointer -DCYGWIN
+#LDFLAGS=-s
+#TREE_DEST=tree.exe
+#XOBJS=strverscmp.o
+
+# Uncomment for OS X:
+#CC=cc
+#CFLAGS=-O2 -Wall -fomit-frame-pointer -no-cpp-precomp
+#LDFLAGS=
+#XOBJS=strverscmp.o
+
+# Uncomment for HP/UX:
+#CC=cc
+#CFLAGS=-Ae +O2 +DAportable -Wall
+#LDFLAGS=
+#XOBJS=strverscmp.o
+
+# Uncomment for OS/2:
+#CFLAGS=-02 -Wall -fomit-frame-pointer -Zomf -Zsmall-conv
+#LDFLAGS=-s -Zomf -Zsmall-conv
+#XOBJS=strverscmp.o
+
+
+#------------------------------------------------------------
+
 all:	tree
 
-tree:	tree.o
-	$(CC) $(LDFLAGS) -o $(TREE_DEST) tree.o
+tree:	tree.o $(XOBJS)
+	$(CC) $(LDFLAGS) -o $(TREE_DEST) tree.o $(XOBJS)
 
 tree.o:	tree.c
+
+strverscmp.o:	strverscmp.c
 
 clean:
 	if [ -x $(TREE_DEST) ]; then rm $(TREE_DEST); fi

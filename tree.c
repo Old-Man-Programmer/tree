@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -53,8 +55,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
-static char *version ="$Version: $ tree v1.5.1.2 (c) 1996 - 2008 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
-static char *hversion="\t\t\t tree v1.5.1.2 %s 1996 - 2008 by Steve Baker and Thomas Moore <br>\n"
+static char *version ="$Version: $ tree v1.5.2.1 (c) 1996 - 2008 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
+static char *hversion="\t\t\t tree v1.5.2.1 %s 1996 - 2008 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
 
@@ -141,13 +143,14 @@ const struct linedraw {
 /* Function prototypes: */
 int color(u_short, char *, char, char), cmd(char *), patmatch(char *, char *);
 int alnumsort(struct _info **, struct _info **);
+int versort(struct _info **a, struct _info **b);
 int reversealnumsort(struct _info **, struct _info **);
 int timesort(struct _info **, struct _info **);
 int dirsfirstsort(struct _info **, struct _info **);
 int findino(ino_t, dev_t);
 void *xmalloc(size_t), *xrealloc(void *, size_t);
 void listdir(char *, int *, int *, u_long, dev_t), usage(int);
-void parse_dir_colors(), printit(unsigned char *), free_dir(struct _info **), indent();
+void parse_dir_colors(), printit(char *), free_dir(struct _info **), indent();
 void saveino(ino_t, dev_t);
 char **split(char *, char *, int *);
 char *gidtoname(int), *uidtoname(int), *do_date(time_t);
@@ -163,10 +166,15 @@ void psize(char *buf, off_t size);
   char *prot(u_short);
 #endif
 
+/* We use the strverscmp.c file if we're not linux */
+#if ! defined (LINUX)
+int strverscmp (const char *s1, const char *s2);
+#endif
+
 /* Globals */
 int dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 int qflag, Nflag, Dflag, inodeflag, devflag, hflag;
-int noindent, force_color, nocolor, xdev, noreport, nolinks;
+int noindent, force_color, nocolor, xdev, noreport, nolinks, flimit;
 char *pattern = NULL, *ipattern = NULL, *host = NULL, *title = "Directory Tree", *sp = " ";
 const char *charset=NULL;
 
@@ -178,14 +186,8 @@ char *sLevel, *curdir, *outfilename = NULL;
 FILE *outfile;
 int *dirs, maxdirs;
 
-#if defined (CYGWIN)
-extern int MB_CUR_MAX;
-#elif defined (LINUX)
-extern size_t MB_CUR_MAX;
-#else 
-#define MB_CUR_MAX mb_cur_max
-int mb_cur_max = 0;
-#endif
+int mb_cur_max;
+
 
 int main(int argc, char **argv)
 {
@@ -198,9 +200,17 @@ int main(int argc, char **argv)
   Dflag = qflag = Nflag = Hflag = Rflag = hflag = FALSE;
   noindent = force_color = nocolor = xdev = noreport = nolinks = FALSE;
   inodeflag = devflag = FALSE;
+  flimit = 0;
   dirs = xmalloc(sizeof(int) * (maxdirs=4096));
   dirs[0] = 0;
   Level = -1;
+
+/* Until I get rid of this hack, make it linux/cygwin only: */
+#if defined (LINUX) || defined (CYGWIN)
+  mb_cur_max = (int)MB_CUR_MAX;
+#else
+  mb_cur_max = 1;
+#endif
 
   setlocale(LC_CTYPE, "");
 
@@ -291,6 +301,9 @@ int main(int argc, char **argv)
 	case 'r':
 	  cmpfunc = reversealnumsort;
 	  break;
+	case 'v':
+	  cmpfunc = versort;
+	  break;
 	case 'H':
 	  Hflag = TRUE;
 	  if (argv[n] == NULL) {
@@ -359,6 +372,24 @@ int main(int argc, char **argv)
 	    if (!strcmp("--dirsfirst",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      cmpfunc = dirsfirstsort;
+	      break;
+	    }
+	    if (!strncmp("--filelimit",argv[i],11)) {
+	      j = 11;
+	      if (*(argv[i]+11) == '=') {
+		if (*(argv[i]+12)) {
+		  flimit=atoi(argv[i]+12);
+		  j = strlen(argv[i])-1;
+		  break;
+		}
+	      }
+	      if (argv[n] != NULL) {
+		flimit = atoi(argv[n++]);
+		j = strlen(argv[i])-1;
+	      } else {
+		fprintf(stderr,"tree: missing argument to --filelimit\n");
+		exit(1);
+	      }
 	      break;
 	    }
 	    if (!strncmp("--charset",argv[i],9)){
@@ -527,53 +558,55 @@ int main(int argc, char **argv)
 }
 
 /*
-usage: tree [-adfghilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]
+usage: tree [-adfghilnpqrstuvxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]
 	[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]
 	[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]
-	[<directory list>]
+	[--filelimit #] [<directory list>]
 */
 void usage(int n)
 {
   switch(n) {
     case 1:
-      fprintf(stderr,"usage: tree [-adfghilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]\n\t[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]\n\t[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]\n\t[<directory list>]\n");
+      fprintf(stderr,"usage: tree [-adfghilnpqrstuvxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]\n\t[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]\n\t[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]\n\t[--filelimit #] [<directory list>]\n");
       break;
     case 2:
-      fprintf(stderr,"usage: tree [-adfghilnpqrstuxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]\n\t[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]\n\t[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]\n\t[<directory list>]\n");
-      fprintf(stderr,"    -a          All files are listed.\n");
-      fprintf(stderr,"    -d          List directories only.\n");
-      fprintf(stderr,"    -l          Follow symbolic links like directories.\n");
-      fprintf(stderr,"    -f          Print the full path prefix for each file.\n");
-      fprintf(stderr,"    -i          Don't print indentation lines.\n");
-      fprintf(stderr,"    -q          Print non-printable characters as '?'.\n");
-      fprintf(stderr,"    -N          Print non-printable characters as is.\n");
-      fprintf(stderr,"    -p          Print the protections for each file.\n");
-      fprintf(stderr,"    -u          Displays file owner or UID number.\n");
-      fprintf(stderr,"    -g          Displays file group owner or GID number.\n");
-      fprintf(stderr,"    -s          Print the size in bytes of each file.\n");
-      fprintf(stderr,"    -h          Print the size in a more human readable way.\n");
-      fprintf(stderr,"    -D          Print the date of last modification.\n");
-      fprintf(stderr,"    -F          Appends '/', '=', '*', or '|' as per ls -F.\n");
-      fprintf(stderr,"    -r          Sort files in reverse alphanumeric order.\n");
-      fprintf(stderr,"    -t          Sort files by last modification time.\n");
-      fprintf(stderr,"    -x          Stay on current filesystem only.\n");
-      fprintf(stderr,"    -L level    Descend only level directories deep.\n");
-      fprintf(stderr,"    -A          Print ANSI lines graphic indentation lines.\n");
-      fprintf(stderr,"    -S          Print with ASCII graphics indentation lines.\n");
-      fprintf(stderr,"    -n          Turn colorization off always (-C overrides).\n");
-      fprintf(stderr,"    -C          Turn colorization on always.\n");
-      fprintf(stderr,"    -P pattern  List only those files that match the pattern given.\n");
-      fprintf(stderr,"    -I pattern  Do not list files that match the given pattern.\n");
-      fprintf(stderr,"    -H baseHREF Prints out HTML format with baseHREF as top directory.\n");
-      fprintf(stderr,"    -T string   Replace the default HTML title and H1 header with string.\n");
-      fprintf(stderr,"    -R          Rerun tree when max dir level reached.\n");
-      fprintf(stderr,"    -o file     Output to file instead of stdout.\n");
-      fprintf(stderr,"    --inodes    Print inode number of each file.\n");
-      fprintf(stderr,"    --device    Print device ID number to which each file belongs.\n");
-      fprintf(stderr,"    --noreport  Turn off file/directory count at end of tree listing.\n");
-      fprintf(stderr,"    --nolinks   Turn off hyperlinks in HTML output.\n");
-      fprintf(stderr,"    --dirsfirst List directories before files.\n");
-      fprintf(stderr,"    --charset X Use charset X for HTML and indentation line output.\n");
+      fprintf(stderr,"usage: tree [-adfghilnpqrstuvxACDFNS] [-H baseHREF] [-T title ] [-L level [-R]]\n\t[-P pattern] [-I pattern] [-o filename] [--version] [--help] [--inodes]\n\t[--device] [--noreport] [--nolinks] [--dirsfirst] [--charset charset]\n\t[--filelimit #] [<directory list>]\n");
+      fprintf(stderr,"  -a            All files are listed.\n");
+      fprintf(stderr,"  -d            List directories only.\n");
+      fprintf(stderr,"  -l            Follow symbolic links like directories.\n");
+      fprintf(stderr,"  -f            Print the full path prefix for each file.\n");
+      fprintf(stderr,"  -i            Don't print indentation lines.\n");
+      fprintf(stderr,"  -q            Print non-printable characters as '?'.\n");
+      fprintf(stderr,"  -N            Print non-printable characters as is.\n");
+      fprintf(stderr,"  -p            Print the protections for each file.\n");
+      fprintf(stderr,"  -u            Displays file owner or UID number.\n");
+      fprintf(stderr,"  -g            Displays file group owner or GID number.\n");
+      fprintf(stderr,"  -s            Print the size in bytes of each file.\n");
+      fprintf(stderr,"  -h            Print the size in a more human readable way.\n");
+      fprintf(stderr,"  -D            Print the date of last modification.\n");
+      fprintf(stderr,"  -F            Appends '/', '=', '*', or '|' as per ls -F.\n");
+      fprintf(stderr,"  -v            Sort files alphanumerically by version.\n");
+      fprintf(stderr,"  -r            Sort files in reverse alphanumeric order.\n");
+      fprintf(stderr,"  -t            Sort files by last modification time.\n");
+      fprintf(stderr,"  -x            Stay on current filesystem only.\n");
+      fprintf(stderr,"  -L level      Descend only level directories deep.\n");
+      fprintf(stderr,"  -A            Print ANSI lines graphic indentation lines.\n");
+      fprintf(stderr,"  -S            Print with ASCII graphics indentation lines.\n");
+      fprintf(stderr,"  -n            Turn colorization off always (-C overrides).\n");
+      fprintf(stderr,"  -C            Turn colorization on always.\n");
+      fprintf(stderr,"  -P pattern    List only those files that match the pattern given.\n");
+      fprintf(stderr,"  -I pattern    Do not list files that match the given pattern.\n");
+      fprintf(stderr,"  -H baseHREF   Prints out HTML format with baseHREF as top directory.\n");
+      fprintf(stderr,"  -T string     Replace the default HTML title and H1 header with string.\n");
+      fprintf(stderr,"  -R            Rerun tree when max dir level reached.\n");
+      fprintf(stderr,"  -o file       Output to file instead of stdout.\n");
+      fprintf(stderr,"  --inodes      Print inode number of each file.\n");
+      fprintf(stderr,"  --device      Print device ID number to which each file belongs.\n");
+      fprintf(stderr,"  --noreport    Turn off file/directory count at end of tree listing.\n");
+      fprintf(stderr,"  --nolinks     Turn off hyperlinks in HTML output.\n");
+      fprintf(stderr,"  --dirsfirst   List directories before files.\n");
+      fprintf(stderr,"  --charset X   Use charset X for HTML and indentation line output.\n");
+      fprintf(stderr,"  --filelimit # Do not descend dirs with more than # files in them.\n");
   }
   exit(0);
 }
@@ -608,6 +641,12 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   }
   if (!n) {
     fprintf(outfile,"\n");
+    free(path);
+    free_dir(sav);
+    return;
+  }
+  if (flimit > 0 && n > flimit) {
+    fprintf(outfile," [%d entries exceeds filelimit, not opening dir]\n",n);
     free(path);
     free_dir(sav);
     return;
@@ -881,6 +920,11 @@ struct _info **read_dir(char *dir, int *n)
 int alnumsort(struct _info **a, struct _info **b)
 {
   return strcmp((*a)->name,(*b)->name);
+}
+
+int versort(struct _info **a, struct _info **b)
+{
+  return strverscmp((*a)->name,(*b)->name);
 }
 
 int reversealnumsort(struct _info **a, struct _info **b)
@@ -1182,7 +1226,7 @@ char *gidtoname(int gid)
   return t->name;
 }
 
-void printit(unsigned char *s)
+void printit(char *s)
 {
   int c;
 
@@ -1190,7 +1234,7 @@ void printit(unsigned char *s)
     fprintf(outfile,"%s",s);
     return;
   }
-  if (MB_CUR_MAX > 1) {
+  if (mb_cur_max > 1) {
     wchar_t *ws, *tp;
     ws = xmalloc(sizeof(wchar_t)* (c=(strlen(s)+1)));
     if (mbstowcs(ws,s,c) > 0) {
@@ -1206,7 +1250,7 @@ void printit(unsigned char *s)
     free(ws);
   }
   for(;*s;s++) {
-    c = *s;
+    c = (unsigned char)*s;
 #ifdef __EMX__
     if(_nls_is_dbcs_lead(*(unsigned char*)s)){
       putc(*s,outfile);
@@ -1216,7 +1260,7 @@ void printit(unsigned char *s)
       if (isprint(c)) putc(c,outfile);
       else {
 	if (qflag) {
-	  if (MB_CUR_MAX > 1 && c > 127) putc(c,outfile);
+	  if (mb_cur_max > 1 && c > 127) putc(c,outfile);
 	  else putc('?',outfile);
 	} else {
 	  if (c < ' ') fprintf(outfile,"^%c",c+'@');

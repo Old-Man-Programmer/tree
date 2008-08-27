@@ -17,11 +17,11 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "\*(V)" "Tree 1.5.1.1"
+.TH TREE 1 "\*(V)" "Tree 1.5.2"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
-\fBtree\fP [\fB-adfghilnopqrstuxACDFNS\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fIdirectory\fP ...]
+\fBtree\fP [\fB-adfghilnopqrstuvxACDFNS\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fB--filelimit\fP \fI#\fP] [\fIdirectory\fP ...]
 .br
 .SH DESCRIPTION
 \fITree\fP is a recursive directory listing program that produces a depth
@@ -152,6 +152,10 @@ caret notation.
 Print non-printable characters as is instead of the default carrot notation.
 .PP
 .TP
+.B -v
+Sort the output by version.
+.PP
+.TP
 .B -r
 Sort the output in reverse alphabetic order.
 .PP
@@ -185,6 +189,10 @@ depreciated.
 .TP
 .B -L \fIlevel\fP
 Max display depth of the directory tree.
+.PP
+.TP
+.B --filelimit \fI#\fP
+Do not descend directories that contain more than \fI#\fP entries.
 .PP
 .TP
 .B -R
@@ -248,6 +256,9 @@ on files and directories beneath the directory it is printing.
 The -h option rounds to the nearest whole number unlike the ls implementation
 of -h which rounds up always.  The IEC standard names for powers of 2
 cooresponding to metric powers of 10 (KiBi, et al.) are gay.
+
+Pruning files and directories with the -I, -P and --filelimit options will
+lead to incorrect file/directory count reports.
 
 Probably more.
 

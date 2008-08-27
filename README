@@ -1,3 +1,6 @@
+  Please read the INSTALL file for installation instructions, particularly if
+you are installing on a non-linux machine.
+
   This is a handy little utility to display a tree view of directories that
 I wrote some time ago and just added color support to.  I've decided that
 since no one else has done something simular I would go ahead and release
@@ -96,6 +99,12 @@ Zurd (?)
 
 John Nintendud
   - Pointed out broken HTML output in 1.5.1.
+
+Mark Braker
+  - Suggested --filelimit option.
+
+Michael Vogt
+  - Suggested -v option (version sort).
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
