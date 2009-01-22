@@ -106,6 +106,16 @@ Mark Braker
 Michael Vogt
   - Suggested -v option (version sort).
 
+Wang Quanhong
+  - Provided build options for Solaris.
+
+Craig McDaniel
+  - Provided build options and source mods for HP NonStop support.
+
+Christian Grigis
+  - Noted that setlocale() should come before MB_CUR_MAX check.
+
+
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
 

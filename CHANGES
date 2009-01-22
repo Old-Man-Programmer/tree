@@ -1,3 +1,10 @@
+Version 1.5.2.2
+  - Set locale before checking MB_CUR_MAX.
+  - Added HP-NonStop platform support (Craig McDaniel <craigmcd@gmail.com>)
+  - Fixed to support 32 bit UID/GIDs.
+  - Added Solaris build options to Makefile (edit and uncomment to use).
+    Provided by Wang Quanhong
+
 Version 1.5.2.1
   - Added strverscmp.c file for os's without strverscmp.  Source file is
     attributed to: Jean-Franois Bignolles <bignolle@ecoledoc.ibp.fr>

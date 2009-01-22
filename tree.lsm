@@ -1,14 +1,14 @@
 Begin3
 Title:		tree
-Version:	1.5.2.1
-Entered-date:	08/29/08
+Version:	1.5.2.2
+Entered-date:	01/22/09
 Description:	Depth-indented directory listing program with hacked in dir-
 		colors and ANSI-line support. Includes HTML output support.
 Keywords:	tree ls dircolors
 Author:		ice@mama.indstate.edu (Steve Baker)
 Maintained-by:	ice@mama.indstate.edu (Steve Baker)
 Primary-size:	mama.indstate.edu /linux/tree/
-		33584 tree-1.5.2.1.tgz
+		33993 tree-1.5.2.2.tgz
 Platforms:	Linux, FreeBSD, Cygwin, OS X, HP/UX, OS/2, Others.
 Copying-policy:	GPLv2
 End

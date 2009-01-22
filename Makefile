@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2008 by Steve Baker
+# Copyright (c) 1996 - 2009 by Steve Baker
 # All Rights reserved
 #
 # This software is provided as is without any express or implied
@@ -10,7 +10,7 @@ prefix = /usr
 
 CC=gcc
 
-VERSION=1.5.2.1
+VERSION=1.5.2.2
 TREE_DEST=tree
 BINDIR=${prefix}/bin
 MAN=tree.1
@@ -27,6 +27,13 @@ LDFLAGS=-s
 #CFLAGS=-O2 -Wall -fomit-frame-pointer
 #LDFLAGS=-s
 #XOBJS=strverscmp.o
+
+# Uncomment for Solaris:
+#CC=cc
+#CFLAGS=-xO0 -v
+#LDFLAGS=
+#XOBJS=strverscmp.o
+#MANDIR=${prefix}/share/man/man1
 
 # Uncomment for Cygwin:
 #CFLAGS=-O2 -Wall -fomit-frame-pointer -DCYGWIN
@@ -51,6 +58,13 @@ LDFLAGS=-s
 #LDFLAGS=-s -Zomf -Zsmall-conv
 #XOBJS=strverscmp.o
 
+# Uncomment for HP NonStop:
+#prefix = /opt
+#CC=c89
+#CFLAGS=-Wextensions -WIEEE_float -g -Wnowarn=1506 -D_XOPEN_SOURCE_EXTENDED=1 \
+#	 -Wallow_cplusplus_comments
+#LDFLAGS=
+
 
 #------------------------------------------------------------
 
@@ -68,7 +82,7 @@ clean:
 	if [ -f tree.o ]; then rm *.o; fi
 	rm -f *~
 
-install:
+install: tree
 	install -d $(BINDIR)
 	install -d $(MANDIR)
 	if [ -e $(TREE_DEST) ]; then \

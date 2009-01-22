@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2008 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2009 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,8 +26,15 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef __TANDEM
+#  include <strings.h>
+#  define S_IEXEC  S_IXUSR
+#  define S_IREAD  S_IRUSR
+#  define S_IWRITE S_IWUSR
+#else
+#   include <sys/file.h>
+#endif
 #include <dirent.h>
-#include <sys/file.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <limits.h>
@@ -55,8 +62,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
-static char *version ="$Version: $ tree v1.5.2.1 (c) 1996 - 2008 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
-static char *hversion="\t\t\t tree v1.5.2.1 %s 1996 - 2008 by Steve Baker and Thomas Moore <br>\n"
+static char *version ="$Version: $ tree v1.5.2.2 (c) 1996 - 2009 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
+static char *hversion="\t\t\t tree v1.5.2.2 %s 1996 - 2009 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
 
@@ -77,7 +84,9 @@ struct _info {
   u_char isexe  : 1;
   u_char isfifo : 1;
   u_char orphan : 1;
-  u_short mode, lnkmode, uid, gid;
+  u_short mode, lnkmode;
+  uid_t uid;
+  gid_t gid;
   off_t size;
   time_t atime, ctime, mtime;
   dev_t dev;
@@ -205,14 +214,14 @@ int main(int argc, char **argv)
   dirs[0] = 0;
   Level = -1;
 
-/* Until I get rid of this hack, make it linux/cygwin only: */
-#if defined (LINUX) || defined (CYGWIN)
+  setlocale(LC_CTYPE, "");
+
+/* Until I get rid of this hack, make it linux/cygwin/HP nonstop only: */
+#if defined (LINUX) || defined (CYGWIN) || defined (__TANDEM)
   mb_cur_max = (int)MB_CUR_MAX;
 #else
   mb_cur_max = 1;
 #endif
-
-  setlocale(LC_CTYPE, "");
 
   memset(utable,0,sizeof(utable));
   memset(gtable,0,sizeof(gtable));
