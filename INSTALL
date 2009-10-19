@@ -1,0 +1,11 @@
+Installation instructions:
+
+1. Edit the Makefile for your OS.  Comment out the linux options and uncomment
+   the options for your OS.
+2. Type: make
+3. Type: make install
+
+
+  I cannot test on non-linux machines, so please feel free to contribute
+porting information, bug reports, compile options, patches, etc for porting to
+other OS's to ice@mama.indstate.edu.

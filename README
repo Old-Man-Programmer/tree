@@ -1,3 +1,6 @@
+  Please read the INSTALL file for installation instructions, particularly if
+you are installing on a non-linux machine.
+
   This is a handy little utility to display a tree view of directories that
 I wrote some time ago and just added color support to.  I've decided that
 since no one else has done something simular I would go ahead and release
@@ -102,6 +105,26 @@ Mark Braker
 
 Michael Vogt
   - Suggested -v option (version sort).
+
+Wang Quanhong
+  - Provided build options for Solaris.
+
+Craig McDaniel
+  - Provided build options and source mods for HP NonStop support.
+
+Christian Grigis
+  - Noted that setlocale() should come before MB_CUR_MAX check.
+
+Kamaraju Kusumanchi
+  - Submitted patch to remove compiler warnings for Solaris.
+
+Martin Nagy
+  - Provided patch which fixes issue where indent may output more than it
+    should when dirs[*] is not properly cleared before use.
+
+William C. Lathan III
+  - Showed that tree was not properly quoting arguments to recursively called
+    tree instances when using -R.
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

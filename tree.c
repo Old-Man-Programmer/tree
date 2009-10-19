@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2008 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2009 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -26,8 +26,15 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef __TANDEM
+#  include <strings.h>
+#  define S_IEXEC  S_IXUSR
+#  define S_IREAD  S_IRUSR
+#  define S_IWRITE S_IWUSR
+#else
+#   include <sys/file.h>
+#endif
 #include <dirent.h>
-#include <sys/file.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <limits.h>
@@ -55,8 +62,8 @@
 #include <wchar.h>
 #include <wctype.h>
 
-static char *version ="$Version: $ tree v1.5.2 (c) 1996 - 2008 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
-static char *hversion="\t\t\t tree v1.5.2 %s 1996 - 2008 by Steve Baker and Thomas Moore <br>\n"
+static char *version ="$Version: $ tree v1.5.3 (c) 1996 - 2009 by Steve Baker, Thomas Moore, Francesc Rocher, Kyosuke Tokoro $";
+static char *hversion="\t\t\t tree v1.5.3 %s 1996 - 2009 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
 
@@ -77,7 +84,9 @@ struct _info {
   u_char isexe  : 1;
   u_char isfifo : 1;
   u_char orphan : 1;
-  u_short mode, lnkmode, uid, gid;
+  u_short mode, lnkmode;
+  uid_t uid;
+  gid_t gid;
   off_t size;
   time_t atime, ctime, mtime;
   dev_t dev;
@@ -150,7 +159,7 @@ int dirsfirstsort(struct _info **, struct _info **);
 int findino(ino_t, dev_t);
 void *xmalloc(size_t), *xrealloc(void *, size_t);
 void listdir(char *, int *, int *, u_long, dev_t), usage(int);
-void parse_dir_colors(), printit(unsigned char *), free_dir(struct _info **), indent();
+void parse_dir_colors(), printit(char *), free_dir(struct _info **), indent(int maxlevel);
 void saveino(ino_t, dev_t);
 char **split(char *, char *, int *);
 char *gidtoname(int), *uidtoname(int), *do_date(time_t);
@@ -164,6 +173,11 @@ void psize(char *buf, off_t size);
   char *prot(long);
 #else
   char *prot(u_short);
+#endif
+
+/* We use the strverscmp.c file if we're not linux */
+#if ! defined (LINUX)
+int strverscmp (const char *s1, const char *s2);
 #endif
 
 /* Globals */
@@ -181,15 +195,8 @@ char *sLevel, *curdir, *outfilename = NULL;
 FILE *outfile;
 int *dirs, maxdirs;
 
-/* Until I get rid of this hack, make it linux/cygwin only: */
-#if defined (CYGWIN)
-extern int MB_CUR_MAX;
-#elif defined (LINUX)
-extern size_t MB_CUR_MAX;
-#else 
-#define MB_CUR_MAX mb_cur_max
-int mb_cur_max = 0;
-#endif
+int mb_cur_max;
+
 
 int main(int argc, char **argv)
 {
@@ -204,10 +211,24 @@ int main(int argc, char **argv)
   inodeflag = devflag = FALSE;
   flimit = 0;
   dirs = xmalloc(sizeof(int) * (maxdirs=4096));
+  memset(dirs, 0, sizeof(int) * maxdirs);
   dirs[0] = 0;
   Level = -1;
 
   setlocale(LC_CTYPE, "");
+  setlocale(LC_COLLATE, "");
+
+  charset = getcharset();
+  if (charset == NULL && patmatch(setlocale(LC_CTYPE,NULL), "*[Uu][Tt][Ff]-8") == 1) {
+    charset = "UTF-8";
+  }
+
+/* Until I get rid of this hack, make it linux/cygwin/HP nonstop only: */
+#if defined (LINUX) || defined (CYGWIN) || defined (__TANDEM)
+  mb_cur_max = (int)MB_CUR_MAX;
+#else
+  mb_cur_max = 1;
+#endif
 
   memset(utable,0,sizeof(utable));
   memset(gtable,0,sizeof(gtable));
@@ -285,7 +306,7 @@ int main(int argc, char **argv)
 	  ansilines = TRUE;
 	  break;
 	case 'S':
-	  charset="IBM437";
+	  charset = "IBM437";
 	  break;
 	case 'D':
 	  Dflag = TRUE;
@@ -390,13 +411,13 @@ int main(int argc, char **argv)
 	    if (!strncmp("--charset",argv[i],9)){
 	      j = 9;
 	      if (*(argv[i]+j) == '=') {
-		if (*(charset=(argv[i]+10))) {
+		if (*(charset = (argv[i]+10))) {
 		  j = strlen(argv[i])-1;
 		  break;
 		}
 	      }
 	      if (argv[n] != NULL) {
-		charset=argv[n++];
+		charset = argv[n++];
 		j = strlen(argv[i])-1;
 	      } else {
 		initlinedraw(1);
@@ -647,12 +668,15 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     return;
   }
   qsort(dir,n,sizeof(struct _info *),cmpfunc);
-  if (lev >= maxdirs-1) dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
+  if (lev >= maxdirs-1) {
+    dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
+    memset(dirs+(maxdirs-1024), 0, sizeof(int) * 1024);
+  }
   dirs[lev] = 1;
   if (!*(dir+1)) dirs[lev] = 2;
   fprintf(outfile,"\n");
   while(*dir) {
-    if (!noindent) indent();
+    if (!noindent) indent(lev);
 
     path[0] = 0;
 #ifdef __USE_FILE_OFFSET64
@@ -717,7 +741,7 @@ void listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 	fprintf(stderr,"Entering directory %s\n",path);
 
 	hcmd = xmalloc(sizeof(char) * (49 + strlen(host) + strlen(d) + strlen((*dir)->name)) + 10 + (2*strlen(path)));
-	sprintf(hcmd,"tree -n -H %s%s/%s -L %d -R -o %s/00Tree.html %s\n", host,d+1,(*dir)->name,Level+1,path,path);
+	sprintf(hcmd,"tree -n -H \"%s%s/%s\" -L %d -R -o \"%s/00Tree.html\" \"%s\"\n", host,d+1,(*dir)->name,Level+1,path,path);
 	system(hcmd);
 	free(hdir);
 	free(hcmd);
@@ -843,7 +867,7 @@ struct _info **read_dir(char *dir, int *n)
 
   while((ent = (struct dirent *)readdir(d))) {
     if (!strcmp("..",ent->d_name) || !strcmp(".",ent->d_name)) continue;
-    if (!Hflag && !strcmp(ent->d_name,"00Tree.html")) continue;
+    if (Hflag && !strcmp(ent->d_name,"00Tree.html")) continue;
     if (!aflag && ent->d_name[0] == '.') continue;
 
     if (strlen(dir)+strlen(ent->d_name)+2 > pathsize) path = xrealloc(path,pathsize=(strlen(dir)+strlen(ent->d_name)+4096));
@@ -914,7 +938,7 @@ struct _info **read_dir(char *dir, int *n)
 /* Sorting functions */
 int alnumsort(struct _info **a, struct _info **b)
 {
-  return strcmp((*a)->name,(*b)->name);
+  return strcoll((*a)->name,(*b)->name);
 }
 
 int versort(struct _info **a, struct _info **b)
@@ -924,18 +948,18 @@ int versort(struct _info **a, struct _info **b)
 
 int reversealnumsort(struct _info **a, struct _info **b)
 {
-  return strcmp((*b)->name,(*a)->name);
+  return strcoll((*b)->name,(*a)->name);
 }
 
 int timesort(struct _info **a, struct _info **b)
 {
-  if ((*a)->mtime == (*b)->mtime) return strcmp((*a)->name,(*b)->name);
+  if ((*a)->mtime == (*b)->mtime) return strcoll((*a)->name,(*b)->name);
   return (*a)->mtime < (*b)->mtime;
 }
 
 int dirsfirstsort(struct _info **a, struct _info **b)
 {
-  if ((*a)->isdir == (*b)->isdir) return strcmp((*a)->name,(*b)->name);
+  if ((*a)->isdir == (*b)->isdir) return strcoll((*a)->name,(*b)->name);
   else return (*a)->isdir ? -1 : 1;
 }
 
@@ -1063,13 +1087,13 @@ int patmatch(char *buf, char *pat)
  * They cried out for ANSI-lines (not really), but here they are, as an option
  * for the xterm and console capable among you, as a run-time option.
  */
-void indent()
+void indent(int maxlevel)
 {
   int i;
 
   if (ansilines) {
     if (dirs[0]) fprintf(outfile,"\033(0");
-    for(i=0;dirs[i];i++) {
+    for(i=0; dirs[i] && i <= maxlevel; i++) {
       if (dirs[i+1]) {
 	if (dirs[i] == 1) fprintf(outfile,"\170   ");
 	else printf("    ");
@@ -1081,7 +1105,7 @@ void indent()
     if (dirs[0]) fprintf(outfile,"\033(B");
   } else {
     if (Hflag) fprintf(outfile,"<br>\t\t\t\t   ");
-    for(i=0;dirs[i];i++) {
+    for(i=0; dirs[i] && i <= maxlevel; i++) {
       fprintf(outfile,"%s ",
 	      dirs[i+1] ? (dirs[i]==1 ? linedraw->vert     : (Hflag? "&nbsp;&nbsp;&nbsp;" : "   ") )
 			: (dirs[i]==1 ? linedraw->vert_left:linedraw->corner));
@@ -1108,7 +1132,7 @@ char *prot(u_short m)
 #endif
 {
 #ifdef __EMX__
-  const static u_short ifmt[]={
+  static const u_short ifmt[]={
     FILE_ARCHIVED, FILE_DIRECTORY, FILE_SYSTEM,FILE_HIDDEN, FILE_READONLY
   };
   const u_short*p;
@@ -1221,7 +1245,7 @@ char *gidtoname(int gid)
   return t->name;
 }
 
-void printit(unsigned char *s)
+void printit(char *s)
 {
   int c;
 
@@ -1229,7 +1253,7 @@ void printit(unsigned char *s)
     fprintf(outfile,"%s",s);
     return;
   }
-  if (MB_CUR_MAX > 1) {
+  if (mb_cur_max > 1) {
     wchar_t *ws, *tp;
     ws = xmalloc(sizeof(wchar_t)* (c=(strlen(s)+1)));
     if (mbstowcs(ws,s,c) > 0) {
@@ -1245,7 +1269,7 @@ void printit(unsigned char *s)
     free(ws);
   }
   for(;*s;s++) {
-    c = *s;
+    c = (unsigned char)*s;
 #ifdef __EMX__
     if(_nls_is_dbcs_lead(*(unsigned char*)s)){
       putc(*s,outfile);
@@ -1255,7 +1279,7 @@ void printit(unsigned char *s)
       if (isprint(c)) putc(c,outfile);
       else {
 	if (qflag) {
-	  if (MB_CUR_MAX > 1 && c > 127) putc(c,outfile);
+	  if (mb_cur_max > 1 && c > 127) putc(c,outfile);
 	  else putc('?',outfile);
 	} else {
 	  if (c < ' ') fprintf(outfile,"^%c",c+'@');
@@ -1663,66 +1687,66 @@ const char *getcharset(void)
 
 void initlinedraw(int flag)
 {
-  const static char*latin1_3[]={
+  static const char*latin1_3[]={
     "ISO-8859-1", "ISO-8859-1:1987", "ISO_8859-1", "latin1", "l1", "IBM819",
     "CP819", "csISOLatin1", "ISO-8859-3", "ISO_8859-3:1988", "ISO_8859-3",
     "latin3", "ls", "csISOLatin3", NULL
   };
-  const static char*iso8859_789[]={
+  static const char*iso8859_789[]={
     "ISO-8859-7", "ISO_8859-7:1987", "ISO_8859-7", "ELOT_928", "ECMA-118",
     "greek", "greek8", "csISOLatinGreek", "ISO-8859-8", "ISO_8859-8:1988",
     "iso-ir-138", "ISO_8859-8", "hebrew", "csISOLatinHebrew", "ISO-8859-9",
     "ISO_8859-9:1989", "iso-ir-148", "ISO_8859-9", "latin5", "l5",
     "csISOLatin5", NULL
   };
-  const static char*shift_jis[]={
+  static const char*shift_jis[]={
     "Shift_JIS", "MS_Kanji", "csShiftJIS", NULL
   };
-  const static char*euc_jp[]={
+  static const char*euc_jp[]={
     "EUC-JP", "Extended_UNIX_Code_Packed_Format_for_Japanese",
     "csEUCPkdFmtJapanese", NULL
   };
-  const static char*euc_kr[]={
+  static const char*euc_kr[]={
     "EUC-KR", "csEUCKR", NULL
   };
-  const static char*iso2022jp[]={
+  static const char*iso2022jp[]={
     "ISO-2022-JP", "csISO2022JP", "ISO-2022-JP-2", "csISO2022JP2", NULL
   };
-  const static char*ibm_pc[]={
+  static const char*ibm_pc[]={
     "IBM437", "cp437", "437", "csPC8CodePage437", "IBM852", "cp852", "852",
     "csPCp852", "IBM863", "cp863", "863", "csIBM863", "IBM855", "cp855",
     "855", "csIBM855", "IBM865", "cp865", "865", "csIBM865", "IBM866",
     "cp866", "866", "csIBM866", NULL
   };
-  const static char*ibm_ps2[]={
+  static const char*ibm_ps2[]={
     "IBM850", "cp850", "850", "csPC850Multilingual", "IBM00858", "CCSID00858",
     "CP00858", "PC-Multilingual-850+euro", NULL
   };
-  const static char*ibm_gr[]={
+  static const char*ibm_gr[]={
     "IBM869", "cp869", "869", "cp-gr", "csIBM869", NULL
   };
-  const static char*gb[]={
+  static const char*gb[]={
     "GB2312", "csGB2312", NULL
   };
-  const static char*utf8[]={
+  static const char*utf8[]={
     "UTF-8", "utf8", NULL
   };
-  const static char*big5[]={
+  static const char*big5[]={
     "Big5", "csBig5", NULL
   };
-  const static char*viscii[]={
+  static const char*viscii[]={
     "VISCII", "csVISCII", NULL
   };
-  const static char*koi8ru[]={
+  static const char*koi8ru[]={
     "KOI8-R", "csKOI8R", "KOI8-U", NULL
   };
-  const static char*windows[]={
+  static const char*windows[]={
     "ISO-8859-1-Windows-3.1-Latin-1", "csWindows31Latin1",
     "ISO-8859-2-Windows-Latin-2", "csWindows31Latin2", "windows-1250",
     "windows-1251", "windows-1253", "windows-1254", "windows-1255",
     "windows-1256", "windows-1256", "windows-1257", NULL
   };
-  const static struct linedraw cstable[]={
+  static const struct linedraw cstable[]={
     { latin1_3,    "|  ",              "|--",            "&middot;--",     "&copy;"   },
     { iso8859_789, "|  ",              "|--",            "&middot;--",     "(c)"      },
     { shift_jis,   "\204\240 ",        "\204\245",       "\204\244",       "(c)"      },
@@ -1734,7 +1758,7 @@ void initlinedraw(int flag)
     { ibm_gr,      "\263  ",           "\303\304\304",   "\300\304\304",   "\270"     },
     { gb,          "\251\246 ",        "\251\300",       "\251\270",       "(c)"      },
     { utf8,        "\342\224\202\302\240\302\240",
-                   "\342\224\234\342\224\200", "\342\224\224\342\224\200", "\302\251" },
+                   "\342\224\234\342\224\200\342\224\200", "\342\224\224\342\224\200\342\224\200", "\302\251" },
     { big5,        "\242x ",           "\242u",          "\242|",          "(c)"      },
     { viscii,      "|  ",              "|--",            "`--",            "\371"     },
     { koi8ru,      "\201  ",           "\206\200\200",   "\204\200\200",   "\277"     },

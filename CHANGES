@@ -1,3 +1,28 @@
+Version 1.5.3
+  - Properly quote directories for the system command when tree is relaunched
+    using the -R option.
+  - Fixed possible indentation problem if dirs[*] is not properly zeroed
+    (Martin Nagy).
+  - Use strcoll() instead of strcmp() to sort files based on locale if set.
+  - Change "const static" to "static const" to remove some compiler warnings
+    for Solaris (Kamaraju Kusumanchi).
+  - Actually use TREE_CHARSET if it's defined.
+  - Automatically select UTF-8 charset if TREE_CHARSET is not set, and the
+    locale is set to *UTF-8 (overridden with --charset option.)
+
+Version 1.5.2.2
+  - Set locale before checking MB_CUR_MAX.
+  - Added HP-NonStop platform support (Craig McDaniel <craigmcd@gmail.com>)
+  - Fixed to support 32 bit UID/GIDs.
+  - Added Solaris build options to Makefile (edit and uncomment to use).
+    Provided by Wang Quanhong
+
+Version 1.5.2.1
+  - Added strverscmp.c file for os's without strverscmp.  Source file is
+    attributed to: Jean-Franois Bignolles <bignolle@ecoledoc.ibp.fr>
+  - Try different approach to MB_CUR_MAX problem.
+  - Changed the argument to printit() to be signed char to avoid warnings.
+
 Version 1.5.2
   - Added --filelimit X option to not descend directories that have more than
     X number of files in them.
