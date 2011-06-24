@@ -1,15 +1,16 @@
   Please read the INSTALL file for installation instructions, particularly if
-you are installing on a non-linux machine.
+you are installing on a non-Linux machine.
 
   This is a handy little utility to display a tree view of directories that
 I wrote some time ago and just added color support to.  I've decided that
-since no one else has done something simular I would go ahead and release
+since no one else has done something similar I would go ahead and release
 it, even though it's barely a 1st year CS student hack.  I've found it damn
 handy to peruse a directory tree though, especially when someone is trying to
 hide something from you.
 
   The main distribution site for tree is here:
 
+  http://mama.indstate.edu/users/ice/tree/
   ftp://mama.indstate.edu/linux/tree/
 
   If you don't like the way it looks let me know how you think it should be
@@ -125,6 +126,20 @@ Martin Nagy
 William C. Lathan III
   - Showed that tree was not properly quoting arguments to recursively called
     tree instances when using -R.
+
+Ulrich Eckhardt
+  - Submitted patch for --si option.
+
+Tim Waugh (redhat)
+  - Pointed out a potential memory leak in listdir().
+
+Markus Schnalke
+  - Tracked down bug where tree would print "argetm" before the filename of a
+    symbolic link when the "target" option was specified for LINK in dircolors.
+
+Ujjwal Kumar
+  - Suggested that tree backslash spaces like ls does for script use.  Made
+    output more like ls.
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

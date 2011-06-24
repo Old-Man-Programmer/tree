@@ -1,3 +1,41 @@
+Version 1.6.0
+  - Re-org of code into multiple files, split HTML and Unix listdir() into
+    separate functions, various code cleanups and optimizations.
+  - Fixed a memory leak in listdir() when memory was allocated early and not
+    freed before function exit.
+  - Fixed possible buffer overflow where symbolic links are followed.
+  - Fixed links printing "argetm" before the name of the link when the LINK
+    setting for DIR_COLORS is set to target (Markus Schnalke
+    <meillo@marmaro.de>)
+  - More fully support dir colors -- added support for su, sg, tw, ow, & st
+    options (and "do" in theory).
+  - Use the environment variable "TREE_COLORS" instead of "LS_COLORS" for
+    color information if it exists.
+  - Added --si flag to print filesizes in SI (powers of 1000) units (Ulrich
+    Eckhardt)
+  - Added -Q to quote filenames in double quotes.  Does not override -N or -q.
+  - Control characters are no longer printed in carrot notation, but as
+    backslashed octal, ala ls, except for codes 7-13 which are printed as
+    \a, \b, \t, \n, \v, \f and \r respectively. Spaces and backslashes are
+    also now backslashed as per ls, for better input to scripts unless -Q
+    is in use (where "'s are backslashed.) (Ujjwal Kumar)
+  - Added -U for unsorted listings (directory order).
+  - Added -c for sorting by last status change (ala ls -c).
+  - --dirsfirst is now a meta-sort and does not override -c, -v, -r or -t, but
+    is disabled by -U.
+  - After many requests, added the ability to process the entire tree before
+    emitting output.  Used for the new options --du, which works like the du
+    command: sums the amount of space under each directory and prints a total
+    amount used in the report and the --prune option which will prune all empty
+    directories from the output (makes the -P option output much more readable.)
+    It should be noted that this will be slow to output when processing large
+    directory trees and can consume copious amounts of memory, use at your own
+    peril.
+  - Added -X option to emit the directory tree in XML format (turns colorization
+    off always.)
+  - Added --timefmt option to specify the format of time display (implies -D).
+    Uses the strftime format.
+
 Version 1.5.3
   - Properly quote directories for the system command when tree is relaunched
     using the -R option.
