@@ -32,31 +32,23 @@ extern int Level, *dirs, maxdirs;
 
 extern char *endcode;
 
-/*
-<tree>
-  <directory name="name" mode=0777 size=### user="user" group="group" inode=### dev=### time="00:00 00-00-0000">
-    <link name="name" target="name" ...>
-      ... if link is followed, otherwise this is empty.
-    </link>
-    <file name="name" mode=0777 size=### user="user" group="group" inode=### dev=### time="00:00 00-00-0000"></file>
-    <socket name="" ...><error>some error</error></socket>
-    <block name="" ...></block>
-    <char name="" ...></char>
-    <fifo name="" ...></fifo>
-    <door name="" ...></door>
-    <port name="" ...></port>
-    ...
-  </directory>
-  <report>
-    <size>#</size>
-    <files>#</files>
-    <directories>#</directories>
-  </report>
-</tree>
+/*  JSON code courtesy of Florian Sesser <fs@it-agenten.com>
+[
+  {"type": "directory", "name": "name", "mode": "0777", "user": "user", "group": "group", "inode": ###, "dev": ####, "time": "00:00 00-00-0000", "contents": [
+    {"type": "link", "name": "name", "target": "name", "contents": [... if link is followed, otherwise this is empty.]}
+    {"type": "file", "name": "name", "mode": "0777", "size": ###, "group": "group", "inode": ###, "dev": ###, "time": "00:00 00-00-0000"}
+    {"type": "socket", "name": "", "error": "some error" ...}
+    {"type": "block", "name": "" ...},
+    {"type": "char", "name": "" ...},
+    {"type": "fifo", "name": "" ...},
+    {"type": "door", "name": "" ...},
+    {"type": "port", "name": "" ...}
+  ]},
+  {"type": "report", "size": ###, "files": ###, "directories": ###}
+]
 */
 
-
-off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
+off_t json_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 {
   char *path;
   bool nlf = FALSE;
@@ -77,7 +69,7 @@ off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 
   sav = dir = read_dir(d,&n);
   if (!dir && n) {
-    fprintf(outfile,"<error>opening dir</error>\n");
+    fprintf(outfile,"{\"error\": \"opening dir\"}%s",noindent?"":"\n");
     return 0;
   }
   if (!n) {
@@ -86,12 +78,12 @@ off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     return 0;
   }
   if (flimit > 0 && n > flimit) {
-    fprintf(outfile,"<error>%d entries exceeds filelimit, not opening dir</error>%s",n,noindent?"":"\n");
+    fprintf(outfile,", \"error\": \"%d entries exceeds filelimit, not opening dir\"\n",n);
     free_dir(sav);
     return 0;
   }
 
-  if (cmpfunc) qsort(dir,n,sizeof(struct _info *), cmpfunc);
+  if (cmpfunc) qsort(dir,n,sizeof(struct _info *),cmpfunc);
   if (lev >= maxdirs-1) {
     dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
     memset(dirs+(maxdirs-1024), 0, sizeof(int) * 1024);
@@ -103,13 +95,13 @@ off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   path = malloc(pathsize=4096);
 
   while(*dir) {
-    if (!noindent) xml_indent(lev);
+    if (!noindent) json_indent(lev);
 
     if ((*dir)->lnk) mt = (*dir)->mode & S_IFMT;
     else mt = (*dir)->mode & S_IFMT;
     for(t=0;ifmt[t];t++)
       if (ifmt[t] == mt) break;
-    fprintf(outfile,"<%s", ftype[t]);
+    fprintf(outfile,"{\"type\":\"%s\"", ftype[t]);
 
     if (fflag) {
       if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
@@ -122,23 +114,27 @@ off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
       sprintf(path,"%s",(*dir)->name);
     }
 
-    fprintf(outfile, " name=\"");
+    fprintf(outfile, ",\"name\":\"");
     html_encode(outfile,path);
     fputc('"',outfile);
 
     if ((*dir)->lnk) {
-      fprintf(outfile, " target=\"");
+      fprintf(outfile, ",\"target\":\"");
       html_encode(outfile,(*dir)->lnk);
       fputc('"',outfile);
     }
-    xml_fillinfo(*dir);
-    fputc('>',outfile);
+    json_fillinfo(*dir);
+    if (!(*dir)->isdir && !(*dir)->lnk) {
+      fputc('}',outfile);
+      if (*(dir+1)) fputc(',',outfile);
+    } else
+      fprintf(outfile, ",\"contents\":[");
 
     if ((*dir)->isdir) {
       if ((*dir)->lnk) {
 	if (lflag && !(xdev && dev != (*dir)->dev)) {
 	  if (findino((*dir)->inode,(*dir)->dev)) {
-	    fprintf(outfile,"<error>recursive, not followed</error>");
+	    fprintf(outfile,"{\"error\":\"recursive, not followed\"}");
 	  } else {
 	    saveino((*dir)->inode, (*dir)->dev);
 	    if (*(*dir)->lnk == '/')
@@ -165,9 +161,13 @@ off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
     if (nlf) {
       nlf = FALSE;
-      if (!noindent) xml_indent(lev);
+      if (!noindent) json_indent(lev);
     }
-    fprintf(outfile,"</%s>%s",ftype[t],noindent?"":"\n");
+    if ((*dir)->isdir || (*dir)->lnk) {
+      fprintf(outfile, "]}");
+      if (*(dir+1)) fputc(',',outfile);
+    }
+    if (!noindent) fputc('\n', outfile);
     dir++;
   }
   dirs[lev] = 0;
@@ -176,45 +176,45 @@ off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   return 0;
 }
 
-off_t xml_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
+off_t json_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
 {
   struct _info **dir;
   off_t size = 0;
   char *err;
-  
+
   dir = getfulltree(d, lev, dev, &size, &err);
-  
+
   memset(dirs, 0, sizeof(int) * maxdirs);
-  
-  xmlr_listdir(dir, d, dt, ft, lev);
-  
+
+  jsonr_listdir(dir, d, dt, ft, lev);
+
   return size;
 }
 
-void xmlr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
+void jsonr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
 {
   char *path;
   long pathsize = 0;
   struct _info **sav = dir;
   bool nlf = FALSE;
   int mt, t;
-  
+
   if (dir == NULL) return;
-  
+
   dirs[lev] = 1;
   if (!*(dir+1)) dirs[lev] = 2;
-  fprintf(outfile,"\n");
-  
+  if (!noindent) fprintf(outfile,"\n");
+
   path = malloc(pathsize=4096);
-  
+
   while(*dir) {
-    if (!noindent) xml_indent(lev);
+    if (!noindent) json_indent(lev);
 
     if ((*dir)->lnk) mt = (*dir)->mode & S_IFMT;
     else mt = (*dir)->mode & S_IFMT;
     for(t=0;ifmt[t];t++)
       if (ifmt[t] == mt) break;
-    fprintf(outfile,"<%s", ftype[t]);
+    fprintf(outfile,"{\"type\":\"%s\"", ftype[t]);
 
     if (fflag) {
       if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
@@ -227,22 +227,22 @@ void xmlr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
       sprintf(path,"%s",(*dir)->name);
     }
 
-    fprintf(outfile, " name=\"");
+    fprintf(outfile, ",\"name\":\"");
     html_encode(outfile,path);
     fputc('"',outfile);
 
     if ((*dir)->lnk) {
-      fprintf(outfile, " target=\"");
+      fprintf(outfile, ",\"target\":\"");
       html_encode(outfile,(*dir)->lnk);
       fputc('"',outfile);
     }
 
-    xml_fillinfo(*dir);
-    if (mt != S_IFDIR && mt != S_IFLNK && (*dir)->err == NULL) fprintf(outfile,"/>");
-    else fputc('>',outfile);
+    json_fillinfo(*dir);
+    if (mt != S_IFDIR && mt != S_IFLNK && (*dir)->err == NULL) fprintf(outfile,"},");
+    else fprintf(outfile, ",\"contents\":[");
 
     if ((*dir)->err) {
-      fprintf(outfile,"<error>%s</error>", (*dir)->err);
+      fprintf(outfile,",\"error\":\"%s\"", (*dir)->err);
       free((*dir)->err);
       (*dir)->err = NULL;
     }
@@ -252,21 +252,23 @@ void xmlr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
 	if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
 	else sprintf(path,"%s/%s",d,(*dir)->name);
       }
-      xmlr_listdir((*dir)->child, fflag? path : NULL, dt, ft, lev+1);
+      jsonr_listdir((*dir)->child, fflag? path : NULL, dt, ft, lev+1);
       nlf = TRUE;
       *dt += 1;
     } else {
       if ((*dir)->isdir) *dt += 1;
       else *ft += 1;
     }
-    
+
     if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
     if (nlf) {
       nlf = FALSE;
-      if (!noindent) xml_indent(lev);
+      if (!noindent) json_indent(lev);
     }
-    if (mt == S_IFDIR || mt == S_IFLNK || (*dir)->err != NULL) fprintf(outfile,"</%s>\n",ftype[t]);
-    else putc('\n',outfile);
+    if (mt == S_IFDIR || mt == S_IFLNK || (*dir)->err != NULL) fprintf(outfile,"]},%s",noindent?"":"\n");
+    else {
+      if (!noindent) putc('\n',outfile);
+    }
     dir++;
   }
   dirs[lev] = 0;
@@ -274,30 +276,30 @@ void xmlr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
   free_dir(sav);
 }
 
-void xml_indent(int maxlevel)
+void json_indent(int maxlevel)
 {
   int i;
-  
+
   fprintf(outfile, "    ");
   for(i=0; i<maxlevel; i++)
     fprintf(outfile, "  ");
 }
 
-void xml_fillinfo(struct _info *ent)
+void json_fillinfo(struct _info *ent)
 {
   #ifdef __USE_FILE_OFFSET64
-  if (inodeflag) fprintf(outfile," inode=\"%lld\"",(long long)ent->inode);
+  if (inodeflag) fprintf(outfile,",\"inode\":%lld",(long long)ent->inode);
   #else
-  if (inodeflag) fprintf(outfile," inode=\"%ld\"",(long int)ent->inode);
+  if (inodeflag) fprintf(outfile,",\"inode\":%ld",(long int)ent->inode);
   #endif
-  if (devflag) fprintf(outfile, " dev=\"%d\"", (int)ent->dev);
+  if (devflag) fprintf(outfile, ",\"dev\":%d", (int)ent->dev);
   #ifdef __EMX__
-  if (pflag) fprintf(outfile, " mode=\"%04o\" prot=\"%s\"",ent->attr, prot(ent->attr));
+  if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"",ent->attr, prot(ent->attr));
   #else
-  if (pflag) fprintf(outfile, " mode=\"%04o\" prot=\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode));
+  if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode));
   #endif
-  if (uflag) fprintf(outfile, " user=\"%s\"", uidtoname(ent->uid));
-  if (gflag) fprintf(outfile, " group=\"%s\"", gidtoname(ent->gid));
-  if (sflag) fprintf(outfile, " size=\"%lld\"", (long long int)(ent->size));
-  if (Dflag) fprintf(outfile, " time=\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
+  if (uflag) fprintf(outfile, ",\"user\":\"%s\"", uidtoname(ent->uid));
+  if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
+  if (sflag) fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
+  if (Dflag) fprintf(outfile, ",\"time\":\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
 }

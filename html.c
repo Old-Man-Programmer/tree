@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2011 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 extern bool Dflag, inodeflag, devflag, Rflag;
-extern bool noindent, force_color, xdev, nolinks, flimit, nosort;
+extern bool noindent, force_color, xdev, nolinks, flimit;
 //extern char *title,
 extern char *host, *sp;
 
@@ -38,34 +38,34 @@ void url_encode(FILE *fd, char *s);
 void emit_html_header(const char *charset, char *title, char *version)
 {
   fprintf(outfile,
-	  "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\" \"http://www.w3.org/TR/html4/strict.dtd\">\n"
-	  "<html>\n"
-	  "<head>\n"
-	  " <meta http-equiv=\"Content-Type\" content=\"text/html; charset=%s\">\n"
-	  " <meta name=\"Author\" content=\"Made by 'tree'\">\n"
-	  " <meta name=\"GENERATOR\" content=\"%s\">\n"
-	  " <title>%s</title>\n"
-	  " <style type=\"text/css\">\n  <!-- \n"
-	  "  BODY { font-family : ariel, monospace, sans-serif; }\n"
-	  "  P { font-weight: normal; font-family : ariel, monospace, sans-serif; color: black; background-color: transparent;}\n"
-	  "  B { font-weight: normal; color: black; background-color: transparent;}\n"
-	  "  A:visited { font-weight : normal; text-decoration : none; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n"
-	  "  A:link    { font-weight : normal; text-decoration : none; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n"
-	  "  A:hover   { color : #000000; font-weight : normal; text-decoration : underline; background-color : yellow; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n"
-	  "  A:active  { color : #000000; font-weight: normal; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n"
-	  "  .VERSION { font-size: small; font-family : arial, sans-serif; }\n"
-	  "  .NORM  { color: black;  background-color: transparent;}\n"
-	  "  .FIFO  { color: purple; background-color: transparent;}\n"
-	  "  .CHAR  { color: yellow; background-color: transparent;}\n"
-	  "  .DIR   { color: blue;   background-color: transparent;}\n"
-	  "  .BLOCK { color: yellow; background-color: transparent;}\n"
-	  "  .LINK  { color: aqua;   background-color: transparent;}\n"
-	  "  .SOCK  { color: fuchsia;background-color: transparent;}\n"
-	  "  .EXEC  { color: green;  background-color: transparent;}\n"
-	  "  -->\n </style>\n"
-	  "</head>\n"
-	  "<body>\n"
-	  "\t<h1>%s</h1><p>\n\t",charset ? charset : "iso-8859-1", version, title, title);
+	"<!DOCTYPE html>\n"
+	"<html>\n"
+	"<head>\n"
+	" <meta http-equiv=\"Content-Type\" content=\"text/html; charset=%s\">\n"
+	" <meta name=\"Author\" content=\"Made by 'tree'\">\n"
+	" <meta name=\"GENERATOR\" content=\"%s\">\n"
+	" <title>%s</title>\n"
+	" <style type=\"text/css\">\n  <!-- \n"
+	"  BODY { font-family : ariel, monospace, sans-serif; }\n"
+	"  P { font-weight: normal; font-family : ariel, monospace, sans-serif; color: black; background-color: transparent;}\n"
+	"  B { font-weight: normal; color: black; background-color: transparent;}\n"
+	"  A:visited { font-weight : normal; text-decoration : none; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n"
+	"  A:link    { font-weight : normal; text-decoration : none; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n"
+	"  A:hover   { color : #000000; font-weight : normal; text-decoration : underline; background-color : yellow; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n"
+	"  A:active  { color : #000000; font-weight: normal; background-color : transparent; margin : 0px 0px 0px 0px; padding : 0px 0px 0px 0px; display: inline; }\n"
+	"  .VERSION { font-size: small; font-family : arial, sans-serif; }\n"
+	"  .NORM  { color: black;  background-color: transparent;}\n"
+	"  .FIFO  { color: purple; background-color: transparent;}\n"
+	"  .CHAR  { color: yellow; background-color: transparent;}\n"
+	"  .DIR   { color: blue;   background-color: transparent;}\n"
+	"  .BLOCK { color: yellow; background-color: transparent;}\n"
+	"  .LINK  { color: aqua;   background-color: transparent;}\n"
+	"  .SOCK  { color: fuchsia;background-color: transparent;}\n"
+	"  .EXEC  { color: green;  background-color: transparent;}\n"
+	"  -->\n </style>\n"
+	"</head>\n"
+	"<body>\n"
+	"\t<h1>%s</h1><p>\n\t",charset ? charset : "iso-8859-1", version, title, title);
 }
 
 off_t html_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
@@ -78,7 +78,10 @@ off_t html_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
   int i,n,c;
   char hclr[20], *hdir, *hcmd;
   
-  if ((Level >= 0) && (lev > Level)) return 0;
+  if ((Level >= 0) && (lev > Level)) {
+    fprintf(outfile, "<br>\n");
+    return 0;
+  }
   
   if (xdev && lev == 0) {
     stat(d,&sb);
@@ -101,7 +104,7 @@ off_t html_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     return 0;
   }
   
-  if (!nosort) qsort(dir,n,sizeof(struct _info *),cmpfunc);
+  if (cmpfunc) qsort(dir,n,sizeof(struct _info *),cmpfunc);
   if (lev >= maxdirs-1) {
     dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
     memset(dirs+(maxdirs-1024), 0, sizeof(int) * 1024);

@@ -141,6 +141,43 @@ Ujjwal Kumar
   - Suggested that tree backslash spaces like ls does for script use.  Made
     output more like ls.
 
+Ivan Shmakov
+  - Pointed out multiple CLI defenciencies (via Debian)
+
+Mantas Mikulnas
+  - Provided patch to make tree more reliably detect the UTF-8 locale.
+
+Tim Mooney
+  - Noticed S_ISDOOR/S_IFDOOR spelling mistake for under Solaris.
+
+Han Hui
+  - Pointed out possible memory overflow in read_dir (path/lbuf not equal in size
+    to pathsize/lbufsize.)
+
+Ryan Hollis
+  - Pointed out problems with the Makefile w/ respect to OSX.
+
+Philipp M?ller
+  - Provided patch for filesize sorting.
+
+Sascha Zorn
+  - Pointed out that the HTML output was broken when -L 1 option was used.
+
+Alexandre Wendling
+  - Pointed out that modern systems may use 32 bit uid/gids which could lead
+    to a potential buffer overflow in the uid/gid to name mapping functions.
+
+Florian Sesser
+  - Provided patch to add JSON support.
+
+Brian Mattern & Jason A. Donenfeld
+  - Provided patch to add --matchdirs functionality.
+
+Jason A. Donenfeld
+  - Added --caseinsentive, renamed --ignore-case option.
+  - Bugged me a lot.
+
+
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
 

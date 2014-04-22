@@ -1,5 +1,5 @@
 .\" $Copyright: $
-.\" Copyright (c) 1996 - 2011 by Steve Baker
+.\" Copyright (c) 1996 - 2012 by Steve Baker
 .\" All Rights reserved
 .\"
 .\" This program is free software; you can redistribute it and/or modify
@@ -17,11 +17,12 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "\*(V)" "Tree 1.6.0"
+.TH TREE 1 "" "Tree 1.7.0"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
-\fBtree\fP [\fB-acdfghilnpqrstuvxACDFQNSUX\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fB--filelimit\fP \fI#\fP] [\fB--si\fP] [\fB--prune\fP] [\fB--du\fP] [\fB--timefmt\fP \fIformat\fP] [\fIdirectory\fP ...]
+\fBtree\fP [\fB-acdfghilnpqrstuvxACDFQNSUX\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fB--filelimit\fP \fI#\fP] [\fB--si\fP] [\fB--prune\fP] [\fB--du\fP] [\fB--timefmt\fP \fIformat\fP] [\fB--matchdirs\fP] [\fB--\fP] [\fIdirectory\fP ...]
+
 .br
 .SH DESCRIPTION
 \fITree\fP is a recursive directory listing program that produces a depth
@@ -97,6 +98,19 @@ alternate patterns.
 .TP
 .B -I \fIpattern\fP
 Do not list those files that match the wild-card \fIpattern\fP.
+.PP
+ .TP
+.B --ignore-case
+If a match pattern is specified by the \fB-P\fP or \fB-I\fP option, this will
+cause the pattern to match without regards to the case of each letter.
+.PP
+.TP
+.B --matchdirs
+If a match pattern is specified by the \fB-P\fP option, this will cause the
+pattern to be applied to directory names (in addition to filenames).  In the
+event of a match on the directory name, matching is disabled for the directory's
+contents. If the \fB--prune\fP option is used, empty folders that match the
+pattern will not be pruned.
 .PP
 .TP
 .B --prune
@@ -202,10 +216,6 @@ Prints the device number to which the file or directory belongs
 Sort the output by version.
 .PP
 .TP
-.B -r
-Sort the output in reverse alphabetic order.
-.PP
-.TP
 .B -t
 Sort the output by last modification time instead of alphabetically.
 .PP
@@ -220,17 +230,26 @@ modification time.
 Do not sort.  Lists files in directory order. Disables \fB--dirsfirst\fP.
 .PP
 .TP
+.B -r
+Sort the output in reverse order.  This is a meta-sort that alter the above sorts.
+This option is disabled when \fB-U\fP is used.
+.PP
+.TP
 .B --dirsfirst
 List directories before files. This is a meta-sort that alters the above sorts.
 This option is disabled when \fB-U\fP is used.
 .PP
-
+.TP
+.B --sort[=]<name>
+Sort the output by name (as per ls): name (default), ctime (\fP-c\fP), mtime
+(\fP-t\fB), size or version (\fP-v\fB).
 .SH GRAPHICS OPTIONS
 
 .TP
 .B -i
 Makes tree not print the indentation lines, useful when used in conjunction
-with the \fB-f\fP option.
+with the \fB-f\fP option.  Also removes as much whitespace as possible when used
+with the \fB-J\fP or \fB-x\fP options.
 .PP
 .TP
 .B -A
@@ -238,7 +257,7 @@ Turn on ANSI line graphics hack when printing the indentation lines.
 .PP
 .TP
 .B -S
-Turn on ASCII line graphics (useful when using Linux console mode fonts). This
+Turn on CP437 line graphics (useful when using Linux console mode fonts). This
 option is now equivalent to `--charset=IBM437' and may eventually be depreciated.
 .PP
 .TP
@@ -251,11 +270,15 @@ Turn colorization on always, using built-in color defaults if the LS_COLORS
 environment variable is not set.  Useful to colorize output to a pipe.
 .PP
 
-.SH XML/HTML OPTIONS
+.SH XML/JSON/HTML OPTIONS
 
 .TP
 .B -X
 Turn on XML output. Outputs the directory tree as an XML formatted file.
+.PP
+.TP
+.B -J
+Turn on JSON output. Outputs the directory tree as an JSON formatted array.
 .PP
 .TP
 .B -H \fIbaseHREF\fP
@@ -286,6 +309,10 @@ Outputs a verbose usage listing.
 .TP
 .B --version
 Outputs the version of tree.
+.PP
+.TP
+.B --
+Option processing terminator.  No further options will be processed after this.
 .PP
 
 .br
@@ -333,7 +360,7 @@ The timefmt expansion buffer is limited to a ridiculously large 255 characters.
 Output of time strings longer than this will be undefined, but are guaranteed
 to not exceed 255 characters.
 
-XML trees are not colored, which is a bit of a shame.
+XML/JSON trees are not colored, which is a bit of a shame.
 
 Probably more.
 

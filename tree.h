@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2011 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -52,6 +52,7 @@
 #endif
 
 #include <locale.h>
+#include <langinfo.h>
 #include <wchar.h>
 #include <wctype.h>
 
@@ -93,7 +94,7 @@ struct _info {
 };
 /* hash.c */
 struct xtable {
-  u_short xid;
+  unsigned int xid;
   char *name;
   struct xtable *nxt;
 };
@@ -121,11 +122,15 @@ struct linedraw {
 void usage(int);
 struct _info **getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 struct _info **read_dir(char *, int *);
+
 int alnumsort(struct _info **, struct _info **);
 int versort(struct _info **a, struct _info **b);
 int reversealnumsort(struct _info **, struct _info **);
 int mtimesort(struct _info **, struct _info **);
 int ctimesort(struct _info **, struct _info **);
+int sizecmp(off_t a, off_t b);
+int fsizesort(struct _info **a, struct _info **b);
+
 void *xmalloc(size_t), *xrealloc(void *, size_t);
 char *gnu_getcwd();
 int patmatch(char *, char *);
@@ -161,6 +166,13 @@ void xmlr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev);
 void xml_indent(int maxlevel);
 void xml_fillinfo(struct _info *ent);
 
+/* json.c */
+off_t json_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
+off_t json_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
+void jsonr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev);
+void json_indent(int maxlevel);
+void json_fillinfo(struct _info *ent);
+
 /* color.c */
 void parse_dir_colors();
 int color(u_short mode, char *name, bool orphan, bool islink);
@@ -168,7 +180,8 @@ const char *getcharset(void);
 void initlinedraw(int);
 
 /* hash.c */
-char *gidtoname(int), *uidtoname(int);
+char *uidtoname(uid_t uid);
+char *gidtoname(gid_t gid);
 int findino(ino_t, dev_t);
 void saveino(ino_t, dev_t);
 

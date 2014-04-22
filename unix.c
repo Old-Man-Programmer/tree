@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2011 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 extern bool Dflag, inodeflag, devflag, Rflag, duflag, pruneflag;
-extern bool noindent, force_color, xdev, nolinks, flimit, nosort;
+extern bool noindent, force_color, xdev, nolinks, flimit;
 
 extern void (*listdir)(char *, int *, int *, u_long, dev_t);
 extern int (*cmpfunc)();
@@ -65,7 +65,7 @@ off_t unix_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
     return 0;
   }
 
-  if (!nosort) qsort(dir,n,sizeof(struct _info *),cmpfunc);
+  if (cmpfunc) qsort(dir,n,sizeof(struct _info *), cmpfunc);
   if (lev >= maxdirs-1) {
     dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
     memset(dirs+(maxdirs-1024), 0, sizeof(int) * 1024);

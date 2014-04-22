@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2011 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify

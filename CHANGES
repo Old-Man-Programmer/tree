@@ -1,3 +1,30 @@
+Version 1.7.0
+  - Allow user/group names up to 32 characters before clipping.
+  - Made -i compress XML and JSON output as much as possible by eliminating
+    extraneous whitespace.
+  - Added --caseinsensitive (renamed --ignore-case ala grep) flag so patterns
+    match without regard to case, courtesy of Jason A Donenfeld.
+  - Added --matchdirs option courtesy of Brian Mattern & Jason A. Donenfeld
+    <Jason@zx2c4.com>.
+  - Fixed possible buffer overflow on large uid/gids w/o user names/group
+    names (Alexandre Wendling <alexandrerw@celepar.pr.gov.br>)
+  - Added JSON support courtesy of Florian Sesser <fs@it-agenten.com>.
+  - Fixed formatting error with HTML output when -L 1 specified. (Sascha Zorn 
+    <sascha.zorn@gmail.com>)
+  - Added file size sorting (Philipp M?ller <philippausmuensing@googlemail.com>)
+  - Added '--sort[=]<name>' option, ala ls.
+  - Fixed OS X makefile problems (Ryan Hollis <theryanhollis@gmail.com>)
+  - Fixed possible memory overflow in read_dir (path/lbuf not equal in size
+    to pathsize/lbufsize.) (Han Hui <hanhui03@163.com>)
+  - Fix S_ISDOOR/S_IFDOOR spelling mistake for Solaris. (Tim Mooney
+    <Tim.Mooney@ndsu.edu>)
+  - Make tree more reliably detect UTF-8 locales. (Mantas Mikulnas
+    <grawity@gmail.com> and others.)
+  - Return non-zero exit status on option errors, print usage to stdout when
+    not an error, add the posix '--' option terminator, Change -S description
+    to mean CP437 (console) output codes, not ASCII. (Ivan Shmakov
+    <oneingray@gmail.com>)
+
 Version 1.6.0
   - Re-org of code into multiple files, split HTML and Unix listdir() into
     separate functions, various code cleanups and optimizations.
@@ -142,7 +169,7 @@ Version 1.3
   - Added -S to show ASCII tree lines (Gerald Scheidl)
   - Made tree more portable (Guido Socher and others)
 
-  Following options curtsey of Francesc Rocher:
+  Following options courtesy of Francesc Rocher:
   - Added -o <filename> to redirect the output.
   - Added -H <baseHRef> to print the tree in HTML format.
   - Added -L to set the maximum level of directories to print.

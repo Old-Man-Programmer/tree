@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2011 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,11 +25,11 @@ struct xtable *gtable[256], *utable[256];
 #define inohash(x)	((x)&255)
 struct inotable *itable[256];
 
-char *uidtoname(int uid)
+char *uidtoname(uid_t uid)
 {
   struct xtable *o, *p, *t;
   struct passwd *ent;
-  char ubuf[6];
+  char ubuf[32];
   int uent = HASH(uid);
   
   for(o = p = utable[uent]; p ; p=p->nxt) {
@@ -41,7 +41,8 @@ char *uidtoname(int uid)
   t = xmalloc(sizeof(struct xtable));
   if ((ent = getpwuid(uid)) != NULL) t->name = scopy(ent->pw_name);
   else {
-    sprintf(ubuf,"%d",uid);
+    snprintf(ubuf,30,"%d",uid);
+    ubuf[31] = 0;
     t->name = scopy(ubuf);
   }
   t->xid = uid;
@@ -51,11 +52,11 @@ char *uidtoname(int uid)
   return t->name;
 }
 
-char *gidtoname(int gid)
+char *gidtoname(gid_t gid)
 {
   struct xtable *o, *p, *t;
   struct group *ent;
-  char gbuf[6];
+  char gbuf[32];
   int gent = HASH(gid);
   
   for(o = p = gtable[gent]; p ; p=p->nxt) {
@@ -67,7 +68,8 @@ char *gidtoname(int gid)
   t = xmalloc(sizeof(struct xtable));
   if ((ent = getgrgid(gid)) != NULL) t->name = scopy(ent->gr_name);
   else {
-    sprintf(gbuf,"%d",gid);
+    snprintf(gbuf,30,"%d",gid);
+    gbuf[31] = 0;
     t->name = scopy(gbuf);
   }
   t->xid = gid;

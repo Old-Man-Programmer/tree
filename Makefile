@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2011 by Steve Baker
+# Copyright (c) 1996 - 2014 by Steve Baker
 # All Rights reserved
 #
 # This program is free software; you can redistribute it and/or modify
@@ -20,19 +20,19 @@ prefix = /usr
 
 CC=gcc
 
-VERSION=1.6.0
+VERSION=1.7.0
 TREE_DEST=tree
 BINDIR=${prefix}/bin
 MAN=tree.1
 MANDIR=${prefix}/man/man1
-OBJS=tree.o unix.o html.o xml.o hash.o color.o
+OBJS=tree.o unix.o html.o xml.o json.o hash.o color.o
 
 # Uncomment options below for your particular OS:
 
 # Linux defaults:
-#CFLAGS=-ggdb -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS=-O4 -Wall  -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-LDFLAGS=-s
+CFLAGS=-ggdb -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+#CFLAGS=-O4 -Wall  -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+#LDFLAGS=-s
 
 # Uncomment for FreeBSD:
 #CFLAGS=-O2 -Wall -fomit-frame-pointer
@@ -56,6 +56,7 @@ LDFLAGS=-s
 #CC=cc
 #CFLAGS=-O2 -Wall -fomit-frame-pointer -no-cpp-precomp
 #LDFLAGS=
+#MANDIR=/usr/share/man/man1
 #OBJS+=strverscmp.o
 
 # Uncomment for HP/UX:
@@ -97,7 +98,7 @@ install: tree
 	install -d $(BINDIR)
 	install -d $(MANDIR)
 	if [ -e $(TREE_DEST) ]; then \
-		install -s $(TREE_DEST) $(BINDIR)/$(TREE_DEST); \
+		install $(TREE_DEST) $(BINDIR)/$(TREE_DEST); \
 	fi
 	install doc/$(MAN) $(MANDIR)/$(MAN)
 
