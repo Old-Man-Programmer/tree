@@ -1,4 +1,9 @@
 Should do:
+- Use stdint.h and inttypes.h to standardize the int sizes and format strings.
+
+- Add --DU option to fully report disk usage, taking into account files that
+  are not displayed in the output.
+
 - Should be a better way code the various tree formats (XML/HTML/Unix) to
   share more code. Probably make a generic tree crawling routine that calls
   various function pointers to emit the file information based on the kind

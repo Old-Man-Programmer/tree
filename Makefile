@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2014 by Steve Baker
+# Copyright (c) 1996 - 2018 by Steve Baker
 # All Rights reserved
 #
 # This program is free software; you can redistribute it and/or modify
@@ -20,21 +20,28 @@ prefix = /usr
 
 CC=gcc
 
-VERSION=1.7.0
+VERSION=1.8.0
 TREE_DEST=tree
 BINDIR=${prefix}/bin
 MAN=tree.1
 MANDIR=${prefix}/man/man1
-OBJS=tree.o unix.o html.o xml.o json.o hash.o color.o
+OBJS=tree.o unix.o html.o xml.o json.o hash.o color.o file.o
 
 # Uncomment options below for your particular OS:
 
 # Linux defaults:
-CFLAGS=-ggdb -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS=-ggdb -pedantic -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 #CFLAGS=-O4 -Wall  -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 #LDFLAGS=-s
 
 # Uncomment for FreeBSD:
+#CFLAGS=-O2 -Wall -fomit-frame-pointer
+#LDFLAGS=-s
+#OBJS+=strverscmp.o
+
+# Uncomment for OpenBSD:
+#TREE_DEST=colortree
+#MAN=colortree.1
 #CFLAGS=-O2 -Wall -fomit-frame-pointer
 #LDFLAGS=-s
 #OBJS+=strverscmp.o
@@ -53,6 +60,8 @@ CFLAGS=-ggdb -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 #OBJS+=strverscmp.o
 
 # Uncomment for OS X:
+# It is not allowed to install to /usr/bin on OS X any longer (SIP):
+#prefix = /usr/local
 #CC=cc
 #CFLAGS=-O2 -Wall -fomit-frame-pointer -no-cpp-precomp
 #LDFLAGS=
@@ -78,6 +87,11 @@ CFLAGS=-ggdb -Wall -DLINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 #LDFLAGS=
 #OBJS+=strverscmp.o
 
+# AIX
+#CC=cc_r -q64
+#LD=ld -d64
+#LDFLAGS=-lc
+#OBJS+=strverscmp.o
 
 #------------------------------------------------------------
 

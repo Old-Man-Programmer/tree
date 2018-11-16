@@ -1,5 +1,5 @@
 .\" $Copyright: $
-.\" Copyright (c) 1996 - 2012 by Steve Baker
+.\" Copyright (c) 1996 - 2018 by Steve Baker
 .\" All Rights reserved
 .\"
 .\" This program is free software; you can redistribute it and/or modify
@@ -17,11 +17,11 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "" "Tree 1.7.0"
+.TH TREE 1 "" "Tree 1.8.0"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
-\fBtree\fP [\fB-acdfghilnpqrstuvxACDFQNSUX\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fB--filelimit\fP \fI#\fP] [\fB--si\fP] [\fB--prune\fP] [\fB--du\fP] [\fB--timefmt\fP \fIformat\fP] [\fB--matchdirs\fP] [\fB--\fP] [\fIdirectory\fP ...]
+\fBtree\fP [\fB-acdfghilnpqrstuvxACDFQNSUX\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fB--filelimit\fP \fI#\fP] [\fB--si\fP] [\fB--prune\fP] [\fB--du\fP] [\fB--timefmt\fP \fIformat\fP] [\fB--matchdirs\fP] [\fB--fromfile\fP] [\fB--\fP] [\fIdirectory\fP ...]
 
 .br
 .SH DESCRIPTION
@@ -99,7 +99,7 @@ alternate patterns.
 .B -I \fIpattern\fP
 Do not list those files that match the wild-card \fIpattern\fP.
 .PP
- .TP
+.TP
 .B --ignore-case
 If a match pattern is specified by the \fB-P\fP or \fB-I\fP option, this will
 cause the pattern to match without regards to the case of each letter.
@@ -240,9 +240,11 @@ List directories before files. This is a meta-sort that alters the above sorts.
 This option is disabled when \fB-U\fP is used.
 .PP
 .TP
-.B --sort[=]<name>
-Sort the output by name (as per ls): name (default), ctime (\fP-c\fP), mtime
-(\fP-t\fB), size or version (\fP-v\fB).
+.B --sort\fR[\fB=\fR]\fItype\fR
+Sort the output by \fItype\fR instead of name. Possible values are:
+\fBctime\fR (\fB-c\fP),
+\fBmtime\fR (\fB-t\fB), \fBsize\fR, or \fBversion\fR (\fB-v\fB).
+
 .SH GRAPHICS OPTIONS
 
 .TP
@@ -266,8 +268,9 @@ Turn colorization off always, over-ridden by the \fB-C\fP option.
 .PP
 .TP
 .B -C
-Turn colorization on always, using built-in color defaults if the LS_COLORS
-environment variable is not set.  Useful to colorize output to a pipe.
+Turn colorization on always, using built-in color defaults if the LS_COLORS or
+TREE_COLORS environment variables are not set.  Useful to colorize output to a
+pipe.
 .PP
 
 .SH XML/JSON/HTML OPTIONS
@@ -288,7 +291,7 @@ local directory may be `/local/ftp/pub', but it must be referenced as
 `ftp://hostname.organization.domain/pub' (\fIbaseHREF\fP should be
 `ftp://hostname.organization.domain'). Hint: don't use ANSI lines with this
 option, and don't give more than one directory in the directory list. If you
-wish to use colors via CCS style-sheet, use the -C option in addition to this
+wish to use colors via CSS style-sheet, use the -C option in addition to this
 option to force color output.
 .PP
 .TP
@@ -299,6 +302,14 @@ Sets the title and H1 header string in HTML output mode.
 .B --nolinks
 Turns off hyperlinks in HTML output.
 .PP
+
+.SH INPUT OPTIONS
+
+.B --fromfile
+Reads a directory listing from a file rather than the file-system.  Paths
+provided on the command line are files to read from rather than directories to
+search.  The dot (.) directory indicates that tree should read paths from
+standard input.
 
 .SH MISC OPTIONS
 
@@ -329,11 +340,15 @@ Option processing terminator.  No further options will be processed after this.
 .br
 \fBTREE_CHARSET\fP	Character set for tree to use in HTML mode.
 .br
+\fBCLICOLOR\fP		Enables colorization even if TREE_COLORS or LS_COLORS is not set.
+.br
+\fBCLICOLOR_FORCE\fP	Always enables colorization (effectively -C)
+.br
 \fBLC_CTYPE\fP		Locale for filename output.
 .br
 \fBLC_TIME\fP		Locale for timefmt output, see \fBstrftime\fP(3).
 .br
-\fBTZ\fP			Timezone for timefmt output, see \fBstrftime\fP(3).
+\fBTZ\fP		Timezone for timefmt output, see \fBstrftime\fP(3).
 
 .SH AUTHOR
 Steve Baker (ice@mama.indstate.edu)

@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,12 +19,13 @@
 #include "tree.h"
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-extern bool Dflag, inodeflag, devflag, Rflag, cflag;
+extern bool Dflag, inodeflag, devflag, Rflag, cflag, hflag, siflag;
 extern bool noindent, force_color, xdev, nolinks, flimit;
 
 extern const int ifmt[];
 extern const char fmt[], *ftype[];
 
+extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern void (*listdir)(char *, int *, int *, u_long, dev_t);
 extern int (*cmpfunc)();
 extern FILE *outfile;
@@ -238,8 +239,10 @@ void jsonr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
     }
 
     json_fillinfo(*dir);
-    if (mt != S_IFDIR && mt != S_IFLNK && (*dir)->err == NULL) fprintf(outfile,"},");
-    else fprintf(outfile, ",\"contents\":[");
+    if (mt != S_IFDIR && mt != S_IFLNK && (*dir)->err == NULL) {
+      fputc('}', outfile);
+      if (*(dir+1)) fputc(',',outfile);
+    } else fprintf(outfile, ",\"contents\":[");
 
     if ((*dir)->err) {
       fprintf(outfile,",\"error\":\"%s\"", (*dir)->err);
@@ -265,10 +268,11 @@ void jsonr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
       nlf = FALSE;
       if (!noindent) json_indent(lev);
     }
-    if (mt == S_IFDIR || mt == S_IFLNK || (*dir)->err != NULL) fprintf(outfile,"]},%s",noindent?"":"\n");
-    else {
-      if (!noindent) putc('\n',outfile);
+    if (mt == S_IFDIR || mt == S_IFLNK || (*dir)->err != NULL) {
+      fprintf(outfile,"]}");
+      if (*(dir+1)) fputc(',',outfile);
     }
+    if (!noindent) putc('\n',outfile);
     dir++;
   }
   dirs[lev] = 0;
@@ -300,6 +304,15 @@ void json_fillinfo(struct _info *ent)
   #endif
   if (uflag) fprintf(outfile, ",\"user\":\"%s\"", uidtoname(ent->uid));
   if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
-  if (sflag) fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
+  if (sflag) {
+    if (hflag || siflag) {
+      char nbuf[64];
+      int i;
+      psize(nbuf,ent->size);
+      for(i=0; isspace(nbuf[i]); i++);	// trim() hack
+      fprintf(outfile, ",\"size\":\"%s\"", nbuf+i);
+    } else
+      fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
+  }
   if (Dflag) fprintf(outfile, ",\"time\":\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
 }

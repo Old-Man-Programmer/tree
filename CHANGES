@@ -1,4 +1,27 @@
-Version 1.7.0
+Version 1.8.0 (11/16/2018)
+  - Added an experimental --fromfile option (suggested by several people.)
+    This may eventually be replaced or supplimented by a --fromjson option.
+  - Added support for BSD's CLICOLOR and CLICOLOR_FORCE environment variables.
+    (Suggested by Alyssa Ross)
+  - Use strftime() exclusively when formatting date/time to respect locale.
+  - Some man page fixes and cleanups curtsey of Kirill Kolyshkin
+  - Update BINDIR in Makefile for MacOS X -- It is not allowed to install
+    programs to /usr/bin on MacOS X any longer due to System Integrity
+    Protection (SIP) (Shawn Mehan)
+  - Misc patches from Jacob Wahlgren:
+    - Improved command line switch error reporting.
+    - Symbolic links not displayed if a -P pattern is active
+    - Missing argument error reporting fixes on long format switches.
+  - Fixed JSON output hanging commas (John Lane, Tad, others)
+  - JSON size output ignored -h/--si flags (Wagner Camarao)
+  - Fixed issue with malformed multibyte string handling. (Mantas
+    Mikul&#279;nas)
+  - Fixed issue where mbstowcs() fails to null terminate the string due to
+    improper UTF-8 encoding leading to garbage being printed. (Nick Craig-Wood)
+  - Found a bug where the wrong inode (and device) information would be printed
+    for symbolic links. (Stephan Gabert)
+
+Version 1.7.0 (04/23/2014)
   - Allow user/group names up to 32 characters before clipping.
   - Made -i compress XML and JSON output as much as possible by eliminating
     extraneous whitespace.
@@ -25,7 +48,7 @@ Version 1.7.0
     to mean CP437 (console) output codes, not ASCII. (Ivan Shmakov
     <oneingray@gmail.com>)
 
-Version 1.6.0
+Version 1.6.0 (05/24/11)
   - Re-org of code into multiple files, split HTML and Unix listdir() into
     separate functions, various code cleanups and optimizations.
   - Fixed a memory leak in listdir() when memory was allocated early and not
@@ -63,7 +86,7 @@ Version 1.6.0
   - Added --timefmt option to specify the format of time display (implies -D).
     Uses the strftime format.
 
-Version 1.5.3
+Version 1.5.3 (11/24/09)
   - Properly quote directories for the system command when tree is relaunched
     using the -R option.
   - Fixed possible indentation problem if dirs[*] is not properly zeroed
@@ -75,32 +98,32 @@ Version 1.5.3
   - Automatically select UTF-8 charset if TREE_CHARSET is not set, and the
     locale is set to *UTF-8 (overridden with --charset option.)
 
-Version 1.5.2.2
+Version 1.5.2.2 (01/22/09)
   - Set locale before checking MB_CUR_MAX.
   - Added HP-NonStop platform support (Craig McDaniel <craigmcd@gmail.com>)
   - Fixed to support 32 bit UID/GIDs.
   - Added Solaris build options to Makefile (edit and uncomment to use).
     Provided by Wang Quanhong
 
-Version 1.5.2.1
+Version 1.5.2.1 (08/29/08)
   - Added strverscmp.c file for os's without strverscmp.  Source file is
     attributed to: Jean-Franois Bignolles <bignolle@ecoledoc.ibp.fr>
   - Try different approach to MB_CUR_MAX problem.
   - Changed the argument to printit() to be signed char to avoid warnings.
 
-Version 1.5.2
+Version 1.5.2 (06/06/08)
   - Added --filelimit X option to not descend directories that have more than
     X number of files in them.
   - Added -v option for version sorting (also called natural sorting) ala ls.
 
-Version 1.5.1.2
+Version 1.5.1.2 (06/04/08)
   - Fixed compile issues related to MB_CUR_MAX on non-linux machines.
   - Removed unecessary features.h
 
-Version 1.5.1.1
+Version 1.5.1.1 (06/11/07)
   - Regression in HTML output, fixed formatting issues.
 
-Version 1.5.1
+Version 1.5.1 (?)
   - Remove extraneous / at end of user input directory names when using -f
     option (Zurd)
   - List available charsets if --charset option is missing charset argument.
@@ -110,7 +133,7 @@ Version 1.5.1
   - Colorization bugfix for special files and directories (make tree behave as
     ls does)
 
-Version 1.5.0
+Version 1.5.0 (08/15/04)
   - Added -T option to change title and H1 header in HTML output.
   - Added -r option to reverse alpha sort output, ala. 'ls -r'.
   - '|' wildcard support added by David MacMahon <davidm@astron.Berkeley.EDU>.
@@ -139,7 +162,7 @@ Version 1.5.0
   - Change version to standard major.minor.patch format.
   - Switch from artistic license to GPLv2.
 
-Version 1.4
+Version 1.4 (02/21/02 (b1), 03/24/02 (b2), 02/06/03 (b3))
   - Added large file support under Linux.
   - Fixed crashing on missing command line arguments.
   - Fixed several memory leaks
@@ -160,7 +183,7 @@ Version 1.4
   - Added --inodes and --device options.
   - Added --noreport option.
 
-Version 1.3
+Version 1.3 (02/15/99)
   - Fixed long pathname problem by dynamically allocating the path.
   - Added recursive symlink detection.
   - Added --help and --version options.
@@ -176,7 +199,7 @@ Version 1.3
   - Added -R to recursively restart the search at the level given by `-L'
     option (adding as well `-o 00Tree.html').
 
-Version 1.2
+Version 1.2 (01/05/97)
   - Added -D to print the date of the last modification.
   - Added -t option to sort by last modification time (ala ls -t).
   - Added -I <pattern>, similar to the -P option except tree does not print
@@ -192,7 +215,7 @@ Version 1.2
     name/gid.
   - Fully (pass the salt) implemented dircolors support.
 
-Version 1.1
+Version 1.1 (07/09/96)
   - Made some changes to the Makefile to insure proper installation and for
     multi-architecture support and a bug-fix.
   - Made root directory colorized if dircolors is enabled.
@@ -206,5 +229,5 @@ Version 1.1
   - Made uid 0 the same as anyone else (-a was default for uid 0)
   - Added -x directive to stay on one filesystem (ala find -xdev).
 
-Version 1.0
+Version 1.0 (??/??/90?)
   - The original, a model of perfection...

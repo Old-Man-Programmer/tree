@@ -1,6 +1,6 @@
 Installation instructions:
 
-1. Edit the Makefile for your OS.  Comment out the Linux options and uncomment
+1. Edit the Makefile for your OS.  Comment out the Linux options and un-comment
    the options for your OS.
 2. Type: make
 3. Type: make install

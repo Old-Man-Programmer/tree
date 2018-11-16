@@ -177,6 +177,10 @@ Jason A. Donenfeld
   - Added --caseinsentive, renamed --ignore-case option.
   - Bugged me a lot.
 
+Stephan Gabert
+  - Found a bug where the wrong inode (and device) information would be printed
+    for symbolic links.
+
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

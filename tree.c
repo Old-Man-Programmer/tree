@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,8 +19,8 @@
 
 #include "tree.h"
 
-static char *version ="$Version: $ tree v1.7.0 (c) 1996 - 2014 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-static char *hversion="\t\t tree v1.7.0 %s 1996 - 2014 by Steve Baker and Thomas Moore <br>\n"
+static char *version ="$Version: $ tree v1.8.0 (c) 1996 - 2018 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+static char *hversion="\t\t tree v1.8.0 %s 1996 - 2018 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		      "\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -30,12 +30,14 @@ bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
 bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag;
 bool noindent, force_color, nocolor, xdev, noreport, nolinks, flimit, dirsfirst;
-bool ignorecase, matchdirs;
+bool ignorecase, matchdirs, fromfile;
 bool reverse;
 char *pattern = NULL, *ipattern = NULL, *host = NULL, *title = "Directory Tree", *sp = " ", *_nl = "\n";
+char *file_comment = "#", *file_pathsep = "/";
 char *timefmt = NULL;
 const char *charset = NULL;
 
+struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err) = unix_getfulltree;
 off_t (*listdir)(char *, int *, int *, u_long, dev_t) = unix_listdir;
 int (*cmpfunc)() = alnumsort;
 
@@ -312,6 +314,9 @@ int main(int argc, char **argv)
 		  flimit=atoi(argv[i]+12);
 		  j = strlen(argv[i])-1;
 		  break;
+		} else {
+		  fprintf(stderr,"tree: missing argument to --filelimit=\n");
+		  exit(1);
 		}
 	      }
 	      if (argv[n] != NULL) {
@@ -329,6 +334,9 @@ int main(int argc, char **argv)
 		if (*(charset = (argv[i]+10))) {
 		  j = strlen(argv[i])-1;
 		  break;
+		} else {
+		  fprintf(stderr,"tree: missing argument to --charset=\n");
+		  exit(1);
 		}
 	      }
 	      if (argv[n] != NULL) {
@@ -365,6 +373,9 @@ int main(int argc, char **argv)
 		  timefmt=scopy(argv[i]+j);
 		  j = strlen(argv[i])-1;
 		  break;
+		}else {
+		  fprintf(stderr,"tree: missing argument to --timefmt=\n");
+		  exit(1);
 		}
 	      } else if (argv[n] != NULL) {
 		timefmt = scopy(argv[n]);
@@ -403,14 +414,14 @@ int main(int argc, char **argv)
 		fprintf(stderr,"tree: missing argument to --sort\n");
 		exit(1);
 	      }
-	      cmpfunc = (void *)1;
+	      cmpfunc = NULL;
 	      for(k=0;sorts[k].name;k++) {
 		if (strcasecmp(sorts[k].name,stmp) == 0) {
 		  cmpfunc = sorts[k].cmpfunc;
 		  break;
 		}
 	      }
-	      if (cmpfunc == (void *)1) {
+	      if (cmpfunc == NULL) {
 		fprintf(stderr,"tree: sort type '%s' not valid, should be one of: ", stmp);
 		for(k=0; sorts[k].name; k++)
 		  printf("%s%c", sorts[k].name, sorts[k+1].name? ',': '\n');
@@ -418,6 +429,14 @@ int main(int argc, char **argv)
 	      }
 	      break;
 	    }
+	    if (!strncmp("--fromfile",argv[i],10)) {
+	      j = strlen(argv[i])-1;
+	      fromfile=TRUE;
+	      break;
+	    }
+	    fprintf(stderr,"tree: Invalid argument `%s'.\n",argv[i]);
+	    usage(1);
+	    exit(1);
 	  }
 	default:
 	  fprintf(stderr,"tree: Invalid argument -`%c'.\n",argv[i][j]);
@@ -452,10 +471,18 @@ int main(int argc, char **argv)
     }
   }
 
+  
+  if (timefmt)
+    setlocale(LC_TIME,"");
+
   parse_dir_colors();
   initlinedraw(0);
 
-  needfulltree = duflag || pruneflag || matchdirs;
+  needfulltree = duflag || pruneflag || matchdirs || fromfile;
+
+  if (fromfile) {
+    getfulltree = file_getfulltree;
+  }
 
   /* Set our listdir function and sanity check options. */
   if (Hflag) {
@@ -473,7 +500,6 @@ int main(int argc, char **argv)
     listdir = needfulltree ? unix_rlistdir : unix_listdir;
   }
   if (dflag) pruneflag = FALSE;	/* You'll just get nothing otherwise. */
-
 
   if (Rflag && (Level == -1))
     Rflag = FALSE;
@@ -606,7 +632,8 @@ void usage(int n)
 	"\t[-L level [-R]] [-P pattern] [-I pattern] [-o filename] [--version]\n"
 	"\t[--help] [--inodes] [--device] [--noreport] [--nolinks] [--dirsfirst]\n"
 	"\t[--charset charset] [--filelimit[=]#] [--si] [--timefmt[=]<f>]\n"
-	"\t[--sort[=]<name>] [--matchdirs] [--ignore-case] [--] [<directory list>]\n");
+	"\t[--sort[=]<name>] [--matchdirs] [--ignore-case] [--fromfile] [--]\n"
+	"\t[<directory list>]\n");
   if (n < 2) return;
   fprintf(stdout,
 	"  ------- Listing options -------\n"
@@ -626,7 +653,7 @@ void usage(int n)
 	"  --filelimit # Do not descend dirs with more than # files in them.\n"
 	"  --timefmt <f> Print and format time according to the format <f>.\n"
 	"  -o filename   Output to file instead of stdout.\n"
-	"  -------- File options ---------\n"
+	"  ------- File options -------\n"
 	"  -q            Print non-printable characters as '?'.\n"
 	"  -N            Print non-printable characters as is.\n"
 	"  -Q            Quote filenames with double quotes.\n"
@@ -648,7 +675,7 @@ void usage(int n)
 	"  -r            Reverse the order of the sort.\n"
 	"  --dirsfirst   List directories before files (-U disables).\n"
 	"  --sort X      Select sort: name,version,size,mtime,ctime.\n"
-	"  ------- Graphics options ------\n"
+	"  ------- Graphics options -------\n"
 	"  -i            Don't print indentation lines.\n"
 	"  -A            Print ANSI lines graphic indentation lines.\n"
 	"  -S            Print with CP437 (console) graphics indentation lines.\n"
@@ -660,7 +687,9 @@ void usage(int n)
 	"  -H baseHREF   Prints out HTML format with baseHREF as top directory.\n"
 	"  -T string     Replace the default HTML title and H1 header with string.\n"
 	"  --nolinks     Turn off hyperlinks in HTML output.\n"
-	"  ---- Miscellaneous options ----\n"
+	"  ------- Input options -------\n"
+	"  --fromfile    Reads paths from files (.=stdin)\n"
+	"  ------- Miscellaneous options -------\n"
 	"  --version     Print version and exit.\n"
 	"  --help        Print usage and this help message and exit.\n"
 	"  --            Options processing terminator.\n");
@@ -698,16 +727,16 @@ struct _info **read_dir(char *dir, int *n)
     sprintf(path,"%s/%s",dir,ent->d_name);
     if (lstat(path,&lst) < 0) continue;
     if ((lst.st_mode & S_IFMT) == S_IFLNK) {
-      if ((rs = stat(path,&st)) < 0) st.st_mode = 0;
+      if ((rs = stat(path,&st)) < 0) memset(&st, 0, sizeof(st));
     } else {
       rs = 0;
       st.st_mode = lst.st_mode;
       st.st_dev = lst.st_dev;
       st.st_ino = lst.st_ino;
     }
-      
+
 #ifndef __EMX__
-    if ((lst.st_mode & S_IFMT) != S_IFDIR && !(((lst.st_mode & S_IFMT) == S_IFLNK) && lflag)) {
+    if ((lst.st_mode & S_IFMT) != S_IFDIR && !(lflag && ((st.st_mode & S_IFMT) == S_IFDIR))) {
       if (pattern && patmatch(ent->d_name,pattern) != 1) continue;
     }
     if (ipattern && patmatch(ent->d_name,ipattern) == 1) continue;
@@ -715,7 +744,7 @@ struct _info **read_dir(char *dir, int *n)
 
     if (dflag && ((st.st_mode & S_IFMT) != S_IFDIR)) continue;
 #ifndef __EMX__
-    if (pattern && ((lst.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue;
+//    if (pattern && ((lst.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue;
 #endif
 
     if (p == (ne-1)) dl = (struct _info **)xrealloc(dl,sizeof(struct _info *) * (ne += MINC));
@@ -731,6 +760,8 @@ struct _info **read_dir(char *dir, int *n)
     dl[p]->size = lst.st_size;
     dl[p]->dev = st.st_dev;
     dl[p]->inode = st.st_ino;
+    dl[p]->ldev = lst.st_dev;
+    dl[p]->linode = lst.st_ino;
     dl[p]->lnk = NULL;
     dl[p]->orphan = FALSE;
     dl[p]->err = NULL;
@@ -776,7 +807,7 @@ struct _info **read_dir(char *dir, int *n)
  * This can and will use a large amount of memory for large directory trees
  * and also take some time.
  */
-struct _info **getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err)
+struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err)
 {
   char *path;
   long pathsize = 0;
@@ -847,12 +878,12 @@ struct _info **getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **e
 	  } else {
 	    saveino((*dir)->inode, (*dir)->dev);
 	    if (*(*dir)->lnk == '/')
-	      (*dir)->child = getfulltree((*dir)->lnk,lev+1,dev,&((*dir)->size),&((*dir)->err));
+	      (*dir)->child = unix_getfulltree((*dir)->lnk,lev+1,dev,&((*dir)->size),&((*dir)->err));
 	    else {
 	      if (strlen(d)+strlen((*dir)->lnk)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
 	      if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
 	      else sprintf(path,"%s/%s",d,(*dir)->lnk);
-	      (*dir)->child = getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
+	      (*dir)->child = unix_getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
 	    }
 	  }
 	}
@@ -861,7 +892,7 @@ struct _info **getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **e
 	if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
 	else sprintf(path,"%s/%s",d,(*dir)->name);
 	saveino((*dir)->inode, (*dir)->dev);
-	(*dir)->child = getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
+	(*dir)->child = unix_getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
       }
       // prune empty folders, unless they match the requested pattern
       if (pruneflag && (*dir)->child == NULL &&
@@ -1094,7 +1125,7 @@ int patmatch(char *buf, char *pat)
 }
 
 
-/*
+/**
  * They cried out for ANSI-lines (not really), but here they are, as an option
  * for the xterm and console capable among you, as a run-time option.
  */
@@ -1104,7 +1135,7 @@ void indent(int maxlevel)
 
   if (ansilines) {
     if (dirs[0]) fprintf(outfile,"\033(0");
-    for(i=0; dirs[i] && i <= maxlevel; i++) {
+    for(i=0; (i <= maxlevel) && dirs[i]; i++) {
       if (dirs[i+1]) {
 	if (dirs[i] == 1) fprintf(outfile,"\170   ");
 	else printf("    ");
@@ -1116,7 +1147,7 @@ void indent(int maxlevel)
     if (dirs[0]) fprintf(outfile,"\033(B");
   } else {
     if (Hflag) fprintf(outfile,"\t");
-    for(i=0; dirs[i] && i <= maxlevel; i++) {
+    for(i=0; (i <= maxlevel) && dirs[i]; i++) {
       fprintf(outfile,"%s ",
 	      dirs[i+1] ? (dirs[i]==1 ? linedraw->vert     : (Hflag? "&nbsp;&nbsp;&nbsp;" : "   ") )
 			: (dirs[i]==1 ? linedraw->vert_left:linedraw->corner));
@@ -1146,7 +1177,10 @@ char *prot(mode_t m)
   for(i=0;ifmt[i] && (m&S_IFMT) != ifmt[i];i++);
   buf[0] = fmt[i];
 
-  /* Nice, but maybe not so portable, it is should be no less portable than the old code. */
+  /**
+   * Nice, but maybe not so portable, it is should be no less portable than the
+   * old code.
+   */
   for(b=S_IRUSR,i=0; i<9; b>>=1,i++)
     buf[i+1] = (m & (b)) ? perms[i] : '-';
   if (m & S_ISUID) buf[3] = (buf[3]=='-')? 'S' : 's';
@@ -1158,15 +1192,11 @@ char *prot(mode_t m)
   return buf;
 }
 
-static char *month[] = {
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-};
-
 #define SIXMONTHS (6*31*24*60*60)
 
 char *do_date(time_t t)
 {
-  static char buf[256]; /* More than enough rope to hang em */
+  static char buf[256];
   struct tm *tm;
 
   tm = localtime(&t);
@@ -1176,15 +1206,18 @@ char *do_date(time_t t)
     buf[255] = 0;
   } else {
     time_t c = time(0);
-    if (t > c) return " The Future ";
-    sprintf(buf,"%s %2d",month[tm->tm_mon],tm->tm_mday);
-    if (t+SIXMONTHS < c) sprintf(buf+6,"  %4d",1900+tm->tm_year);
-    else sprintf(buf+6," %2d:%02d",tm->tm_hour,tm->tm_min);
+    /* Use strftime() so that locale is respected: */
+    if (t > c || (t+SIXMONTHS) < c)
+      strftime(buf,255,"%b %e  %Y",tm);
+    else
+      strftime(buf,255,"%b %e %R", tm);
   }
   return buf;
 }
 
-
+/**
+ * Must fix this someday
+ */
 void printit(char *s)
 {
   int c;
@@ -1197,9 +1230,9 @@ void printit(char *s)
   if (mb_cur_max > 1) {
     wchar_t *ws, *tp;
     ws = xmalloc(sizeof(wchar_t)* (c=(strlen(s)+1)));
-    if (mbstowcs(ws,s,c) > 0) {
+    if (mbstowcs(ws,s,c) != (size_t)-1) {
       if (Qflag) putc('"',outfile);
-      for(tp=ws;*tp;tp++) {
+      for(tp=ws;*tp && c > 1;tp++, c--) {
 	if (iswprint(*tp)) fprintf(outfile,"%lc",(wint_t)*tp);
 	else {
 	  if (qflag) putc('?',outfile);
@@ -1247,7 +1280,7 @@ int psize(char *buf, off_t size)
     for (idx=size<usize?0:1; size >= (usize*usize); idx++,size/=usize);
     if (!idx) return sprintf(buf, " %4d", (int)size);
     else return sprintf(buf, ((size/usize) >= 10)? " %3.0f%c" : " %3.1f%c" , (float)size/(float)usize,unit[idx]);
-  } else return sprintf(buf, sizeof(off_t) == sizeof(long long)? " %11lld" : " %9ld", (long long int)size);
+  } else return sprintf(buf, sizeof(off_t) == sizeof(long long)? " %11lld" : " %9lld", (long long int)size);
 }
 
 char Ftype(mode_t mode)
@@ -1258,7 +1291,7 @@ char Ftype(mode_t mode)
   else if (m == S_IFIFO) return '|';
   else if (m == S_IFLNK) return '@'; /* Here, but never actually used though. */
 #ifdef S_IFDOOR
-  else if (m == S_ISDOOR) return '>';
+  else if (m == S_IFDOOR) return '>';
 #endif
   else if ((m == S_IFREG) && (mode & (S_IXUSR | S_IXGRP | S_IXOTH))) return '*';
   return 0;
@@ -1269,11 +1302,11 @@ char *fillinfo(char *buf, struct _info *ent)
   int n;
   buf[n=0] = 0;
   #ifdef __USE_FILE_OFFSET64
-  if (inodeflag) n += sprintf(buf," %7lld",(long long)ent->inode);
+  if (inodeflag) n += sprintf(buf," %7lld",(long long)ent->linode);
   #else
-  if (inodeflag) n += sprintf(buf," %7ld",(long int)ent->inode);
+  if (inodeflag) n += sprintf(buf," %7ld",(long int)ent->linode);
   #endif
-  if (devflag) n += sprintf(buf+n, " %3d", (int)ent->dev);
+  if (devflag) n += sprintf(buf+n, " %3d", (int)ent->ldev);
   #ifdef __EMX__
   if (pflag) n += sprintf(buf+n, " %s",prot(ent->attr));
   #else

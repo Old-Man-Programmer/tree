@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -84,13 +84,13 @@ struct _info {
   gid_t gid;
   off_t size;
   time_t atime, ctime, mtime;
-  dev_t dev;
-  ino_t inode;
+  dev_t dev, ldev;
+  ino_t inode, linode;
   #ifdef __EMX__
   long attr;
   #endif
   char *err;
-  struct _info **child;
+  struct _info **child, *next, *tchild;
 };
 /* hash.c */
 struct xtable {
@@ -120,7 +120,7 @@ struct linedraw {
 /* Function prototypes: */
 /* tree.c */
 void usage(int);
-struct _info **getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
+struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 struct _info **read_dir(char *, int *);
 
 int alnumsort(struct _info **, struct _info **);
@@ -184,6 +184,9 @@ char *uidtoname(uid_t uid);
 char *gidtoname(gid_t gid);
 int findino(ino_t, dev_t);
 void saveino(ino_t, dev_t);
+
+/* file.c */
+struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 
 /* We use the strverscmp.c file if we're not linux */
 #if ! defined (LINUX)

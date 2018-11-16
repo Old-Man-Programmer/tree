@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2014 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -22,6 +22,7 @@ extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 extern bool Dflag, inodeflag, devflag, Rflag, cflag;
 extern bool noindent, force_color, xdev, nolinks, flimit;
 
+extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern const int ifmt[];
 extern const char fmt[], *ftype[];
 
