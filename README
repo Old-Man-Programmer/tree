@@ -181,6 +181,73 @@ Stephan Gabert
   - Found a bug where the wrong inode (and device) information would be printed
     for symbolic links.
 
+Nick Craig-Wood
+  - Fixed issue where mbstowcs() fails to null terminate the string due to
+    improper UTF-8 encoding leading to garbage being printed.
+
+Mantas Mikulėnas
+  - Fixed issue with malformed multibyte string handling.
+
+Wagner Camarao
+  - Pointed out that JSON size output ignored -h/--si flags
+
+John Lane, Tad, others
+  - Fixed JSON output hanging commas
+
+Jacob Wahlgren
+  - Improved command line switch error reporting.
+  - Symbolic links not displayed if a -P pattern is active
+  - Missing argument error reporting fixes on long format switches.
+
+Shawn Mehan
+  - Update BINDIR in Makefile for MacOS X -- It is not allowed to install
+    programs to /usr/bin on MacOS X any longer due to System Integrity
+    Protection (SIP)
+
+Kirill Kolyshkin
+  - Some man page fixes and cleanups
+
+Alyssa Ross
+  - Suggested adding support for BSD's CLICOLOR and CLICOLOR_FORCE environment
+    variables.
+    
+Tomáš Beránek
+  - Make sure we always use xmalloc / xrealloc
+
+Sergei Maximov
+  - Make XML/HTML/JSON output mutually exclusive.
+
+Jonas Stein
+  - Deprecate using local -DLINUX / -DCYGWIN and use the OS provided defines
+
+John A. Fedoruk
+  - Suggested --filesfirst option.
+
+Michael Osipov
+ - Optimized makefile, HP/UX support.
+
+Richard Mitchell
+  - Suggested --metafirst option
+
+Paul Seyfert
+  - Honor -n (no color) even if the CLICOLOR_FORCE environment variable is set
+
+Filips Romāns via Debian
+  - Make tree colorization use reset (rs code in dir_colors,) not normal color
+    when resetting attributes.
+
+Chentao Credungtao via Debian
+  - Properly sort --fromfile input
+
+Jake Zimmerman (and others)
+  - Suggest support for .gitignore files (--gitignore option)
+
+Eric Pruitt
+  - Always HTML escape filenames in HTML output even when -C is used.
+
+Michiel Beijen (and others)
+  - Suggest Support multiple -I and -P instances.
+
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

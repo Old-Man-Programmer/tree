@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -38,22 +38,27 @@
  * something.
  */
 enum {
-  CMD_COLOR, CMD_OPTIONS, CMD_TERM, CMD_EIGHTBIT, COL_NORMAL, COL_FILE, COL_DIR,
-  COL_LINK, COL_FIFO, COL_DOOR, COL_BLK, COL_CHR, COL_ORPHAN, COL_SOCK,
+  CMD_COLOR, CMD_OPTIONS, CMD_TERM, CMD_EIGHTBIT, COL_RESET, COL_NORMAL, COL_FILE,
+  COL_DIR, COL_LINK, COL_FIFO, COL_DOOR, COL_BLK, COL_CHR, COL_ORPHAN, COL_SOCK,
   COL_SETUID, COL_SETGID, COL_STICKY_OTHER_WRITABLE, COL_OTHER_WRITABLE,
   COL_STICKY, COL_EXEC, COL_MISSING, COL_LEFTCODE, COL_RIGHTCODE, COL_ENDCODE,
   DOT_EXTENSION, ERROR
+};
+
+enum {
+  MCOL_INODE, MCOL_PERMS, MCOL_USER, MCOL_GROUP, MCOL_SIZE, MCOL_DATE,
+  MCOL_INDENTLINES
 };
 
 bool colorize = FALSE, ansilines = FALSE, linktargetcolor = FALSE;
 char *term, termmatch = FALSE, istty;
 char *leftcode = NULL, *rightcode = NULL, *endcode = NULL;
 
-char *norm_flgs = NULL, *file_flgs = NULL, *dir_flgs = NULL, *link_flgs = NULL;
-char *fifo_flgs = NULL, *door_flgs = NULL, *block_flgs = NULL, *char_flgs = NULL;
-char *orphan_flgs = NULL, *sock_flgs = NULL, *suid_flgs = NULL, *sgid_flgs = NULL;
-char *stickyow_flgs = NULL, *otherwr_flgs = NULL, *sticky_flgs = NULL;
-char *exec_flgs = NULL,  *missing_flgs = NULL;
+char *reset_flgs = NULL, *norm_flgs = NULL, *file_flgs = NULL, *dir_flgs = NULL;
+char *link_flgs = NULL, *fifo_flgs = NULL, *door_flgs = NULL, *block_flgs = NULL;
+char *char_flgs = NULL, *orphan_flgs = NULL, *sock_flgs = NULL, *suid_flgs = NULL;
+char *sgid_flgs = NULL, *stickyow_flgs = NULL, *otherwr_flgs = NULL;
+char *sticky_flgs = NULL, *exec_flgs = NULL,  *missing_flgs = NULL;
 
 char *vgacolor[] = {
   "black", "red", "green", "yellow", "blue", "fuchsia", "aqua", "white",
@@ -77,9 +82,9 @@ void parse_dir_colors()
   char buf[1025], **arg, **c, *colors, *s, *cc;
   int i, n;
   struct extensions *e;
-  
+
   if (Hflag) return;
-  
+
   if (getenv("TERM") == NULL) {
     colorize = FALSE;
     return;
@@ -88,8 +93,8 @@ void parse_dir_colors()
   s = getenv("TREE_COLORS");
   if (s == NULL) s = getenv("LS_COLORS");
   cc = getenv("CLICOLOR");
-  if (getenv("CLICOLOR_FORCE") != NULL) force_color=TRUE;
-  if ((s == NULL || strlen(s) == 0) && (force_color || cc != NULL)) s = ":no=00:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
+  if (getenv("CLICOLOR_FORCE") != NULL && !nocolor) force_color=TRUE;
+  if ((s == NULL || strlen(s) == 0) && (force_color || cc != NULL)) s = ":no=00:rs=0:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
   
   if (s == NULL || (!force_color && (nocolor || !isatty(1)))) {
     colorize = FALSE;
@@ -101,12 +106,15 @@ void parse_dir_colors()
   }
   
   colors = scopy(s);
-  
+
   arg = split(colors,":",&n);
-  
+
   for(i=0;arg[i];i++) {
     c = split(arg[i],"=",&n);
     switch(cmd(c[0])) {
+      case COL_RESET:
+	if (c[1]) reset_flgs = scopy(c[1]);
+	break;
       case COL_NORMAL:
 	if (c[1]) norm_flgs = scopy(c[1]);
 	break;
@@ -184,19 +192,19 @@ void parse_dir_colors()
     free(c);
   }
   free(arg);
-  
-  /* make sure at least norm_flgs is defined.  We're going to assume vt100 support */
+
+  /* make sure at least reset_flgs (not norm_flgs) is defined.  We're going to assume ANSI/vt100 support */
   if (!leftcode) leftcode = scopy("\033[");
   if (!rightcode) rightcode = scopy("m");
-  if (!norm_flgs) norm_flgs = scopy("00");
-  
+  if (!reset_flgs) reset_flgs = scopy("0");
+
   if (!endcode) {
-    sprintf(buf,"%s%s%s",leftcode,norm_flgs,rightcode);
+    sprintf(buf,"%s%s%s",leftcode,reset_flgs,rightcode);
     endcode = scopy(buf);
   }
-  
+
   free(colors);
-  
+
   /*  if (!termmatch) colorize = FALSE; */
 }
 
@@ -226,10 +234,12 @@ int cmd(char *s)
     char *cmd;
     char cmdnum;
   } cmds[] = {
-    {"no", COL_NORMAL}, {"fi", COL_FILE}, {"di", COL_DIR}, {"ln", COL_LINK}, {"pi", COL_FIFO},
-    {"do", COL_DOOR}, {"bd", COL_BLK}, {"cd", COL_CHR}, {"or", COL_ORPHAN}, {"so", COL_SOCK},
-    {"su", COL_SETUID}, {"sg", COL_SETGID}, {"tw", COL_STICKY_OTHER_WRITABLE}, {"ow", COL_OTHER_WRITABLE},
-    {"st", COL_STICKY}, {"ex", COL_EXEC}, {"mi", COL_MISSING}, {"lc", COL_LEFTCODE}, {"rc", COL_RIGHTCODE},
+    {"rs", COL_RESET}, {"no", COL_NORMAL}, {"fi", COL_FILE}, {"di", COL_DIR},
+    {"ln", COL_LINK}, {"pi", COL_FIFO}, {"do", COL_DOOR}, {"bd", COL_BLK},
+    {"cd", COL_CHR}, {"or", COL_ORPHAN}, {"so", COL_SOCK}, {"su", COL_SETUID},
+    {"sg", COL_SETGID}, {"tw", COL_STICKY_OTHER_WRITABLE},
+    {"ow", COL_OTHER_WRITABLE}, {"st", COL_STICKY}, {"ex", COL_EXEC},
+    {"mi", COL_MISSING}, {"lc", COL_LEFTCODE}, {"rc", COL_RIGHTCODE},
     {"ec", COL_ENDCODE}, {NULL, 0}
   };
   int i;
@@ -329,7 +339,10 @@ int color(u_short mode, char *name, bool orphan, bool islink)
 	  return TRUE;
 	}
       }
-      return FALSE;
+      if (!norm_flgs) return FALSE;
+      /* colorize just normal files too */
+      fprintf(outfile, "%s%s%s",leftcode,norm_flgs,rightcode);
+      return TRUE;
   }
   return FALSE;
 }
@@ -465,27 +478,44 @@ void initlinedraw(int flag)
     "windows-1251", "windows-1253", "windows-1254", "windows-1255",
     "windows-1256", "windows-1256", "windows-1257", NULL
   };
+  
   static const struct linedraw cstable[]={
-    { latin1_3,    "|  ",              "|--",            "&middot;--",     "&copy;"   },
-    { iso8859_789, "|  ",              "|--",            "&middot;--",     "(c)"      },
-    { shift_jis,   "\204\240 ",        "\204\245",       "\204\244",       "(c)"      },
-    { euc_jp,      "\250\242 ",        "\250\247",       "\250\246",       "(c)"      },
-    { euc_kr,      "\246\242 ",        "\246\247",       "\246\246",       "(c)"      },
-    { iso2022jp,   "\033$B(\"\033(B ", "\033$B('\033(B", "\033$B(&\033(B", "(c)"      },
-    { ibm_pc,      "\263  ",           "\303\304\304",   "\300\304\304",   "(c)"      },
-    { ibm_ps2,     "\263  ",           "\303\304\304",   "\300\304\304",   "\227"     },
-    { ibm_gr,      "\263  ",           "\303\304\304",   "\300\304\304",   "\270"     },
-    { gb,          "\251\246 ",        "\251\300",       "\251\270",       "(c)"      },
-    { utf8,        "\342\224\202\302\240\302\240",
-    "\342\224\234\342\224\200\342\224\200", "\342\224\224\342\224\200\342\224\200", "\302\251" },
-    { big5,        "\242x ",           "\242u",          "\242|",          "(c)"      },
-    { viscii,      "|  ",              "|--",            "`--",            "\371"     },
-    { koi8ru,      "\201  ",           "\206\200\200",   "\204\200\200",   "\277"     },
-    { windows,     "|  ",              "|--",            "`--",            "\251"     },
-    { NULL,        "|  ",              "|--",            "`--",            "(c)"      }
+    { latin1_3,    "|  ",              "|--",            "&middot;--",     "&copy;",
+      " [",        " [",               " [",             " [",             " ["       },
+    { iso8859_789, "|  ",              "|--",            "&middot;--",     "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
+    { shift_jis,   "\204\240 ",        "\204\245",       "\204\244",       "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
+    { euc_jp,      "\250\242 ",        "\250\247",       "\250\246",       "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
+    { euc_kr,      "\246\242 ",        "\246\247",       "\246\246",       "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
+    { iso2022jp,   "\033$B(\"\033(B ", "\033$B('\033(B", "\033$B(&\033(B", "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
+    { ibm_pc,      "\263  ",           "\303\304\304",   "\300\304\304",   "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
+    { ibm_ps2,     "\263  ",           "\303\304\304",   "\300\304\304",   "\227",
+      " [",        " [",               " [",             " [",             " ["       },
+    { ibm_gr,      "\263  ",           "\303\304\304",   "\300\304\304",   "\270",
+      " [",        " [",               " [",             " [",             " ["       },
+    { gb,          "\251\246 ",        "\251\300",       "\251\270",       "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
+    { utf8,        "\342\224\202\302\240\302\240", "\342\224\234\342\224\200\342\224\200",
+      "\342\224\224\342\224\200\342\224\200", "\302\251",
+      " \342\216\247", " \342\216\251", " \342\216\250", " \342\216\252",  " {"       },
+    { big5,        "\242x ",           "\242u",          "\242|",          "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
+    { viscii,      "|  ",              "|--",            "`--",            "\371",
+      " [",        " [",               " [",             " [",             " ["       },
+    { koi8ru,      "\201  ",           "\206\200\200",   "\204\200\200",   "\277",
+      " [",        " [",               " [",             " [",             " ["       },
+    { windows,     "|  ",              "|--",            "`--",            "\251",
+      " [",        " [",               " [",             " [",             " ["       },
+    { NULL,        "|  ",              "|--",            "`--",            "(c)",
+      " [",        " [",               " [",             " [",             " ["       },
   };
   const char**s;
-    
+
   if (flag) {
     fprintf(stderr,"tree: missing argument to --charset, valid charsets include:\n");
     for(linedraw=cstable;linedraw->name;++linedraw) {

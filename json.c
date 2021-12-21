@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,26 +19,23 @@
 #include "tree.h"
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-extern bool Dflag, inodeflag, devflag, Rflag, cflag, hflag, siflag;
-extern bool noindent, force_color, xdev, nolinks, flimit;
+extern bool Dflag, inodeflag, devflag, Rflag, cflag, hflag, siflag, duflag;
+extern bool noindent, force_color, xdev, nolinks, flimit, noreport;
 
 extern const int ifmt[];
 extern const char fmt[], *ftype[];
 
-extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
-extern void (*listdir)(char *, int *, int *, u_long, dev_t);
-extern int (*cmpfunc)();
 extern FILE *outfile;
-extern int Level, *dirs, maxdirs;
+extern int Level, *dirs, maxdirs, errors;
 
 extern char *endcode;
 
 /*  JSON code courtesy of Florian Sesser <fs@it-agenten.com>
 [
-  {"type": "directory", "name": "name", "mode": "0777", "user": "user", "group": "group", "inode": ###, "dev": ####, "time": "00:00 00-00-0000", "contents": [
-    {"type": "link", "name": "name", "target": "name", "contents": [... if link is followed, otherwise this is empty.]}
-    {"type": "file", "name": "name", "mode": "0777", "size": ###, "group": "group", "inode": ###, "dev": ###, "time": "00:00 00-00-0000"}
-    {"type": "socket", "name": "", "error": "some error" ...}
+  {"type": "directory", "name": "name", "mode": "0777", "user": "user", "group": "group", "inode": ###, "dev": ####, "time": "00:00 00-00-0000", "info": "<file comment>", "contents": [
+    {"type": "link", "name": "name", "target": "name", "info": "...", "contents": [... if link is followed, otherwise this is empty.]}
+    {"type": "file", "name": "name", "mode": "0777", "size": ###, "group": "group", "inode": ###, "dev": ###, "time": "00:00 00-00-0000", "info": "..."}
+    {"type": "socket", "name": "", "info": "...", "error": "some error" ...}
     {"type": "block", "name": "" ...},
     {"type": "char", "name": "" ...},
     {"type": "fifo", "name": "" ...},
@@ -49,242 +46,29 @@ extern char *endcode;
 ]
 */
 
-off_t json_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
+/**
+ * JSON encoded strings are not HTML/XML strings:
+ * https://tools.ietf.org/html/rfc8259#section-7
+ * FIXME: Still not UTF-8
+ */
+void json_encode(FILE *fd, char *s)
 {
-  char *path;
-  bool nlf = FALSE;
-  long pathsize = 0;
-  struct _info **dir, **sav;
-  struct stat sb;
-  int t, n, mt;
-
-  if ((Level >= 0) && (lev > Level)) {
-    if (!noindent) fputc('\n',outfile);
-    return 0;
+  char *ctrl = "0-------btn-fr------------------";
+  
+  for(;*s;s++) {
+    if ((unsigned char)*s < 32) {
+      if (ctrl[(unsigned char)*s] != '-') fprintf(fd, "\\%c", ctrl[(unsigned char)*s]);
+      else fprintf(fd, "\\u%04x", (unsigned char)*s);
+    } else if (*s == '"' || *s == '\\') fprintf(fd, "\\%c", *s);
+    else fprintf(fd, "%c", *s);
   }
-
-  if (xdev && lev == 0) {
-    stat(d,&sb);
-    dev = sb.st_dev;
-  }
-
-  sav = dir = read_dir(d,&n);
-  if (!dir && n) {
-    fprintf(outfile,"{\"error\": \"opening dir\"}%s",noindent?"":"\n");
-    return 0;
-  }
-  if (!n) {
-    if (!noindent) fputc('\n', outfile);
-    free_dir(sav);
-    return 0;
-  }
-  if (flimit > 0 && n > flimit) {
-    fprintf(outfile,", \"error\": \"%d entries exceeds filelimit, not opening dir\"\n",n);
-    free_dir(sav);
-    return 0;
-  }
-
-  if (cmpfunc) qsort(dir,n,sizeof(struct _info *),cmpfunc);
-  if (lev >= maxdirs-1) {
-    dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
-    memset(dirs+(maxdirs-1024), 0, sizeof(int) * 1024);
-  }
-  dirs[lev] = 1;
-  if (!*(dir+1)) dirs[lev] = 2;
-  if (!noindent) fprintf(outfile,"\n");
-
-  path = malloc(pathsize=4096);
-
-  while(*dir) {
-    if (!noindent) json_indent(lev);
-
-    if ((*dir)->lnk) mt = (*dir)->mode & S_IFMT;
-    else mt = (*dir)->mode & S_IFMT;
-    for(t=0;ifmt[t];t++)
-      if (ifmt[t] == mt) break;
-    fprintf(outfile,"{\"type\":\"%s\"", ftype[t]);
-
-    if (fflag) {
-      if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-      else sprintf(path,"%s/%s",d,(*dir)->name);
-    } else {
-      if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
-      sprintf(path,"%s",(*dir)->name);
-    }
-
-    fprintf(outfile, ",\"name\":\"");
-    html_encode(outfile,path);
-    fputc('"',outfile);
-
-    if ((*dir)->lnk) {
-      fprintf(outfile, ",\"target\":\"");
-      html_encode(outfile,(*dir)->lnk);
-      fputc('"',outfile);
-    }
-    json_fillinfo(*dir);
-    if (!(*dir)->isdir && !(*dir)->lnk) {
-      fputc('}',outfile);
-      if (*(dir+1)) fputc(',',outfile);
-    } else
-      fprintf(outfile, ",\"contents\":[");
-
-    if ((*dir)->isdir) {
-      if ((*dir)->lnk) {
-	if (lflag && !(xdev && dev != (*dir)->dev)) {
-	  if (findino((*dir)->inode,(*dir)->dev)) {
-	    fprintf(outfile,"{\"error\":\"recursive, not followed\"}");
-	  } else {
-	    saveino((*dir)->inode, (*dir)->dev);
-	    if (*(*dir)->lnk == '/')
-	      listdir((*dir)->lnk,dt,ft,lev+1,dev);
-	    else {
-	      if (strlen(d)+strlen((*dir)->lnk)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	      if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
-	      else sprintf(path,"%s/%s",d,(*dir)->lnk);
-	      listdir(path,dt,ft,lev+1,dev);
-	    }
-	    nlf = TRUE;
-	  }
-	}
-      } else if (!(xdev && dev != (*dir)->dev)) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-	else sprintf(path,"%s/%s",d,(*dir)->name);
-	saveino((*dir)->inode, (*dir)->dev);
-	listdir(path,dt,ft,lev+1,dev);
-	nlf = TRUE;
-      }
-      *dt += 1;
-    } else *ft += 1;
-    if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
-    if (nlf) {
-      nlf = FALSE;
-      if (!noindent) json_indent(lev);
-    }
-    if ((*dir)->isdir || (*dir)->lnk) {
-      fprintf(outfile, "]}");
-      if (*(dir+1)) fputc(',',outfile);
-    }
-    if (!noindent) fputc('\n', outfile);
-    dir++;
-  }
-  dirs[lev] = 0;
-  free(path);
-  free_dir(sav);
-  return 0;
-}
-
-off_t json_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
-{
-  struct _info **dir;
-  off_t size = 0;
-  char *err;
-
-  dir = getfulltree(d, lev, dev, &size, &err);
-
-  memset(dirs, 0, sizeof(int) * maxdirs);
-
-  jsonr_listdir(dir, d, dt, ft, lev);
-
-  return size;
-}
-
-void jsonr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
-{
-  char *path;
-  long pathsize = 0;
-  struct _info **sav = dir;
-  bool nlf = FALSE;
-  int mt, t;
-
-  if (dir == NULL) return;
-
-  dirs[lev] = 1;
-  if (!*(dir+1)) dirs[lev] = 2;
-  if (!noindent) fprintf(outfile,"\n");
-
-  path = malloc(pathsize=4096);
-
-  while(*dir) {
-    if (!noindent) json_indent(lev);
-
-    if ((*dir)->lnk) mt = (*dir)->mode & S_IFMT;
-    else mt = (*dir)->mode & S_IFMT;
-    for(t=0;ifmt[t];t++)
-      if (ifmt[t] == mt) break;
-    fprintf(outfile,"{\"type\":\"%s\"", ftype[t]);
-
-    if (fflag) {
-      if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-      else sprintf(path,"%s/%s",d,(*dir)->name);
-    } else {
-      if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
-      sprintf(path,"%s",(*dir)->name);
-    }
-
-    fprintf(outfile, ",\"name\":\"");
-    html_encode(outfile,path);
-    fputc('"',outfile);
-
-    if ((*dir)->lnk) {
-      fprintf(outfile, ",\"target\":\"");
-      html_encode(outfile,(*dir)->lnk);
-      fputc('"',outfile);
-    }
-
-    json_fillinfo(*dir);
-    if (mt != S_IFDIR && mt != S_IFLNK && (*dir)->err == NULL) {
-      fputc('}', outfile);
-      if (*(dir+1)) fputc(',',outfile);
-    } else fprintf(outfile, ",\"contents\":[");
-
-    if ((*dir)->err) {
-      fprintf(outfile,",\"error\":\"%s\"", (*dir)->err);
-      free((*dir)->err);
-      (*dir)->err = NULL;
-    }
-    if ((*dir)->child) {
-      if (fflag) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-	else sprintf(path,"%s/%s",d,(*dir)->name);
-      }
-      jsonr_listdir((*dir)->child, fflag? path : NULL, dt, ft, lev+1);
-      nlf = TRUE;
-      *dt += 1;
-    } else {
-      if ((*dir)->isdir) *dt += 1;
-      else *ft += 1;
-    }
-
-    if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
-    if (nlf) {
-      nlf = FALSE;
-      if (!noindent) json_indent(lev);
-    }
-    if (mt == S_IFDIR || mt == S_IFLNK || (*dir)->err != NULL) {
-      fprintf(outfile,"]}");
-      if (*(dir+1)) fputc(',',outfile);
-    }
-    if (!noindent) putc('\n',outfile);
-    dir++;
-  }
-  dirs[lev] = 0;
-  free(path);
-  free_dir(sav);
 }
 
 void json_indent(int maxlevel)
 {
   int i;
 
-  fprintf(outfile, "    ");
+  fprintf(outfile, "  ");
   for(i=0; i<maxlevel; i++)
     fprintf(outfile, "  ");
 }
@@ -315,4 +99,90 @@ void json_fillinfo(struct _info *ent)
       fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
   }
   if (Dflag) fprintf(outfile, ",\"time\":\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
+}
+
+
+void json_intro(void)
+{
+  extern char *_nl;
+  fprintf(outfile, "[%s", noindent? "" : _nl);
+}
+
+void json_outtro(void)
+{
+  extern char *_nl;
+  fprintf(outfile, "%s]\n", noindent? "" : _nl);
+}
+
+int json_printinfo(char *dirname, struct _info *file, int level)
+{
+  mode_t mt;
+  int t;
+
+  if (!noindent) json_indent(level);
+
+  if (file->lnk) mt = file->mode & S_IFMT;
+  else mt = file->mode & S_IFMT;
+
+  for(t=0;ifmt[t];t++)
+    if (ifmt[t] == mt) break;
+  fprintf(outfile,"{\"type\":\"%s\"", ftype[t]);
+
+  return 0;
+}
+
+int json_printfile(char *dirname, char *filename, struct _info *file, int descend)
+{
+  fprintf(outfile, ",\"name\":\"");
+  json_encode(outfile, filename);
+  fputc('"',outfile);
+
+  if (file && file->comment) {
+    fprintf(outfile, ",\"info\":\"");
+    for(int i=0; file->comment[i]; i++) {
+      json_encode(outfile, file->comment[i]);
+      if (file->comment[i+1]) fprintf(outfile, "\\n");
+    }
+    fprintf(outfile, "\"");
+  }
+
+  if (file && file->lnk) {
+    fprintf(outfile, ",\"target\":\"");
+    json_encode(outfile, file->lnk);
+    fputc('"',outfile);
+  }
+  if (file) json_fillinfo(file);
+
+  if (!descend) fputc('}',outfile);
+  else fprintf(outfile, ",\"contents\":[");
+
+  return descend;
+}
+
+int json_error(char *error)
+{
+  fprintf(outfile,"{\"error\": \"%s\"}%s",error, noindent?"":"\n");
+  return 0;
+}
+
+void json_newline(struct _info *file, int level, int postdir, int needcomma)
+{
+  extern char *_nl;
+
+  fprintf(outfile, "%s%s", needcomma? "," : "", _nl);
+}
+
+void json_close(struct _info *file, int level, int needcomma)
+{
+  if (!noindent) json_indent(level-1);
+  fprintf(outfile,"]}%s%s", needcomma? ",":"", noindent? "":"\n");
+}
+
+void json_report(struct totals tot)
+{
+  fprintf(outfile, ",%s{\"type\":\"report\"",noindent?"":"\n  ");
+  if (duflag) fprintf(outfile,",\"size\":%lld", (long long int)tot.size);
+  fprintf(outfile,",\"directories\":%ld", tot.dirs);
+  if (!dflag) fprintf(outfile,",\"files\":%ld", tot.files);
+  fprintf(outfile, "}");
 }

@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,244 +18,96 @@
  */
 #include "tree.h"
 
-extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-extern bool Dflag, inodeflag, devflag, Rflag, duflag, pruneflag;
-extern bool noindent, force_color, xdev, nolinks, flimit;
-
-extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
-extern void (*listdir)(char *, int *, int *, u_long, dev_t);
-extern int (*cmpfunc)();
 extern FILE *outfile;
-extern int Level, *dirs, maxdirs;
-
+extern bool dflag, Fflag, duflag, metafirst, hflag, siflag, noindent;
 extern bool colorize, linktargetcolor;
 extern char *endcode;
+extern const struct linedraw *linedraw;
+extern int *dirs;
 
-off_t unix_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
+static char info[512] = {0};
+
+int unix_printinfo(char *dirname, struct _info *file, int level)
 {
-  char *path;
-  bool nlf = FALSE, colored = FALSE;
-  long pathsize = 0;
-  struct _info **dir, **sav;
-  struct stat sb;
-  int n, c;
-  
-  if ((Level >= 0) && (lev > Level)) {
-    fputc('\n',outfile);
-    return 0;
+  fillinfo(info, file);
+  if (metafirst) {
+    if (info[0] == '[') fprintf(outfile, "%s  ",info);
+    if (!noindent) indent(level);
+  } else {
+    if (!noindent) indent(level);
+    if (info[0] == '[') fprintf(outfile, "%s  ",info);
   }
-  
-  if (xdev && lev == 0) {
-    stat(d,&sb);
-    dev = sb.st_dev;
-  }
-  
-  sav = dir = read_dir(d,&n);
-  if (!dir && n) {
-    fprintf(outfile," [error opening dir]\n");
-    return 0;
-  }
-  if (!n) {
-    fputc('\n', outfile);
-    free_dir(sav);
-    return 0;
-  }
-  if (flimit > 0 && n > flimit) {
-    fprintf(outfile," [%d entries exceeds filelimit, not opening dir]\n",n);
-    free_dir(sav);
-    return 0;
-  }
-
-  if (cmpfunc) qsort(dir,n,sizeof(struct _info *), cmpfunc);
-  if (lev >= maxdirs-1) {
-    dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
-    memset(dirs+(maxdirs-1024), 0, sizeof(int) * 1024);
-  }
-  dirs[lev] = 1;
-  if (!*(dir+1)) dirs[lev] = 2;
-  fprintf(outfile,"\n");
-  
-  path = malloc(pathsize=4096);
-  
-  while(*dir) {
-    if (!noindent) indent(lev);
-
-    fillinfo(path,*dir);
-    if (path[0] == ' ') {
-      path[0] = '[';
-      fprintf(outfile, "%s]  ",path);
-    }
-    
-    if (colorize) {
-      if ((*dir)->lnk && linktargetcolor) colored = color((*dir)->lnkmode,(*dir)->name,(*dir)->orphan,FALSE);
-      else colored = color((*dir)->mode,(*dir)->name,(*dir)->orphan,FALSE);
-    }
-    
-    if (fflag) {
-      if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-      else sprintf(path,"%s/%s",d,(*dir)->name);
-    } else {
-      if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
-      sprintf(path,"%s",(*dir)->name);
-    }
-
-    printit(path);
-
-    if (colored) fprintf(outfile,"%s",endcode);
-    if (Fflag && !(*dir)->lnk) {
-      if ((c = Ftype((*dir)->mode))) fputc(c, outfile);
-    }
-    
-    if ((*dir)->lnk) {
-      fprintf(outfile," -> ");
-      if (colorize) colored = color((*dir)->lnkmode,(*dir)->lnk,(*dir)->orphan,TRUE);
-      printit((*dir)->lnk);
-      if (colored) fprintf(outfile,"%s",endcode);
-      if (Fflag) {
-	if ((c = Ftype((*dir)->lnkmode))) fputc(c, outfile);
-      }
-    }
-    
-    if ((*dir)->isdir) {
-      if ((*dir)->lnk) {
-	if (lflag && !(xdev && dev != (*dir)->dev)) {
-	  if (findino((*dir)->inode,(*dir)->dev)) {
-	    fprintf(outfile,"  [recursive, not followed]");
-	  } else {
-	    saveino((*dir)->inode, (*dir)->dev);
-	    if (*(*dir)->lnk == '/')
-	      listdir((*dir)->lnk,dt,ft,lev+1,dev);
-	    else {
-	      if (strlen(d)+strlen((*dir)->lnk)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	      if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
-	      else sprintf(path,"%s/%s",d,(*dir)->lnk);
-	      listdir(path,dt,ft,lev+1,dev);
-	    }
-	    nlf = TRUE;
-	  }
-	}
-      } else if (!(xdev && dev != (*dir)->dev)) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-	else sprintf(path,"%s/%s",d,(*dir)->name);
-	saveino((*dir)->inode, (*dir)->dev);
-	listdir(path,dt,ft,lev+1,dev);
-	nlf = TRUE;
-      }
-      *dt += 1;
-    } else *ft += 1;
-    if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
-    if (nlf) nlf = FALSE;
-    else fprintf(outfile,"\n");
-    dir++;
-  }
-  dirs[lev] = 0;
-  free(path);
-  free_dir(sav);
   return 0;
 }
 
-off_t unix_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
+int unix_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
-  struct _info **dir;
-  off_t size = 0;
-  char *err;
-  
-  dir = getfulltree(d, lev, dev, &size, &err);
+  int colored = FALSE, c;
 
-  memset(dirs, 0, sizeof(int) * maxdirs);
-
-  r_listdir(dir, d, dt, ft, lev);
-
-  return size;
-}
-
-void r_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
-{
-  char *path;
-  long pathsize = 0;
-  struct _info **sav = dir;
-  bool nlf = FALSE, colored = FALSE;
-  int c;
-  
-  if (dir == NULL) return;
-
-  dirs[lev] = 1;
-  if (!*(dir+1)) dirs[lev] = 2;
-  fprintf(outfile,"\n");
-
-  path = malloc(pathsize=4096);
-
-  while(*dir) {
-    if (!noindent) indent(lev);
+  if (file && colorize) {
+    if (file->lnk && linktargetcolor) colored = color(file->lnkmode,file->name,file->orphan,FALSE);
+    else colored = color(file->mode,file->name,file->orphan,FALSE);
+  }
     
-    fillinfo(path,*dir);
-    if (path[0] == ' ') {
-      path[0] = '[';
-      fprintf(outfile, "%s]  ",path);
+  printit(filename);
+
+  if (colored) fprintf(outfile,"%s",endcode);
+
+  if (file) {
+    if (Fflag && !file->lnk) {
+      if ((c = Ftype(file->mode))) fputc(c, outfile);
     }
-    
-    if (colorize) {
-      if ((*dir)->lnk && linktargetcolor) colored = color((*dir)->lnkmode,(*dir)->name,(*dir)->orphan,FALSE);
-      else colored = color((*dir)->mode,(*dir)->name,(*dir)->orphan,FALSE);
-    }
-    
-    if (fflag) {
-      if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-      else sprintf(path,"%s/%s",d,(*dir)->name);
-    } else {
-      if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
-      sprintf(path,"%s",(*dir)->name);
-    }
-    
-    printit(path);
-    
-    if (colored) fprintf(outfile,"%s",endcode);
-    if (Fflag && !(*dir)->lnk) {
-      if ((c = Ftype((*dir)->mode))) fputc(c, outfile);
-    }
-    
-    if ((*dir)->lnk) {
+
+    if (file->lnk) {
       fprintf(outfile," -> ");
-      if (colorize) colored = color((*dir)->lnkmode,(*dir)->lnk,(*dir)->orphan,TRUE);
-      printit((*dir)->lnk);
+      if (colorize) colored = color(file->lnkmode,file->lnk,file->orphan,TRUE);
+      printit(file->lnk);
       if (colored) fprintf(outfile,"%s",endcode);
       if (Fflag) {
-	if ((c = Ftype((*dir)->lnkmode))) fputc(c, outfile);
+	if ((c = Ftype(file->lnkmode))) fputc(c, outfile);
       }
     }
-    
-    if ((*dir)->err) {
-      fprintf(outfile," [%s]", (*dir)->err);
-      free((*dir)->err);
-      (*dir)->err = NULL;
-    }
-    if ((*dir)->child) {
-      if (fflag) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-	else sprintf(path,"%s/%s",d,(*dir)->name);
-      }
-      r_listdir((*dir)->child, fflag? path : NULL, dt, ft, lev+1);
-      nlf = TRUE;
-      *dt += 1;
-    } else {
-      if ((*dir)->isdir) *dt += 1;
-      else *ft += 1;
-    }
-
-    if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
-    if (nlf) nlf = FALSE;
-    else fprintf(outfile,"\n");
-    dir++;
   }
-  dirs[lev] = 0;
-  free(path);
-  free_dir(sav);
+  return 0;
+}
+
+int unix_error(char *error)
+{
+  fprintf(outfile, "  [%s]", error);
+  return 0;
+}
+
+void unix_newline(struct _info *file, int level, int postdir, int needcomma)
+{
+  if (postdir <= 0) fprintf(outfile, "\n");
+  if (file && file->comment) {
+    int infosize = 0, line, lines;
+    if (metafirst) infosize = info[0] == '['? strlen(info)+2 : 0;
+
+    for(lines = 0; file->comment[lines]; lines++);
+    dirs[level+1] = 1;
+    for(line = 0; line < lines; line++) {
+      if (metafirst) {
+	printf("%*s", infosize, "");
+      }
+      indent(level);
+      printcomment(line, lines, file->comment[line]);
+    }
+    dirs[level+1] = 0;
+  }
+}
+
+void unix_report(struct totals tot)
+{
+  char buf[256];
+
+  fputc('\n', outfile);
+  if (duflag) {
+    psize(buf, tot.size);
+    fprintf(outfile,"%s%s used in ", buf, hflag || siflag? "" : " bytes");
+  }
+  if (dflag)
+    fprintf(outfile,"%ld director%s\n",tot.dirs,(tot.dirs==1? "y":"ies"));
+  else
+    fprintf(outfile,"%ld director%s, %ld file%s\n",tot.dirs,(tot.dirs==1? "y":"ies"),tot.files,(tot.files==1? "":"s"));
 }

@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -60,6 +60,22 @@
 #define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
 #endif
 
+// Start using PATH_MAX instead of the magic number 4096 everywhere.
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
+#ifndef INFO_PATH
+#define INFO_PATH "/usr/share/finfo/global_info"
+#endif
+
+#ifdef __linux__
+#include <fcntl.h>
+# ifndef STDDATA_FILENO
+#  define STDDATA_FILENO 3
+# endif
+#endif
+
 /* Should probably use strdup(), but we like our xmalloc() */
 #define scopy(x)	strcpy(xmalloc(strlen(x)+1),(x))
 #define MINIT		30	/* number of dir entries to initially allocate */
@@ -90,8 +106,29 @@ struct _info {
   long attr;
   #endif
   char *err;
+  const char *tag;
+  char **comment;
   struct _info **child, *next, *tchild;
 };
+
+/* list.c */
+struct totals {
+  u_long files, dirs;
+  off_t size;
+};
+
+struct listingcalls {
+  void (*intro)(void);
+  void (*outtro)(void);
+  int (*printinfo)(char *dirname, struct _info *file, int level);
+  int (*printfile)(char *dirname, char *filename, struct _info *file, int descend);
+  int (*error)(char *error);
+  void (*newline)(struct _info *file, int level, int postdir, int needcomma);
+  void (*close)(struct _info *file, int level, int needcomma);
+  void (*report)(struct totals tot);
+};
+
+
 /* hash.c */
 struct xtable {
   unsigned int xid;
@@ -115,14 +152,51 @@ struct extensions {
 };
 struct linedraw {
   const char **name, *vert, *vert_left, *corner, *copy;
+  const char *ctop, *cbot, *cmid, *cext, *csingle;
 };
+struct meta_ids {
+  char *name;
+  char *term_flg;
+};
+
+/* filter.c */
+struct pattern {
+  char *pattern;
+  struct pattern *next;
+};
+
+struct ignorefile {
+  char *path;
+  struct pattern *remove, *reverse;
+  struct ignorefile *next;
+};
+
+/* info.c */
+struct comment {
+  struct pattern *pattern;
+  char **desc;
+  struct comment *next;
+};
+
+struct infofile {
+  char *path;
+  struct comment *comments;
+  struct infofile *next;
+};
+
 
 /* Function prototypes: */
 /* tree.c */
+void setoutput(char *filename);
 void usage(int);
+void push_files(char *dir, struct ignorefile **ig, struct infofile **inf);
+int patignore(char *name);
+int patinclude(char *name);
 struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
-struct _info **read_dir(char *, int *);
+struct _info **read_dir(char *dir, int *n, int infotop);
 
+int filesfirst(struct _info **, struct _info **);
+int dirsfirst(struct _info **, struct _info **);
 int alnumsort(struct _info **, struct _info **);
 int versort(struct _info **a, struct _info **b);
 int reversealnumsort(struct _info **, struct _info **);
@@ -145,33 +219,55 @@ char *do_date(time_t);
 void printit(char *);
 int psize(char *buf, off_t size);
 char Ftype(mode_t mode);
+struct _info *stat2info(struct stat *st);
 char *fillinfo(char *buf, struct _info *ent);
 
+/* list.c */
+void null_intro(void);
+void null_outtro(void);
+void null_close(struct _info *file, int level, int needcomma);
+void emit_tree(char **dirname, bool needfulltree);
+struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, bool hasfulltree);
+
 /* unix.c */
-off_t unix_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
-off_t unix_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
-void r_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev);
+int unix_printinfo(char *dirname, struct _info *file, int level);
+int unix_printfile(char *dirname, char *filename, struct _info *file, int descend);
+int unix_error(char *error);
+void unix_newline(struct _info *file, int level, int postdir, int needcomma);
+void unix_report(struct totals tot);
 
 /* html.c */
-void emit_html_header(const char *charset, char *title, char *version);
-off_t html_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
-off_t html_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
-void htmlr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev);
+void html_intro(void);
+void html_outtro(void);
+int html_printinfo(char *dirname, struct _info *file, int level);
+int html_printfile(char *dirname, char *filename, struct _info *file, int descend);
+int html_error(char *error);
+void html_newline(struct _info *file, int level, int postdir, int needcomma);
+void html_close(struct _info *file, int level, int needcomma);
+void html_report(struct totals tot);
 void html_encode(FILE *fd, char *s);
 
 /* xml.c */
-off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
-off_t xml_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
-void xmlr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev);
-void xml_indent(int maxlevel);
-void xml_fillinfo(struct _info *ent);
+void xml_intro(void);
+void xml_outtro(void);
+int xml_printinfo(char *dirname, struct _info *file, int level);
+int xml_printfile(char *dirname, char *filename, struct _info *file, int descend);
+int xml_error(char *error);
+void xml_newline(struct _info *file, int level, int postdir, int needcomma);
+void xml_close(struct _info *file, int level, int needcomma);
+void xml_report(struct totals tot);
 
 /* json.c */
-off_t json_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
-off_t json_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev);
-void jsonr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev);
 void json_indent(int maxlevel);
 void json_fillinfo(struct _info *ent);
+void json_intro(void);
+void json_outtro(void);
+int json_printinfo(char *dirname, struct _info *file, int level);
+int json_printfile(char *dirname, char *filename, struct _info *file, int descend);
+int json_error(char *error);
+void json_newline(struct _info *file, int level, int postdir, int needcomma);
+void json_close(struct _info *file, int level, int needcomma);
+void json_report(struct totals tot);
 
 /* color.c */
 void parse_dir_colors();
@@ -188,7 +284,26 @@ void saveino(ino_t, dev_t);
 /* file.c */
 struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 
-/* We use the strverscmp.c file if we're not linux */
-#if ! defined (LINUX)
+/* filter.c */
+void gittrim(char *s);
+struct pattern *new_pattern(char *pattern);
+int filtercheck(char *path, char *name);
+struct ignorefile *new_ignorefile(char *path);
+void push_filterstack(struct ignorefile *ig);
+struct ignorefile *pop_filterstack(void);
+
+/* info.c */
+struct infofile *new_infofile(char *path);
+void push_infostack(struct infofile *inf);
+struct infofile *pop_infostack(void);
+struct comment *infocheck(char *path, char *name, int top);
+void printcomment(int line, int lines, char *s);
+
+/* list.c */
+void new_emit_unix(char **dirname, bool needfulltree);
+
+
+/* We use the strverscmp.c file if we're not linux: */
+#ifndef __linux__
 int strverscmp (const char *s1, const char *s2);
 #endif

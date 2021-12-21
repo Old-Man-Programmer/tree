@@ -1,5 +1,5 @@
 .\" $Copyright: $
-.\" Copyright (c) 1996 - 2018 by Steve Baker
+.\" Copyright (c) 1996 - 2021 by Steve Baker
 .\" All Rights reserved
 .\"
 .\" This program is free software; you can redistribute it and/or modify
@@ -17,11 +17,39 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "" "Tree 1.8.0"
+.TH TREE 1 "" "Tree 2.0.0"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
-\fBtree\fP [\fB-acdfghilnpqrstuvxACDFQNSUX\fP] [\fB-L\fP \fIlevel\fP [\fB-R\fP]] [\fB-H\fP \fIbaseHREF\fP] [\fB-T\fP \fItitle\fP] [\fB-o\fP \fIfilename\fP] [\fB--nolinks\fP] [\fB-P\fP \fIpattern\fP] [\fB-I\fP \fIpattern\fP] [\fB--inodes\fP] [\fB--device\fP] [\fB--noreport\fP] [\fB--dirsfirst\fP] [\fB--version\fP] [\fB--help\fP] [\fB--filelimit\fP \fI#\fP] [\fB--si\fP] [\fB--prune\fP] [\fB--du\fP] [\fB--timefmt\fP \fIformat\fP] [\fB--matchdirs\fP] [\fB--fromfile\fP] [\fB--\fP] [\fIdirectory\fP ...]
+\fBtree\fP
+[\fB-acdfghilnpqrstuvxACDFJQNSUX\fP]
+[\fB-L\fP \fIlevel\fP [\fB-R\fP]]
+[\fB-H\fP \fIbaseHREF\fP]
+[\fB-T\fP \fItitle\fP]
+[\fB-o\fP \fIfilename\fP]
+[\fB-P\fP \fIpattern\fP]
+[\fB-I\fP \fIpattern\fP]
+[\fB--gitignore\fP]
+[\fB--matchdirs\fP]
+[\fB--metafirst\fP]
+[\fB--ignore-case\fP]
+[\fB--nolinks\fP]
+[\fB--inodes\fP]
+[\fB--device\fP]
+[\fB--sort\fP[\fB=\fP]\fIname\fP]
+[\fB--dirsfirst\fP]
+[\fB--filesfirst\fP]
+[\fB--filelimit\fP \fI#\fP]
+[\fB--si\fP]
+[\fB--du\fP]
+[\fB--prune\fP]
+[\fB--timefmt\fP[\fB=\fP]\fIformat\fP]
+[\fB--fromfile\fP]
+[\fB--info\fP]
+[\fB--noreport\fP]
+[\fB--version\fP]
+[\fB--help\fP]
+[\fB--\fP] [\fIdirectory\fP ...]
 
 .br
 .SH DESCRIPTION
@@ -87,17 +115,24 @@ as a new option.
 .PP
 .TP
 .B -P \fIpattern\fP
-List only those files that match the wild-card \fIpattern\fP.  Note: you must
-use the \fI-a\fP option to also consider those files beginning with a dot `.'
-for matching.  Valid wildcard operators are `*' (any zero or more characters),
-`?' (any single character), `[...]' (any single character listed between
-brackets (optional - (dash) for character range may be used: ex: [A-Z]), and
-`[^...]' (any single character not listed in brackets) and `|' separates
-alternate patterns. 
+List only those files that match the wild-card \fIpattern\fP.  You may have
+multiple -P options. Note: you must use the \fI-a\fP option to also consider
+those files beginning with a dot `.' for matching.  Valid wildcard operators
+are `*' (any zero or more characters), `**` (any zero or more characters as
+well as null /'s, i.e. /**/ may match a single /), `?' (any single character),
+`[...]' (any single character listed between brackets (optional - (dash) for
+character range may be used: ex: [A-Z]), and `[^...]' (any single character
+not listed in brackets) and `|' separates alternate patterns. 
 .PP
 .TP
 .B -I \fIpattern\fP
-Do not list those files that match the wild-card \fIpattern\fP.
+Do not list those files that match the wild-card \fIpattern\fP.  You may have
+multiple -I options.  See \fI-P\fP above for information on wildcard patterns.
+.PP
+.TP
+.B --gitignore
+Uses git \fB.gitignore\fP files for filtering files and directories.  Also
+uses \fB$GIT_DIR/info/exclude\fP if present.
 .PP
 .TP
 .B --ignore-case
@@ -113,10 +148,20 @@ contents. If the \fB--prune\fP option is used, empty folders that match the
 pattern will not be pruned.
 .PP
 .TP
+.B --metafirst
+Print the meta-data information at the beginning of the line rather than
+after the indentation lines.
+.PP
+.TP
 .B --prune
 Makes tree prune empty directories from the output, useful when used in
 conjunction with \fB-P\fP or \fB-I\fP.  See \fBBUGS AND NOTES\fP below for
 more information on this option. 
+.PP
+.TP
+.B --info
+Prints file comments found in .info files.  See \fB.INFO FILES\fP below
+for more information on the format of .info files.
 .PP
 .TP
 .B --noreport
@@ -240,6 +285,11 @@ List directories before files. This is a meta-sort that alters the above sorts.
 This option is disabled when \fB-U\fP is used.
 .PP
 .TP
+.B --filesfirst
+List files before directories. This is a meta-sort that alters the above sorts.
+This option is disabled when \fB-U\fP is used.
+.PP
+.TP
 .B --sort\fR[\fB=\fR]\fItype\fR
 Sort the output by \fItype\fR instead of name. Possible values are:
 \fBctime\fR (\fB-c\fP),
@@ -264,7 +314,8 @@ option is now equivalent to `--charset=IBM437' and may eventually be depreciated
 .PP
 .TP
 .B -n
-Turn colorization off always, over-ridden by the \fB-C\fP option.
+Turn colorization off always, over-ridden by the \fB-C\fP option, however
+overrides CLICOLOR_FORCE if present.
 .PP
 .TP
 .B -C
@@ -281,7 +332,7 @@ Turn on XML output. Outputs the directory tree as an XML formatted file.
 .PP
 .TP
 .B -J
-Turn on JSON output. Outputs the directory tree as an JSON formatted array.
+Turn on JSON output. Outputs the directory tree as a JSON formatted array.
 .PP
 .TP
 .B -H \fIbaseHREF\fP
@@ -309,7 +360,9 @@ Turns off hyperlinks in HTML output.
 Reads a directory listing from a file rather than the file-system.  Paths
 provided on the command line are files to read from rather than directories to
 search.  The dot (.) directory indicates that tree should read paths from
-standard input.
+standard input. NOTE: this is only suitable for reading the output of a program
+such as find, not 'tree -fi' as symlinks cannot (at least as yet) be distinguished
+from files that simply contain ' -> ' as part of the filename.
 
 .SH MISC OPTIONS
 
@@ -326,12 +379,31 @@ Outputs the version of tree.
 Option processing terminator.  No further options will be processed after this.
 .PP
 
+.SH .INFO FILES
+
+\fB.info\fP files are similiar to \.gitignore files, if a .info file is found
+while scanning a directory it is read and added to a stack of .info
+information. Each file is composed of comments (lines starting with hash marks
+(#),) or wild-card patterns which may match a file relative to the directory
+the \.info file is found in.  If a file should match a pattern, the tab indented
+comment that follows the pattern is used as the file comment.  A comment is
+terminated by a non-tab indented line. Multiple patterns, each to a line, may
+share the same comment.
+
 .br
 .SH FILES
-/etc/DIR_COLORS		System color database.
+\fB/etc/DIR_COLORS\fP		System color database.
 .br
-~/.dircolors		Users color database.
+\fB~/.dircolors\fP			Users color database.
 .br
+\fB.gitignore\fP			Git exclusion file
+.br
+\fB$GIT_DIR/info/exclude\fP	Global git file exclusion list
+.br
+\fB.info\fP				File comment file
+.br
+\fB/usr/share/finfo/global_info\fP	Global file comment file
+
 
 .SH ENVIRONMENT
 \fBLS_COLORS\fP		Color information created by dircolors
@@ -348,7 +420,7 @@ Option processing terminator.  No further options will be processed after this.
 .br
 \fBLC_TIME\fP		Locale for timefmt output, see \fBstrftime\fP(3).
 .br
-\fBTZ\fP		Timezone for timefmt output, see \fBstrftime\fP(3).
+\fBTZ\fP			Timezone for timefmt output, see \fBstrftime\fP(3).
 
 .SH AUTHOR
 Steve Baker (ice@mama.indstate.edu)
@@ -379,9 +451,15 @@ XML/JSON trees are not colored, which is a bit of a shame.
 
 Probably more.
 
+As of version 2.0.0, in Linux, tree will attempt to automatically output a
+compact JSON tree on file descriptor 3 (what I call stddata,) if present.  It
+is hoped that some day a better Linux/Unix shell may take advantage of this
+feature, though BSON would probably be a better format for this.
+
 .SH SEE ALSO
 .BR dircolors (1),
 .BR ls (1),
 .BR find (1),
 .BR du (1),
 .BR strftime (3)
+.BR gitignore (5)

@@ -25,6 +25,7 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >
 <!ATTLIST link
   name CDATA #REQUIRED
@@ -37,6 +38,7 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >
 <!ATTLIST file
   name CDATA #REQUIRED
@@ -48,6 +50,7 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >
 <!ATTLIST char
   name CDATA #REQUIRED
@@ -59,6 +62,7 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >
 <!ATTLIST block
   name CDATA #REQUIRED
@@ -70,6 +74,7 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >
 <!ATTLIST socket
   name CDATA #REQUIRED
@@ -81,6 +86,7 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >
 <!ATTLIST fifo
   name CDATA #REQUIRED
@@ -92,6 +98,7 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >
 <!ATTLIST door
   name CDATA #REQUIRED
@@ -103,6 +110,7 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >
 <!ATTLIST port
   name CDATA #REQUIRED
@@ -114,4 +122,5 @@
   group CDATA #IMPLIED
   size CDATA #IMPLIED
   time CDATA #IMPLIED
+  info CDATA #IMPLIED
 >

@@ -21,6 +21,7 @@
 /* #include "libiberty.h" */
 /* #include "safe-ctype.h" */
 #include <ctype.h>
+#ifndef __linux__
 
 /* 
 @deftypefun int strverscmp (const char *@var{s1}, const char *@var{s2})
@@ -156,3 +157,4 @@ strverscmp (const char *s1, const char *s2)
       return state;
     }
 }
+#endif

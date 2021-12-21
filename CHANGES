@@ -1,3 +1,58 @@
+Version 2.0.0 (12/21/2021)
+  - This started out as a 1.9.0 release but then I got fed up with the
+    abundance of directory listers (8 in total, 2 each for each output mode).
+    Nothing is terribly well tested since there are a lot of changes and I would
+    like to get this out the door finally, please report breakage.  This reduced
+    so much code that all the below additions only resulted in a code base that
+    is only 54 lines larger than 1.8.0.
+  - Rolled all the directory listers into 2 functions that call output specific
+    functions (removes one TODO).
+  - -R option now recursively calls the emit_tree() function rather than using
+    system() to re-call tree.  Also removes a TODO.
+  - Adds --info to print information about files/directories from information
+    found in .info files (removes a maybe do) In HTML output, comments show as
+    mouse over tooltips, which I imagine will be the most useful use of this
+    "feature".
+  - Output un-indented JSON on file descriptor 3 ("stddata") automatically if
+    file descriptor 3 is present (currently Linux only.) Maybe switch to BSON.
+  - Always HTML escape filenames in HTML output even when -C is used.
+    (Eric Pruitt)
+  - Return a non-zero exit status if there is a failure to open any directory.
+  - Added --gitignore option to filter out files specified by .gitignore files.
+    (also reads $GIT_DIR/info/exclude if present.) To facilitate gitignore,
+    adds support for ** on pattern matching to allow /**/ to match a single /.
+    This is not well tested and kind of hacked together, so may not work
+    correctly. (Jake Zimmerman and others)
+  - Now also supports multiple -I and -P instances. (Michiel Beijen and others)
+  - Now prints meta data for the top level directory as well.
+  - Split spaghetti code in main into individual functions.
+  - Properly sort --fromfile input (Chentao Credungtao via Debian)
+  - Make tree colorization use reset (rs code in dir_colors,) not normal color
+    when resetting attributes (Filips Romāns via Debian).
+  - Honor -n (no color) even if the CLICOLOR_FORCE environment variable is set
+    (Paul Seyfert)
+  - Added --metafirst to print the metadata before the indentation lines
+    (suggested by Richard Mitchell)
+  - Fix --sort option to not require =
+  - Defer sorting for --du until the entire sub-directory tree has been
+    processed.
+  - Optimized makefile, HP/UX support (Osipov, Michael). Note that this changes
+    the prefix default to /usr/local, which is becoming required for many
+    systems now.
+  - Renamed (the by now very obsolete) doc/tree.1.fr to doc/tree.fr.1 (Jonas
+    Stein)
+  - Fix JSON string escaping such that it is not using the HTML escaping (Fox
+    & others)
+  - Add --filesfirst option (John A. Fedoruk). Cleaned up sorting code to make
+    --dirsfirst and --filesfirst top level meta-sorts.
+  - "arial" not "ariel" (Mark), HTML style-sheet cleaned up in any event.
+  - Deprecate using local -DLINUX / -DCYGWIN and use the OS provided
+    __linux__ or __CYGWIN__ (Jonas Stein)
+  - XML/HTML/JSON output needs to be mutually exclusive, last command line
+    switch wins. (Sergei Maximov)
+  - Make sure we use xmalloc instead of malloc in a number of places (Tomáš
+    Beránek)
+
 Version 1.8.0 (11/16/2018)
   - Added an experimental --fromfile option (suggested by several people.)
     This may eventually be replaced or supplimented by a --fromjson option.

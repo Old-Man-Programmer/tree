@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,9 +21,9 @@
 extern bool dflag, Fflag, aflag, fflag, pruneflag;
 extern bool noindent, force_color, flimit, matchdirs;
 extern bool reverse;
-extern char *pattern, *ipattern;
+extern int pattern, ipattern;
 
-extern int (*cmpfunc)();
+extern int (*topsort)();
 extern FILE *outfile;
 extern int Level, *dirs, maxdirs;
 
@@ -65,7 +65,7 @@ char *nextpc(char **p, int *tok)
 struct _info *newent(char *name) {
   struct _info *n = xmalloc(sizeof(struct _info));
   memset(n,0,sizeof(struct _info));
-  n->name = strdup(name);
+  n->name = scopy(name);
   n->child = NULL;
   n->tchild = n->next = NULL;
   return n;
@@ -121,11 +121,11 @@ struct _info **fprune(struct _info *head, bool matched, bool root)
     if (!aflag && !root && ent->name[0] == '.') show = 0;
     if (show && !matched) {
       if (!ent->isdir) {
-	if (pattern && patmatch(ent->name, pattern) == 0) show = 0;
-	if (ipattern && patmatch(ent->name, pattern) == 1) show = 0;
+	if (pattern && !patinclude(ent->name)) show = 0;
+	if (ipattern && patignore(ent->name)) show = 0;
       }
       if (ent->isdir && show && matchdirs && pattern) {
-	if (patmatch(ent->name, pattern) == 1) matched = TRUE;
+	if (patinclude(ent->name)) matched = TRUE;
       }
     }
     if (pruneflag && !matched && ent->isdir && ent->tchild == NULL) show = 0;
@@ -150,6 +150,8 @@ struct _info **fprune(struct _info *head, bool matched, bool root)
   }
   dir[count] = NULL;
 
+  if (topsort) qsort(dir,count,sizeof(struct _info *),topsort);
+  
   return dir;
 }
 
@@ -203,82 +205,3 @@ struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
   // Prune accumulated directory tree:
   return fprune(root, FALSE, TRUE);
 }
-
-// void f_listdir(struct _info *dir, char *d, int *dt, int *ft, u_long lev)
-// {
-//   char *path;
-//   long pathsize = 0;
-//   bool nlf = FALSE, colored = FALSE;
-// 
-//   if (dir == NULL) return;
-// 
-//   dirs[lev] = (dir->next? 1 : 2);
-//   fprintf(outfile,"\n");
-// 
-//   path = malloc(pathsize=4096);
-// 
-//   while(dir) {
-//     if (!noindent) indent(lev);
-// 
-//     if (colorize) {
-//       colored = color(dir->isdir? S_IFDIR : S_IFREG, dir->name, FALSE, FALSE);
-//     }
-// 
-//     if (fflag) {
-//       if (sizeof(char) * (strlen(d)+strlen(dir->name)+2) > pathsize)
-// 	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen(dir->name)+1024)));
-//       if (!strcmp(d,"/")) sprintf(path,"%s%s",d,dir->name);
-//       else sprintf(path,"%s/%s",d,dir->name);
-//     } else {
-//       if (sizeof(char) * (strlen(dir->name)+1) > pathsize)
-// 	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(dir->name)+1024)));
-//       sprintf(path,"%s",dir->name);
-//     }
-//     
-//     printit(path);
-//     
-//     if (colored) fprintf(outfile,"%s",endcode);
-//     if (Fflag && dir->isdir) fputc(Ftype(S_IFDIR), outfile);
-//     
-//     if (dir->child) {
-//       if (fflag) {
-// 	if (strlen(d)+strlen(dir->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen(dir->name)+1024));
-// 	if (!strcmp(d,"/")) sprintf(path,"%s%s",d,dir->name);
-// 	else sprintf(path,"%s/%s",d,dir->name);
-//       }
-//       f_listdir(dir->child, fflag? path : NULL, dt, ft, lev+1);
-//       nlf = TRUE;
-//       *dt += 1;
-//     } else {
-//       if (dir->isdir) *dt += 1;
-//       else *ft += 1;
-//     }
-// 
-//     if (dir->next && !dir->next->next) dirs[lev] = 2;
-//     if (nlf) nlf = FALSE;
-//     else fprintf(outfile,"\n");
-//     dir=dir->next;
-//   }
-//   dirs[lev] = 0;
-//   free(path);
-// }
-
-// void file_listdir(char *d, int *dt, int *ft, u_long lev)
-// {
-//   FILE *fp = (d != NULL? fopen(d,"r") : stdin);
-//   struct _info *root;
-//   
-//   if (fp == NULL) {
-//     fprintf(stderr,"Error opening %s for reading.\n", d);
-//     return;
-//   }
-//   root = getfulltree(fp, lev);
-//   if (d != NULL) fclose(fp);
-// 
-//   memset(dirs, 0, sizeof(int) * maxdirs);
-// 
-//   f_listdir(root, "/", dt, ft, lev);
-// 
-//   freefiletree(root);
-//   return;
-// }

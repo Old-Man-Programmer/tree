@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2018 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,19 +19,19 @@
 #include "tree.h"
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-extern bool Dflag, inodeflag, devflag, Rflag, cflag;
-extern bool noindent, force_color, xdev, nolinks, flimit;
+extern bool Dflag, inodeflag, devflag, Rflag, cflag, duflag, siflag;
+extern bool noindent, force_color, xdev, nolinks, flimit, noreport;
+extern const char *charset;
 
-extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern const int ifmt[];
 extern const char fmt[], *ftype[];
 
-extern void (*listdir)(char *, int *, int *, u_long, dev_t);
-extern int (*cmpfunc)();
 extern FILE *outfile;
-extern int Level, *dirs, maxdirs;
+extern int Level, *dirs, maxdirs, errors;
 
 extern char *endcode;
+
+extern struct listingcalls lc;
 
 /*
 <tree>
@@ -56,230 +56,11 @@ extern char *endcode;
 </tree>
 */
 
-
-off_t xml_listdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
-{
-  char *path;
-  bool nlf = FALSE;
-  long pathsize = 0;
-  struct _info **dir, **sav;
-  struct stat sb;
-  int t, n, mt;
-
-  if ((Level >= 0) && (lev > Level)) {
-    if (!noindent) fputc('\n',outfile);
-    return 0;
-  }
-
-  if (xdev && lev == 0) {
-    stat(d,&sb);
-    dev = sb.st_dev;
-  }
-
-  sav = dir = read_dir(d,&n);
-  if (!dir && n) {
-    fprintf(outfile,"<error>opening dir</error>\n");
-    return 0;
-  }
-  if (!n) {
-    if (!noindent) fputc('\n', outfile);
-    free_dir(sav);
-    return 0;
-  }
-  if (flimit > 0 && n > flimit) {
-    fprintf(outfile,"<error>%d entries exceeds filelimit, not opening dir</error>%s",n,noindent?"":"\n");
-    free_dir(sav);
-    return 0;
-  }
-
-  if (cmpfunc) qsort(dir,n,sizeof(struct _info *), cmpfunc);
-  if (lev >= maxdirs-1) {
-    dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
-    memset(dirs+(maxdirs-1024), 0, sizeof(int) * 1024);
-  }
-  dirs[lev] = 1;
-  if (!*(dir+1)) dirs[lev] = 2;
-  if (!noindent) fprintf(outfile,"\n");
-
-  path = malloc(pathsize=4096);
-
-  while(*dir) {
-    if (!noindent) xml_indent(lev);
-
-    if ((*dir)->lnk) mt = (*dir)->mode & S_IFMT;
-    else mt = (*dir)->mode & S_IFMT;
-    for(t=0;ifmt[t];t++)
-      if (ifmt[t] == mt) break;
-    fprintf(outfile,"<%s", ftype[t]);
-
-    if (fflag) {
-      if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-      else sprintf(path,"%s/%s",d,(*dir)->name);
-    } else {
-      if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
-      sprintf(path,"%s",(*dir)->name);
-    }
-
-    fprintf(outfile, " name=\"");
-    html_encode(outfile,path);
-    fputc('"',outfile);
-
-    if ((*dir)->lnk) {
-      fprintf(outfile, " target=\"");
-      html_encode(outfile,(*dir)->lnk);
-      fputc('"',outfile);
-    }
-    xml_fillinfo(*dir);
-    fputc('>',outfile);
-
-    if ((*dir)->isdir) {
-      if ((*dir)->lnk) {
-	if (lflag && !(xdev && dev != (*dir)->dev)) {
-	  if (findino((*dir)->inode,(*dir)->dev)) {
-	    fprintf(outfile,"<error>recursive, not followed</error>");
-	  } else {
-	    saveino((*dir)->inode, (*dir)->dev);
-	    if (*(*dir)->lnk == '/')
-	      listdir((*dir)->lnk,dt,ft,lev+1,dev);
-	    else {
-	      if (strlen(d)+strlen((*dir)->lnk)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	      if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
-	      else sprintf(path,"%s/%s",d,(*dir)->lnk);
-	      listdir(path,dt,ft,lev+1,dev);
-	    }
-	    nlf = TRUE;
-	  }
-	}
-      } else if (!(xdev && dev != (*dir)->dev)) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-	else sprintf(path,"%s/%s",d,(*dir)->name);
-	saveino((*dir)->inode, (*dir)->dev);
-	listdir(path,dt,ft,lev+1,dev);
-	nlf = TRUE;
-      }
-      *dt += 1;
-    } else *ft += 1;
-    if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
-    if (nlf) {
-      nlf = FALSE;
-      if (!noindent) xml_indent(lev);
-    }
-    fprintf(outfile,"</%s>%s",ftype[t],noindent?"":"\n");
-    dir++;
-  }
-  dirs[lev] = 0;
-  free(path);
-  free_dir(sav);
-  return 0;
-}
-
-off_t xml_rlistdir(char *d, int *dt, int *ft, u_long lev, dev_t dev)
-{
-  struct _info **dir;
-  off_t size = 0;
-  char *err;
-  
-  dir = getfulltree(d, lev, dev, &size, &err);
-  
-  memset(dirs, 0, sizeof(int) * maxdirs);
-  
-  xmlr_listdir(dir, d, dt, ft, lev);
-  
-  return size;
-}
-
-void xmlr_listdir(struct _info **dir, char *d, int *dt, int *ft, u_long lev)
-{
-  char *path;
-  long pathsize = 0;
-  struct _info **sav = dir;
-  bool nlf = FALSE;
-  int mt, t;
-  
-  if (dir == NULL) return;
-  
-  dirs[lev] = 1;
-  if (!*(dir+1)) dirs[lev] = 2;
-  fprintf(outfile,"\n");
-  
-  path = malloc(pathsize=4096);
-  
-  while(*dir) {
-    if (!noindent) xml_indent(lev);
-
-    if ((*dir)->lnk) mt = (*dir)->mode & S_IFMT;
-    else mt = (*dir)->mode & S_IFMT;
-    for(t=0;ifmt[t];t++)
-      if (ifmt[t] == mt) break;
-    fprintf(outfile,"<%s", ftype[t]);
-
-    if (fflag) {
-      if (sizeof(char) * (strlen(d)+strlen((*dir)->name)+2) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen(d)+strlen((*dir)->name)+1024)));
-      if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-      else sprintf(path,"%s/%s",d,(*dir)->name);
-    } else {
-      if (sizeof(char) * (strlen((*dir)->name)+1) > pathsize)
-	path=xrealloc(path,pathsize=(sizeof(char) * (strlen((*dir)->name)+1024)));
-      sprintf(path,"%s",(*dir)->name);
-    }
-
-    fprintf(outfile, " name=\"");
-    html_encode(outfile,path);
-    fputc('"',outfile);
-
-    if ((*dir)->lnk) {
-      fprintf(outfile, " target=\"");
-      html_encode(outfile,(*dir)->lnk);
-      fputc('"',outfile);
-    }
-
-    xml_fillinfo(*dir);
-    if (mt != S_IFDIR && mt != S_IFLNK && (*dir)->err == NULL) fprintf(outfile,"/>");
-    else fputc('>',outfile);
-
-    if ((*dir)->err) {
-      fprintf(outfile,"<error>%s</error>", (*dir)->err);
-      free((*dir)->err);
-      (*dir)->err = NULL;
-    }
-    if ((*dir)->child) {
-      if (fflag) {
-	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (!strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
-	else sprintf(path,"%s/%s",d,(*dir)->name);
-      }
-      xmlr_listdir((*dir)->child, fflag? path : NULL, dt, ft, lev+1);
-      nlf = TRUE;
-      *dt += 1;
-    } else {
-      if ((*dir)->isdir) *dt += 1;
-      else *ft += 1;
-    }
-    
-    if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
-    if (nlf) {
-      nlf = FALSE;
-      if (!noindent) xml_indent(lev);
-    }
-    if (mt == S_IFDIR || mt == S_IFLNK || (*dir)->err != NULL) fprintf(outfile,"</%s>\n",ftype[t]);
-    else putc('\n',outfile);
-    dir++;
-  }
-  dirs[lev] = 0;
-  free(path);
-  free_dir(sav);
-}
-
 void xml_indent(int maxlevel)
 {
   int i;
   
-  fprintf(outfile, "    ");
+  fprintf(outfile, "  ");
   for(i=0; i<maxlevel; i++)
     fprintf(outfile, "  ");
 }
@@ -301,4 +82,91 @@ void xml_fillinfo(struct _info *ent)
   if (gflag) fprintf(outfile, " group=\"%s\"", gidtoname(ent->gid));
   if (sflag) fprintf(outfile, " size=\"%lld\"", (long long int)(ent->size));
   if (Dflag) fprintf(outfile, " time=\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
+}
+
+void xml_intro(void)
+{
+  extern char *_nl;
+
+  fprintf(outfile,"<?xml version=\"1.0\"");
+  if (charset) fprintf(outfile," encoding=\"%s\"",charset);
+  fprintf(outfile,"?>%s<tree>%s",_nl,_nl);
+}
+
+void xml_outtro(void)
+{
+  fprintf(outfile,"</tree>\n");
+}
+
+int xml_printinfo(char *dirname, struct _info *file, int level)
+{
+  mode_t mt;
+  int t;
+
+  if (!noindent) xml_indent(level);
+
+  if (file->lnk) mt = file->mode & S_IFMT;
+  else mt = file->mode & S_IFMT;
+
+  for(t=0;ifmt[t];t++)
+    if (ifmt[t] == mt) break;
+  fprintf(outfile,"<%s", (file->tag = ftype[t]));
+
+  return 0;
+}
+
+int xml_printfile(char *dirname, char *filename, struct _info *file, int descend)
+{
+  fprintf(outfile, " name=\"");
+  html_encode(outfile, filename);
+  fputc('"',outfile);
+
+  if (file && file->comment) {
+    fprintf(outfile, " info=\"");
+    for(int i=0; file->comment[i]; i++) {
+      html_encode(outfile, file->comment[i]);
+      if (file->comment[i+1]) fprintf(outfile, "\n");
+    }
+    fputc('"', outfile);
+  }
+
+  if (file && file->lnk) {
+    fprintf(outfile, " target=\"");
+    html_encode(outfile,file->lnk);
+    fputc('"',outfile);
+  }
+  if (file) xml_fillinfo(file);
+  fputc('>',outfile);
+
+  return 1;
+}
+
+int xml_error(char *error)
+{
+  fprintf(outfile,"<error>%s</error>", error);
+
+  return 0;
+}
+
+void xml_newline(struct _info *file, int level, int postdir, int needcomma)
+{
+  if (postdir >= 0) fprintf(outfile, "\n");
+}
+
+void xml_close(struct _info *file, int level, int needcomma)
+{
+  if (!noindent && level >= 0) xml_indent(level-1);
+  fprintf(outfile,"</%s>%s", file->tag, noindent? "" : "\n");
+}
+
+
+void xml_report(struct totals tot)
+{
+  extern char *_nl;
+
+  fprintf(outfile,"%s<report>%s",noindent?"":"  ", _nl);
+  if (duflag) fprintf(outfile,"%s<size>%lld</size>%s", noindent?"":"    ", (long long int)tot.size, _nl);
+  fprintf(outfile,"%s<directories>%ld</directories>%s", noindent?"":"    ", tot.dirs, _nl);
+  if (!dflag) fprintf(outfile,"%s<files>%ld</files>%s", noindent?"":"    ", tot.files, _nl);
+  fprintf(outfile,"%s</report>%s",noindent?"":"  ", _nl);
 }
