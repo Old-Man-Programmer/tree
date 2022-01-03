@@ -247,7 +247,10 @@ Eric Pruitt
 
 Michiel Beijen (and others)
   - Suggest Support multiple -I and -P instances.
+  - Suggest that / match directories in patterns (also Taylor Faubion)
 
+Michal Vasilek
+  - Various Makefile fixes
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

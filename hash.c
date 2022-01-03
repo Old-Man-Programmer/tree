@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -84,15 +84,15 @@ void saveino(ino_t inode, dev_t device)
 {
   struct inotable *it, *ip, *pp;
   int hp = inohash(inode);
-  
+
   for(pp = ip = itable[hp];ip;ip = ip->nxt) {
     if (ip->inode > inode) break;
     if (ip->inode == inode && ip->device >= device) break;
     pp = ip;
   }
-  
+
   if (ip && ip->inode == inode && ip->device == device) return;
-  
+
   it = xmalloc(sizeof(struct inotable));
   it->inode = inode;
   it->device = device;
@@ -104,12 +104,12 @@ void saveino(ino_t inode, dev_t device)
 int findino(ino_t inode, dev_t device)
 {
   struct inotable *it;
-  
+
   for(it=itable[inohash(inode)]; it; it=it->nxt) {
     if (it->inode > inode) break;
     if (it->inode == inode && it->device >= device) break;
   }
-  
+
   if (it && it->inode == inode && it->device == device) return TRUE;
   return FALSE;
 }

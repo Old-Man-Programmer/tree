@@ -122,7 +122,8 @@ are `*' (any zero or more characters), `**` (any zero or more characters as
 well as null /'s, i.e. /**/ may match a single /), `?' (any single character),
 `[...]' (any single character listed between brackets (optional - (dash) for
 character range may be used: ex: [A-Z]), and `[^...]' (any single character
-not listed in brackets) and `|' separates alternate patterns. 
+not listed in brackets) and `|' separates alternate patterns. A '/' at the
+end of the pattern matches directories, but not files.
 .PP
 .TP
 .B -I \fIpattern\fP

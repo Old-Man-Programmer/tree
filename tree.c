@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,8 +19,8 @@
 
 #include "tree.h"
 
-char *version ="$Version: $ tree v2.0.0 (c) 1996 - 2021 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion="\t\t tree v2.0.0 %s 1996 - 2021 by Steve Baker and Thomas Moore <br>\n"
+char *version ="$Version: $ tree v2.0.1 (c) 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion="\t\t tree v2.0.1 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		      "\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -658,20 +658,20 @@ void usage(int n)
 /**
  * True if file matches an -I pattern
  */
-int patignore(char *name)
+int patignore(char *name, int isdir)
 {
   for(int i=0; i < ipattern; i++)
-    if (patmatch(name, ipatterns[i])) return 1;
+    if (patmatch(name, ipatterns[i], isdir)) return 1;
   return 0;
 }
 
 /**
  * True if name matches a -P pattern
  */
-int patinclude(char *name)
+int patinclude(char *name, int isdir)
 {
   for(int i=0; i < pattern; i++)
-    if (patmatch(name, patterns[i])) return 1;
+    if (patmatch(name, patterns[i], isdir)) return 1;
   return 0;
 }
 
@@ -699,13 +699,15 @@ struct _info *getinfo(char *name, char *path)
     st.st_ino = lst.st_ino;
   }
 
+  int isdir = (st.st_mode & S_IFMT) == S_IFDIR;
+
 #ifndef __EMX__
-  if (gitignore && filtercheck(path, name)) return NULL;
+  if (gitignore && filtercheck(path, name, isdir)) return NULL;
 
   if ((lst.st_mode & S_IFMT) != S_IFDIR && !(lflag && ((st.st_mode & S_IFMT) == S_IFDIR))) {
-    if (pattern && !patinclude(name)) return NULL;
+    if (pattern && !patinclude(name, isdir)) return NULL;
   }
-  if (ipattern && patignore(name)) return NULL;
+  if (ipattern && patignore(name, isdir)) return NULL;
 #endif
 
   if (dflag && ((st.st_mode & S_IFMT) != S_IFDIR)) return NULL;
@@ -743,7 +745,7 @@ struct _info *getinfo(char *name, char *path)
 #else
 
   /* These should be eliminated, as they're barely used: */
-  ent->isdir  = ((st.st_mode & S_IFMT) == S_IFDIR);
+  ent->isdir  = isdir;
   ent->issok  = ((st.st_mode & S_IFMT) == S_IFSOCK);
   ent->isfifo = ((st.st_mode & S_IFMT) == S_IFIFO);
   ent->isexe  = (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) ? 1 : 0;
@@ -799,7 +801,7 @@ struct _info **read_dir(char *dir, int *n, int infotop)
 
     info = getinfo(ent->d_name, path);
     if (info) {
-      if (showinfo && (com = infocheck(path, ent->d_name, infotop))) {
+      if (showinfo && (com = infocheck(path, ent->d_name, infotop, info->isdir))) {
 	for(i = 0; com->desc[i] != NULL; i++);
 	info->comment = xmalloc(sizeof(char *) * (i+1));
 	for(i = 0; com->desc[i] != NULL; i++) info->comment[i] = scopy(com->desc[i]);
@@ -868,7 +870,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
         break;
       }
     }
-    if (*start_rel_path && patinclude(start_rel_path)) {
+    if (*start_rel_path && patinclude(start_rel_path, 1)) {
       tmp_pattern = pattern;
       pattern = 0;
     }
@@ -903,7 +905,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
   if (lev >= maxdirs-1) {
     dirs = xrealloc(dirs,sizeof(int) * (maxdirs += 1024));
   }
-  
+
   while (*dir) {
     if ((*dir)->isdir && !(xdev && dev != (*dir)->dev)) {
       if ((*dir)->lnk) {
@@ -931,7 +933,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
       }
       // prune empty folders, unless they match the requested pattern
       if (pruneflag && (*dir)->child == NULL &&
-	  !(matchdirs && pattern && patinclude((*dir)->name))) {
+	  !(matchdirs && pattern && patinclude((*dir)->name, (*dir)->isdir))) {
 	sp = *dir;
 	for(p=dir;*p;p++) *p = *(p+1);
 	n--;
@@ -1062,7 +1064,7 @@ char *gnu_getcwd()
 {
   int size = 100;
   char *buffer = (char *) xmalloc (size);
-     
+
   while (1) {
     char *value = getcwd (buffer, size);
     if (value != 0) return buffer;
@@ -1086,7 +1088,7 @@ static inline char cond_lower(char c)
  *    0 on a mismatch
  *   -1 on a syntax error in the pattern
  */
-int patmatch(char *buf, char *pat)
+int patmatch(char *buf, char *pat, int isdir)
 {
   int match = 1,m,n;
   char *bar = strchr(pat, '|');
@@ -1101,9 +1103,9 @@ int patmatch(char *buf, char *pat)
     }
     /* Break pattern into two sub-patterns */
     *bar = '\0';
-    match = patmatch(buf, pat);
+    match = patmatch(buf, pat, isdir);
     if (!match) {
-      match = patmatch(buf,bar+1);
+      match = patmatch(buf, bar+1, isdir);
     }
     /* Join sub-patterns back into one pattern */
     *bar = '|';
@@ -1146,19 +1148,24 @@ int patmatch(char *buf, char *pat)
 	pat++;
 	if(!*pat) return 1;
 
-	while(*buf && !(match = patmatch(buf, pat))) {
+	while(*buf && !(match = patmatch(buf, pat, isdir))) {
 	  // ../**/.. is allowed to match a null /:
-	  if (pprev == '/' && *pat == '/' && *(pat+1) && (match = patmatch(buf, pat+1))) return match;
+	  if (pprev == '/' && *pat == '/' && *(pat+1) && (match = patmatch(buf, pat+1, isdir))) return match;
 	  buf++;
 	  while(*buf && *buf != '/') buf++;
 	}
       } else {
-	while(*buf && !(match = patmatch(buf++,pat)));
+	while(*buf && !(match = patmatch(buf++, pat, isdir)));
+	if (!*buf && !match) match = patmatch(buf, pat, isdir);
       }
       return match;
     case '?':
       if(!*buf) return 0;
       buf++;
+      break;
+    case '/':
+      if (!*(pat+1) && !*buf) return isdir;
+      match = (*buf++ == *pat);
       break;
     case '\\':
       if(*pat)

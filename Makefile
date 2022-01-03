@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2021 by Steve Baker
+# Copyright (c) 1996 - 2022 by Steve Baker
 # All Rights reserved
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,24 +16,23 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-prefix=/usr/local
+PREFIX=/usr/local
 
 CC=gcc
 INSTALL=install
 
-VERSION=2.0.0
+VERSION=2.0.1
 TREE_DEST=tree
-BINDIR=${prefix}/bin
+DESTDIR=${PREFIX}/bin
 MAN=tree.1
-MANDIR=${prefix}/man
-#OBJS=tree.o unix.o html.o xml.o json.o hash.o color.o file.o filter.o info.o strverscmp.o
+MANDIR=${PREFIX}/man
 OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o html.o strverscmp.o
 
 # Uncomment options below for your particular OS:
 
 # Linux defaults:
 #CFLAGS=-ggdb -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-CFLAGS=-O4 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS=-O3 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 LDFLAGS=-s
 
 # Uncomment for FreeBSD:
@@ -100,22 +99,16 @@ $(OBJS): %.o:	%.c tree.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	if [ -x $(TREE_DEST) ]; then rm $(TREE_DEST); fi
-	if [ -f tree.o ]; then rm *.o; fi
-	rm -f *~
+	rm -f $(TREE_DEST) *.o *~
 
 install: tree
-	$(INSTALL) -d $(BINDIR)
+	$(INSTALL) -d $(DESTDIR)
 	$(INSTALL) -d $(MANDIR)/man1
-	if [ -e $(TREE_DEST) ]; then \
-		$(INSTALL) $(TREE_DEST) $(BINDIR)/$(TREE_DEST); \
-	fi
-	$(INSTALL) doc/$(MAN) $(MANDIR)/man1/$(MAN)
+	$(INSTALL) $(TREE_DEST) $(DESTDIR)/$(TREE_DEST); \
+	$(INSTALL) -m 644 doc/$(MAN) $(MANDIR)/man1/$(MAN)
 
 distclean:
-	if [ -f tree.o ]; then rm *.o; fi
-	rm -f *~
-	
+	rm -f *.o *~
 
 dist:	distclean
 	tar zcf ../tree-$(VERSION).tgz -C .. `cat .tarball`

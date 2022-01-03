@@ -1,3 +1,14 @@
+Version 2.0.1 (01/03/2022)
+  - Simplify Makefile and the following changes: prefix -> PREFIX,
+    BINDIR -> DESTDIR, -O4 -> -O3, mode 644 for man page installation
+    (Michal Vasilek)
+  - Make patterns ending in '/' match directories (but not files) for -I / -P
+    (Michiel Beijen) should also fix issues with --gitignore as well
+    (Taylor Faubion)
+  - Fix --gitignore not matching files relative to the path of the .gitignore
+    (Taylor Faubion)  I did say it was hacked together.
+  - Refactored color.c a bit to simplify the code as a prelude to meta coloring.
+
 Version 2.0.0 (12/21/2021)
   - This started out as a 1.9.0 release but then I got fed up with the
     abundance of directory listers (8 in total, 2 each for each output mode).

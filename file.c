@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -121,11 +121,11 @@ struct _info **fprune(struct _info *head, bool matched, bool root)
     if (!aflag && !root && ent->name[0] == '.') show = 0;
     if (show && !matched) {
       if (!ent->isdir) {
-	if (pattern && !patinclude(ent->name)) show = 0;
-	if (ipattern && patignore(ent->name)) show = 0;
+	if (pattern && !patinclude(ent->name, 0)) show = 0;
+	if (ipattern && patignore(ent->name, 0)) show = 0;
       }
       if (ent->isdir && show && matchdirs && pattern) {
-	if (patinclude(ent->name)) matched = TRUE;
+	if (patinclude(ent->name, 1)) matched = TRUE;
       }
     }
     if (pruneflag && !matched && ent->isdir && ent->tchild == NULL) show = 0;
@@ -151,7 +151,7 @@ struct _info **fprune(struct _info *head, bool matched, bool root)
   dir[count] = NULL;
 
   if (topsort) qsort(dir,count,sizeof(struct _info *),topsort);
-  
+
   return dir;
 }
 

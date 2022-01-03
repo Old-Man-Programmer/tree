@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -19,6 +19,8 @@
 #include "tree.h"
 
 struct ignorefile *filterstack = NULL;
+
+static char fpattern[PATH_MAX];
 
 void gittrim(char *s)
 {
@@ -63,6 +65,7 @@ struct ignorefile *new_ignorefile(char *path)
     if (buf[0] == '#') continue;
     rev = (buf[0] == '!');
     gittrim(buf);
+    if (strlen(buf) == 0) continue;
     p = new_pattern(buf + (rev? 1 : 0));
     if (rev) {
       if (reverse == NULL) reverse = revend = p;
@@ -77,7 +80,6 @@ struct ignorefile *new_ignorefile(char *path)
 	remend = p;
       }
     }
-    
   }
 
   fclose(fp);
@@ -120,29 +122,41 @@ struct ignorefile *pop_filterstack(void)
 /**
  * true if remove filter matches and no reverse filter matches.
  */
-int filtercheck(char *path, char *name)
+int filtercheck(char *path, char *name, int isdir)
 {
   int filter = 0;
-  struct ignorefile *ig = filterstack;
+  struct ignorefile *ig;
   struct pattern *p;
 
-  while (!filter && ig) {
+  for(ig = filterstack; !filter && ig; ig = ig->next) {
+    int fpos = sprintf(fpattern, "%s/", ig->path);
+
     for(p = ig->remove; p != NULL; p = p->next) {
-      if (patmatch(path, p->pattern) == 1) {
+      if (patmatch(path, p->pattern, isdir) == 1) {
+	filter = 1;
+	break;
+      }
+      if (p->pattern[0] == '/') continue;
+      sprintf(fpattern + fpos, "%s", p->pattern);
+      if (patmatch(path, fpattern, isdir) == 1) {
 	filter = 1;
 	break;
       }
     }
-    ig = ig->next;
   }
   if (!filter) return 0;
 
-  ig = filterstack;
-  while (ig) {
+  for(ig = filterstack; ig; ig = ig->next) {
+    int fpos = sprintf(fpattern, "%s/", ig->path);
+
     for(p = ig->reverse; p != NULL; p = p->next) {
-      if (patmatch(path, p->pattern) == 1) return 0;
+      if (patmatch(path, p->pattern, isdir) == 1) return 0;
+
+      if (p->pattern[0] == '/') continue;
+      sprintf(fpattern + fpos, "%s", p->pattern);
+
+      if (patmatch(path, fpattern, isdir) == 1) return 0;
     }
-    ig = ig->next;
   }
 
   return 1;

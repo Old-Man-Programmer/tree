@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -21,7 +21,6 @@
 extern FILE *outfile;
 extern bool dflag, Fflag, duflag, metafirst, hflag, siflag, noindent;
 extern bool colorize, linktargetcolor;
-extern char *endcode;
 extern const struct linedraw *linedraw;
 extern int *dirs;
 
@@ -48,10 +47,10 @@ int unix_printfile(char *dirname, char *filename, struct _info *file, int descen
     if (file->lnk && linktargetcolor) colored = color(file->lnkmode,file->name,file->orphan,FALSE);
     else colored = color(file->mode,file->name,file->orphan,FALSE);
   }
-    
+
   printit(filename);
 
-  if (colored) fprintf(outfile,"%s",endcode);
+  if (colored) endcolor();
 
   if (file) {
     if (Fflag && !file->lnk) {
@@ -62,7 +61,7 @@ int unix_printfile(char *dirname, char *filename, struct _info *file, int descen
       fprintf(outfile," -> ");
       if (colorize) colored = color(file->lnkmode,file->lnk,file->orphan,TRUE);
       printit(file->lnk);
-      if (colored) fprintf(outfile,"%s",endcode);
+      if (colored) endcolor();
       if (Fflag) {
 	if ((c = Ftype(file->lnkmode))) fputc(c, outfile);
       }

@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -38,11 +38,13 @@
  * something.
  */
 enum {
-  CMD_COLOR, CMD_OPTIONS, CMD_TERM, CMD_EIGHTBIT, COL_RESET, COL_NORMAL, COL_FILE,
-  COL_DIR, COL_LINK, COL_FIFO, COL_DOOR, COL_BLK, COL_CHR, COL_ORPHAN, COL_SOCK,
-  COL_SETUID, COL_SETGID, COL_STICKY_OTHER_WRITABLE, COL_OTHER_WRITABLE,
-  COL_STICKY, COL_EXEC, COL_MISSING, COL_LEFTCODE, COL_RIGHTCODE, COL_ENDCODE,
-  DOT_EXTENSION, ERROR
+  ERROR = -1, CMD_COLOR = 0, CMD_OPTIONS, CMD_TERM, CMD_EIGHTBIT, COL_RESET,
+  COL_NORMAL, COL_FILE, COL_DIR, COL_LINK, COL_FIFO, COL_DOOR, COL_BLK, COL_CHR,
+  COL_ORPHAN, COL_SOCK, COL_SETUID, COL_SETGID, COL_STICKY_OTHER_WRITABLE,
+  COL_OTHER_WRITABLE, COL_STICKY, COL_EXEC, COL_MISSING,
+  COL_LEFTCODE, COL_RIGHTCODE, COL_ENDCODE,
+// Keep this one last, sets the size of the color_code array:
+  DOT_EXTENSION
 };
 
 enum {
@@ -52,13 +54,8 @@ enum {
 
 bool colorize = FALSE, ansilines = FALSE, linktargetcolor = FALSE;
 char *term, termmatch = FALSE, istty;
-char *leftcode = NULL, *rightcode = NULL, *endcode = NULL;
 
-char *reset_flgs = NULL, *norm_flgs = NULL, *file_flgs = NULL, *dir_flgs = NULL;
-char *link_flgs = NULL, *fifo_flgs = NULL, *door_flgs = NULL, *block_flgs = NULL;
-char *char_flgs = NULL, *orphan_flgs = NULL, *sock_flgs = NULL, *suid_flgs = NULL;
-char *sgid_flgs = NULL, *stickyow_flgs = NULL, *otherwr_flgs = NULL;
-char *sticky_flgs = NULL, *exec_flgs = NULL,  *missing_flgs = NULL;
+char *color_code[DOT_EXTENSION+1] = {NULL};
 
 char *vgacolor[] = {
   "black", "red", "green", "yellow", "blue", "fuchsia", "aqua", "white",
@@ -80,7 +77,7 @@ extern const char *charset;
 void parse_dir_colors()
 {
   char buf[1025], **arg, **c, *colors, *s, *cc;
-  int i, n;
+  int i, n, col;
   struct extensions *e;
 
   if (Hflag) return;
@@ -89,96 +86,31 @@ void parse_dir_colors()
     colorize = FALSE;
     return;
   }
-  
+
   s = getenv("TREE_COLORS");
   if (s == NULL) s = getenv("LS_COLORS");
   cc = getenv("CLICOLOR");
   if (getenv("CLICOLOR_FORCE") != NULL && !nocolor) force_color=TRUE;
   if ((s == NULL || strlen(s) == 0) && (force_color || cc != NULL)) s = ":no=00:rs=0:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
-  
+
   if (s == NULL || (!force_color && (nocolor || !isatty(1)))) {
     colorize = FALSE;
     return;
-  } else {
-    colorize = TRUE;
-    /* You can uncomment the below line and tree will always try to ANSI-fy the indentation lines */
-    /*    ansilines = TRUE; */
   }
-  
+
+  colorize = TRUE;
+
+  for(int i=0; i < DOT_EXTENSION; i++) color_code[i] = NULL;
+
   colors = scopy(s);
 
   arg = split(colors,":",&n);
 
   for(i=0;arg[i];i++) {
     c = split(arg[i],"=",&n);
-    switch(cmd(c[0])) {
-      case COL_RESET:
-	if (c[1]) reset_flgs = scopy(c[1]);
-	break;
-      case COL_NORMAL:
-	if (c[1]) norm_flgs = scopy(c[1]);
-	break;
-      case COL_FILE:
-	if (c[1]) file_flgs = scopy(c[1]);
-	break;
-      case COL_DIR:
-	if (c[1]) dir_flgs = scopy(c[1]);
-	break;
-      case COL_LINK:
-	if (c[1]) {
-	  if (strcasecmp("target",c[1]) == 0) {
-	    linktargetcolor = TRUE;
-	    link_flgs = "01;36"; /* Should never actually be used */
-	  } else link_flgs = scopy(c[1]);
-	}
-	break;
-      case COL_FIFO:
-	if (c[1]) fifo_flgs = scopy(c[1]);
-	break;
-      case COL_DOOR:
-	if (c[1]) door_flgs = scopy(c[1]);
-	break;
-      case COL_BLK:
-	if (c[1]) block_flgs = scopy(c[1]);
-	break;
-      case COL_CHR:
-	if (c[1]) char_flgs = scopy(c[1]);
-	break;
-      case COL_ORPHAN:
-	if (c[1]) orphan_flgs = scopy(c[1]);
-	break;
-      case COL_SOCK:
-	if (c[1]) sock_flgs = scopy(c[1]);
-	break;
-      case COL_SETUID:
-	if (c[1]) suid_flgs = scopy(c[1]);
-	break;
-      case COL_SETGID:
-	if (c[1]) sgid_flgs = scopy(c[1]);
-	break;
-      case COL_STICKY_OTHER_WRITABLE:
-	if (c[1]) stickyow_flgs = scopy(c[1]);
-	break;
-      case COL_OTHER_WRITABLE:
-	if (c[1]) otherwr_flgs = scopy(c[1]);
-	break;
-      case COL_STICKY:
-	if (c[1]) sticky_flgs = scopy(c[1]);
-	break;
-      case COL_EXEC:
-	if (c[1]) exec_flgs = scopy(c[1]);
-	break;
-      case COL_MISSING:
-	if (c[1]) missing_flgs = scopy(c[1]);
-	break;
-      case COL_LEFTCODE:
-	if (c[1]) leftcode = scopy(c[1]);
-	break;
-      case COL_RIGHTCODE:
-	if (c[1]) rightcode = scopy(c[1]);
-	break;
-      case COL_ENDCODE:
-	if (c[1]) endcode = scopy(c[1]);
+
+    switch(col = cmd(c[0])) {
+      case ERROR:
 	break;
       case DOT_EXTENSION:
 	if (c[1]) {
@@ -188,24 +120,35 @@ void parse_dir_colors()
 	  e->nxt = ext;
 	  ext = e;
 	}
+	break;
+      case COL_LINK:
+	if (c[1] && strcasecmp("target",c[1]) == 0) {
+	  linktargetcolor = TRUE;
+	  color_code[COL_LINK] = "01;36"; /* Should never actually be used */
+	  break;
+	}
+      default:
+	if (c[1]) color_code[col] = scopy(c[1]);
+	break;
     }
+
     free(c);
   }
   free(arg);
 
-  /* make sure at least reset_flgs (not norm_flgs) is defined.  We're going to assume ANSI/vt100 support */
-  if (!leftcode) leftcode = scopy("\033[");
-  if (!rightcode) rightcode = scopy("m");
-  if (!reset_flgs) reset_flgs = scopy("0");
-
-  if (!endcode) {
-    sprintf(buf,"%s%s%s",leftcode,reset_flgs,rightcode);
-    endcode = scopy(buf);
+  /**
+   * Make sure at least reset (not normal) is defined.  We're going to assume
+   * ANSI/vt100 support:
+   */
+  if (!color_code[COL_LEFTCODE]) color_code[COL_LEFTCODE] = scopy("\033[");
+  if (!color_code[COL_RIGHTCODE]) color_code[COL_RIGHTCODE] = scopy("m");
+  if (!color_code[COL_RESET]) color_code[COL_RESET] = scopy("0");
+  if (!color_code[COL_ENDCODE]) {
+    sprintf(buf,"%s%s%s",color_code[COL_LEFTCODE],color_code[COL_RESET],color_code[COL_RIGHTCODE]);
+    color_code[COL_ENDCODE] = scopy(buf);
   }
 
   free(colors);
-
-  /*  if (!termmatch) colorize = FALSE; */
 }
 
 /*
@@ -216,14 +159,14 @@ char **split(char *str, char *delim, int *nwrds)
 {
   int n = 128;
   char **w = xmalloc(sizeof(char *) * n);
-  
+
   w[*nwrds = 0] = strtok(str,delim);
-  
+
   while (w[*nwrds]) {
     if (*nwrds == (n-2)) w = xrealloc(w,sizeof(char *) * (n+=256));
     w[++(*nwrds)] = strtok(NULL,delim);
   }
-  
+
   w[*nwrds] = NULL;
   return w;
 }
@@ -243,12 +186,28 @@ int cmd(char *s)
     {"ec", COL_ENDCODE}, {NULL, 0}
   };
   int i;
-  
+
   if (s[0] == '*') return DOT_EXTENSION;
   for(i=0;cmds[i].cmdnum;i++) {
     if (!strcmp(cmds[i].cmd,s)) return cmds[i].cmdnum;
   }
   return ERROR;
+}
+
+int print_color(int color)
+{
+  if (!color_code[color]) return FALSE;
+
+  fputs(color_code[COL_LEFTCODE],outfile);
+  fputs(color_code[color],outfile);
+  fputs(color_code[COL_RIGHTCODE],outfile);
+  return TRUE;
+}
+
+void endcolor(void)
+{
+  if (color_code[COL_ENDCODE])
+    fputs(color_code[COL_ENDCODE],outfile);
 }
 
 int color(u_short mode, char *name, bool orphan, bool islink)
@@ -258,93 +217,63 @@ int color(u_short mode, char *name, bool orphan, bool islink)
 
   if (orphan) {
     if (islink) {
-      if (missing_flgs) {
-	fprintf(outfile,"%s%s%s",leftcode,missing_flgs,rightcode);
-	return TRUE;
-      }
+      if (print_color(COL_MISSING)) return TRUE;
     } else {
-      if (orphan_flgs) {
-	fprintf(outfile,"%s%s%s",leftcode,orphan_flgs,rightcode);
-	return TRUE;
-      }
+      if (print_color(COL_ORPHAN)) return TRUE;
     }
   }
+
+  // It's probably safe to assume short-circuit evaluation, but we'll do it this way:
   switch(mode & S_IFMT) {
     case S_IFIFO:
-      if (!fifo_flgs) return FALSE;
-      fprintf(outfile,"%s%s%s",leftcode,fifo_flgs,rightcode);
-      return TRUE;
+      return print_color(COL_FIFO);
     case S_IFCHR:
-      if (!char_flgs) return FALSE;
-      fprintf(outfile,"%s%s%s",leftcode,char_flgs,rightcode);
-      return TRUE;
+      return print_color(COL_CHR);
     case S_IFDIR:
       if (mode & S_ISVTX) {
-	if ((mode & S_IWOTH) && stickyow_flgs) {
- 	  fprintf(outfile, "%s%s%s",leftcode,stickyow_flgs,rightcode);
-	  return TRUE;
-	}
-	if (!(mode & S_IWOTH) && sticky_flgs) {
-	  fprintf(outfile, "%s%s%s",leftcode,sticky_flgs,rightcode);
-	  return TRUE;
-	}
+	if ((mode & S_IWOTH))
+	  if (print_color(COL_STICKY_OTHER_WRITABLE)) return TRUE;
+	if (!(mode & S_IWOTH))
+	  if (print_color(COL_STICKY)) return TRUE;
       }
-      if ((mode & S_IWOTH) && otherwr_flgs) {
-	fprintf(outfile,"%s%s%s",leftcode,otherwr_flgs,rightcode);
-	return TRUE;
-      }
-      if (!dir_flgs) return FALSE;
-      fprintf(outfile,"%s%s%s",leftcode,dir_flgs,rightcode);
-      return TRUE;
+      if ((mode & S_IWOTH))
+	if (print_color(COL_OTHER_WRITABLE)) return TRUE;
+      return print_color(COL_DIR);
 #ifndef __EMX__
     case S_IFBLK:
-      if (!block_flgs) return FALSE;
-      fprintf(outfile,"%s%s%s",leftcode,block_flgs,rightcode);
-      return TRUE;
+      return print_color(COL_BLK);
     case S_IFLNK:
-      if (!link_flgs) return FALSE;
-      fprintf(outfile,"%s%s%s",leftcode,link_flgs,rightcode);
-      return TRUE;
+      return print_color(COL_LINK);
   #ifdef S_IFDOOR
     case S_IFDOOR:
-      if (!door_flgs) return FALSE;
-      fprintf(outfile,"%s%s%s",leftcode,door_flgs,rightcode);
-      return TRUE;
+      return print_color(COL_DOOR);
   #endif
 #endif
     case S_IFSOCK:
-      if (!sock_flgs) return FALSE;
-      fprintf(outfile,"%s%s%s",leftcode,sock_flgs,rightcode);
-      return TRUE;
+      return print_color(COL_SOCK);
     case S_IFREG:
-      if ((mode & S_ISUID) && suid_flgs) {
-	fprintf(outfile,"%s%s%s",leftcode,suid_flgs,rightcode);
-	return TRUE;
-      }
-      if ((mode & S_ISGID) && sgid_flgs) {
-	fprintf(outfile,"%s%s%s",leftcode,sgid_flgs,rightcode);
-	return TRUE;
-      }
-      if (!exec_flgs) return FALSE;
-      if (mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
-	fprintf(outfile,"%s%s%s",leftcode,exec_flgs,rightcode);
-	return TRUE;
-      }
+      if ((mode & S_ISUID))
+	if (print_color(COL_SETUID)) return TRUE;
+      if ((mode & S_ISGID))
+	if (print_color(COL_SETGID)) return TRUE;
+      if (mode & (S_IXUSR | S_IXGRP | S_IXOTH))
+	if (print_color(COL_EXEC)) return TRUE;
+
       /* not a directory, link, special device, etc, so check for extension match */
       l = strlen(name);
       for(e=ext;e;e=e->nxt) {
 	xl = strlen(e->ext);
 	if (!strcmp((l>xl)?name+(l-xl):name,e->ext)) {
-	  fprintf(outfile,"%s%s%s",leftcode,e->term_flg,rightcode);
+	  fputs(color_code[COL_LEFTCODE], outfile);
+	  fputs(e->term_flg, outfile);
+	  fputs(color_code[COL_RIGHTCODE], outfile);
 	  return TRUE;
 	}
       }
-      if (!norm_flgs) return FALSE;
       /* colorize just normal files too */
-      fprintf(outfile, "%s%s%s",leftcode,norm_flgs,rightcode);
-      return TRUE;
+      return print_color(COL_FILE);
   }
-  return FALSE;
+  return print_color(COL_NORMAL);
 }
 
 /*

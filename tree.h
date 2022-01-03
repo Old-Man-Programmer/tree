@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2021 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
  * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
@@ -190,8 +190,8 @@ struct infofile {
 void setoutput(char *filename);
 void usage(int);
 void push_files(char *dir, struct ignorefile **ig, struct infofile **inf);
-int patignore(char *name);
-int patinclude(char *name);
+int patignore(char *name, int isdir);
+int patinclude(char *name, int isdir);
 struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 struct _info **read_dir(char *dir, int *n, int infotop);
 
@@ -207,7 +207,7 @@ int fsizesort(struct _info **a, struct _info **b);
 
 void *xmalloc(size_t), *xrealloc(void *, size_t);
 char *gnu_getcwd();
-int patmatch(char *, char *);
+int patmatch(char *, char *, int);
 void indent(int maxlevel);
 void free_dir(struct _info **);
 #ifdef __EMX__
@@ -272,6 +272,7 @@ void json_report(struct totals tot);
 /* color.c */
 void parse_dir_colors();
 int color(u_short mode, char *name, bool orphan, bool islink);
+void endcolor(void);
 const char *getcharset(void);
 void initlinedraw(int);
 
@@ -287,7 +288,7 @@ struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 /* filter.c */
 void gittrim(char *s);
 struct pattern *new_pattern(char *pattern);
-int filtercheck(char *path, char *name);
+int filtercheck(char *path, char *name, int isdir);
 struct ignorefile *new_ignorefile(char *path);
 void push_filterstack(struct ignorefile *ig);
 struct ignorefile *pop_filterstack(void);
@@ -296,7 +297,7 @@ struct ignorefile *pop_filterstack(void);
 struct infofile *new_infofile(char *path);
 void push_infostack(struct infofile *inf);
 struct infofile *pop_infostack(void);
-struct comment *infocheck(char *path, char *name, int top);
+struct comment *infocheck(char *path, char *name, int top, int isdir);
 void printcomment(int line, int lines, char *s);
 
 /* list.c */
