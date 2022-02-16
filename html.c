@@ -32,6 +32,8 @@ extern bool colorize, linktargetcolor;
 extern char *endcode;
 extern const struct linedraw *linedraw;
 
+int htmldirlen = 0;
+
 char *class(struct _info *info)
 {
   return
@@ -122,7 +124,7 @@ void html_intro(void)
 	" </style>\n"
 	"</head>\n"
 	"<body>\n"
-	"\t<h1>%s</h1><p>\n\t",charset ? charset : "iso-8859-1", version, title, title);
+	"\t<h1>%s</h1><p>\n",charset ? charset : "iso-8859-1", version, title, title);
 }
 
 void html_outtro(void)
@@ -184,15 +186,22 @@ int html_printfile(char *dirname, char *filename, struct _info *file, int descen
 
     if (!nolinks) {
       fprintf(outfile," href=\"%s",host);
-      if (dirname != NULL) url_encode(outfile, dirname+1);
-      putc('/',outfile);
-      url_encode(outfile, filename);
-      fprintf(outfile,"%s%s\"",(descend? "/00Tree.html" : ""), (file->isdir?"/":""));
+      if (dirname != NULL) {
+	int len = strlen(dirname);
+	int off = (len >= htmldirlen? htmldirlen : 0);
+	url_encode(outfile, dirname + off);
+	putc('/',outfile);
+	url_encode(outfile, filename);
+	fprintf(outfile,"%s%s\"",(descend > 1? "/00Tree.html" : ""), (file->isdir?"/":""));
+      } else {
+	fprintf(outfile,"%s\"",(descend > 1? "/00Tree.html" : ""));
+      }
     }
   }
   fprintf(outfile, ">");
-  
-  html_encode(outfile,filename);
+
+  if (dirname) html_encode(outfile,filename);
+  else html_encode(outfile, host);
 
   fprintf(outfile,"</a>");
   return 0;

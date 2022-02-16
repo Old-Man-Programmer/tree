@@ -210,7 +210,7 @@ Kirill Kolyshkin
 Alyssa Ross
   - Suggested adding support for BSD's CLICOLOR and CLICOLOR_FORCE environment
     variables.
-    
+
 Tomáš Beránek
   - Make sure we always use xmalloc / xrealloc
 
@@ -248,9 +248,17 @@ Eric Pruitt
 Michiel Beijen (and others)
   - Suggest Support multiple -I and -P instances.
   - Suggest that / match directories in patterns (also Taylor Faubion)
+  - Suggested to update MANPATH for OS X
 
 Michal Vasilek
   - Various Makefile fixes
+
+Josey Smith
+  - Reported an error with * in the patchmatch code where *foo*bar would match
+    *foo alone.
+
+Maxim Cournoyer
+ - Reported HTML url output issue w/ 2.0.0-2.0.1
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

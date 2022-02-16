@@ -71,6 +71,7 @@
 
 #ifdef __linux__
 #include <fcntl.h>
+# define ENV_STDDATA_FD  "STDDATA_FD"
 # ifndef STDDATA_FILENO
 #  define STDDATA_FILENO 3
 # endif

@@ -187,6 +187,8 @@ int cmd(char *s)
   };
   int i;
 
+  if (s == NULL) return ERROR;  // Probably can't happen
+
   if (s[0] == '*') return DOT_EXTENSION;
   for(i=0;cmds[i].cmdnum;i++) {
     if (!strcmp(cmds[i].cmd,s)) return cmds[i].cmdnum;

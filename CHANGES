@@ -1,3 +1,16 @@
+Version 2.0.2 (02/16/2022)
+  - Okay, apparently the stddata addition is causing havoc (who knew how many
+    scripts just haphazardly hand programs random file descriptors, that's
+    surely not a problem.)  Going forward the stddata option will only work
+    if the environment variable STDDATA_FD is present or set to the descriptor
+    to produce the JSON output on.
+  - Fix HTML url output issue. (Maxim Cournoyer)  It was definitely broken in
+    the 2.0.0 release, and this should normalize it with respect to older
+    versions, however I think it needs to be updated to work better.
+  - Update MANPATH for OS X (Michiel Beijen)
+  - Fixed an error with * in the patchmatch code where *foo*bar would match
+    *foo alone. (Josey Smith)
+
 Version 2.0.1 (01/03/2022)
   - Simplify Makefile and the following changes: prefix -> PREFIX,
     BINDIR -> DESTDIR, -O4 -> -O3, mode 644 for man page installation

@@ -19,8 +19,8 @@
 
 #include "tree.h"
 
-char *version ="$Version: $ tree v2.0.1 (c) 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion="\t\t tree v2.0.1 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
+char *version ="$Version: $ tree v2.0.2 (c) 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion="\t\t tree v2.0.2 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		      "\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -135,14 +135,19 @@ int main(int argc, char **argv)
 
 #ifdef __linux__
   // Output JSON automatically to "stddata" if present:
-  if (fcntl(STDDATA_FILENO, F_GETFD) >= 0) {
-    Jflag = noindent = TRUE;
-    _nl = "";
-    lc = (struct listingcalls){
-      json_intro, json_outtro, json_printinfo, json_printfile, json_error, json_newline,
-      json_close, json_report
-    };
-    outfile = fdopen(STDDATA_FILENO, "w");
+  char *stddata_fd = getenv(ENV_STDDATA_FD);
+  if (stddata_fd != NULL) {
+    int std_fd = atoi(stddata_fd);
+    if (std_fd <= 0) std_fd = STDDATA_FILENO;
+    if (fcntl(std_fd, F_GETFD) >= 0) {
+      Jflag = noindent = TRUE;
+      _nl = "";
+      lc = (struct listingcalls){
+	json_intro, json_outtro, json_printinfo, json_printfile, json_error, json_newline,
+	json_close, json_report
+      };
+      outfile = fdopen(std_fd, "w");
+    }
   }
 #endif
 
@@ -670,8 +675,13 @@ int patignore(char *name, int isdir)
  */
 int patinclude(char *name, int isdir)
 {
+//  printf("%s ", name);
   for(int i=0; i < pattern; i++)
-    if (patmatch(name, patterns[i], isdir)) return 1;
+    if (patmatch(name, patterns[i], isdir)) {
+//      printf("included\n");
+      return 1;
+    }
+//  printf("failed include\n");
   return 0;
 }
 
@@ -1095,7 +1105,6 @@ int patmatch(char *buf, char *pat, int isdir)
   char pprev = 0;
 
   /* If a bar is found, call patmatch recursively on the two sub-patterns */
-
   if (bar) {
     /* If the bar is the first or last character, it's a syntax error */
     if (bar == pat || !bar[1]) {
@@ -1143,6 +1152,7 @@ int patmatch(char *buf, char *pat, int isdir)
     case '*':
       pat++;
       if(!*pat) return 1;
+      match = 0;
       /* "Support" ** for .gitignore support, mostly the same as *: */
       if (*pat == '*') {
 	pat++;
@@ -1156,8 +1166,9 @@ int patmatch(char *buf, char *pat, int isdir)
 	}
       } else {
 	while(*buf && !(match = patmatch(buf++, pat, isdir)));
-	if (!*buf && !match) match = patmatch(buf, pat, isdir);
+//	if (!*buf && !match) match = patmatch(buf, pat, isdir);
       }
+      if (!*buf && !match) match = patmatch(buf, pat, isdir);
       return match;
     case '?':
       if(!*buf) return 0;

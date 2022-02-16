@@ -19,13 +19,14 @@
 #include "tree.h"
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-extern bool Dflag, inodeflag, devflag, Rflag, duflag, pruneflag, metafirst;
+extern bool Dflag, Hflag, inodeflag, devflag, Rflag, duflag, pruneflag, metafirst;
 extern bool hflag, siflag, noreport, noindent, force_color, xdev, nolinks, flimit;
 
 extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern int (*topsort)();
 extern FILE *outfile;
 extern int Level, *dirs, maxdirs, errors;
+extern int htmldirlen;
 
 extern bool colorize, linktargetcolor;
 extern char *endcode;
@@ -74,6 +75,7 @@ void emit_tree(char **dirname, bool needfulltree)
 	if (j > 1 && dirname[i][j-1] == '/') dirname[i][--j] = 0;
       } while (j > 1 && dirname[i][j-1] == '/');
     }
+    if (Hflag) htmldirlen = strlen(dirname[i]);
 
     if ((n = lstat(dirname[i],&st)) >= 0) {
       saveino(st.st_ino, st.st_dev);
@@ -192,7 +194,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 
 	    memcpy(dirs, dirsave, sizeof(int) * (lev+1));
 	    free(dirsave);
-	    htmldescend = 1;
+	    htmldescend = 10;
 	  } else htmldescend = 0;
 	  descend = 0;
 	}
@@ -219,7 +221,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
       }
     } else tot.files++;
 
-    needsclosed = lc.printfile(dirname, filename, *dir, descend | htmldescend);
+    needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend);
     if (err) lc.error(err);
 
     if (descend) {

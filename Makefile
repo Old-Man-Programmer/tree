@@ -21,10 +21,11 @@ PREFIX=/usr/local
 CC=gcc
 INSTALL=install
 
-VERSION=2.0.1
+VERSION=2.0.2
 TREE_DEST=tree
 DESTDIR=${PREFIX}/bin
 MAN=tree.1
+# Probably needs to be ${PREFIX}/share/man for most systems now
 MANDIR=${PREFIX}/man
 OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o html.o strverscmp.o
 
@@ -62,7 +63,7 @@ LDFLAGS=-s
 #CC=cc
 #CFLAGS=-O2 -Wall -fomit-frame-pointer -no-cpp-precomp
 #LDFLAGS=
-#MANDIR=/usr/share/man
+#MANDIR=${PREFIX}/share/man
 
 # Uncomment for HP/UX:
 #prefix=/opt
@@ -70,7 +71,7 @@ LDFLAGS=-s
 # manpage of mbsrtowcs() requires C99 and the two defines
 #CFLAGS=+w -D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112 -AC99
 #LDFLAGS=
-#MANDIR=${prefix}/share/man
+#MANDIR=${PREFIX}/share/man
 
 # Uncomment for OS/2:
 #CFLAGS=-02 -Wall -fomit-frame-pointer -Zomf -Zsmall-conv

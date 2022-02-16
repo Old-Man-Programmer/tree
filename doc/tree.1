@@ -422,6 +422,8 @@ share the same comment.
 \fBLC_TIME\fP		Locale for timefmt output, see \fBstrftime\fP(3).
 .br
 \fBTZ\fP			Timezone for timefmt output, see \fBstrftime\fP(3).
+.br
+\fBSTDDATA_FD\fP	Enable the stddata feature, optionally set descriptor to use.
 
 .SH AUTHOR
 Steve Baker (ice@mama.indstate.edu)
@@ -453,9 +455,11 @@ XML/JSON trees are not colored, which is a bit of a shame.
 Probably more.
 
 As of version 2.0.0, in Linux, tree will attempt to automatically output a
-compact JSON tree on file descriptor 3 (what I call stddata,) if present.  It
-is hoped that some day a better Linux/Unix shell may take advantage of this
-feature, though BSON would probably be a better format for this.
+compact JSON tree on file descriptor 3 (what I call stddata,) if present and the
+environment variable STDDATA_FD is defined or set to a positive non-zero file
+descriptor value to use to output on.  It is hoped that some day a better
+Linux/Unix shell may take advantage of this feature, though BSON would probably
+be a better format for this.
 
 .SH SEE ALSO
 .BR dircolors (1),
