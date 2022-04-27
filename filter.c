@@ -66,6 +66,30 @@ struct ignorefile *new_ignorefile(char *path)
     rev = (buf[0] == '!');
     gittrim(buf);
     if (strlen(buf) == 0) continue;
+
+    /* check for separators at the beginning or in the middle of the string */
+    int i, anywhere=1;
+    for (i=0; i<strlen(buf)-1; i++) {
+      if (buf[i] == '/') {
+	anywhere=0;
+	break;
+      }
+    }
+    /* the absence of such separators means that the pattern can match anywhere inside the directory */
+    if (anywhere) {
+      char tmp[PATH_MAX];
+      strcpy(tmp, "**/");
+      strcat(tmp, buf);
+      strcpy(buf, tmp);
+    } else {
+      /* any separator at the beginning can be ignored */
+      if (buf[0] == '/') {
+	char tmp[PATH_MAX];
+	strcpy(tmp, buf+1);
+	strcpy(buf, tmp);
+      }
+    }
+
     p = new_pattern(buf + (rev? 1 : 0));
     if (rev) {
       if (reverse == NULL) reverse = revend = p;
