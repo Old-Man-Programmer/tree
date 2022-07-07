@@ -613,7 +613,7 @@ void usage(int n)
 	"  --info        Print information about files found in .info files.\n"
 	"  --noreport    Turn off file/directory count at end of tree listing.\n"
 	"  --charset X   Use charset X for terminal/HTML and indentation line output.\n"
-	"  --filelimit # Do not descend dirs with more than # files in them.\n"
+	"  --filelimit # Do not descend dirs with more than # files/folders in them.\n"
 	"  -o filename   Output to file instead of stdout.\n"
 	"  ------- File options -------\n"
 	"  -q            Print non-printable characters as '?'.\n"
