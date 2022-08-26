@@ -9,7 +9,13 @@ handy to peruse a directory tree though, especially when someone is trying to
 hide something from you.
 
   The main distribution site for tree is here:
+  http://oldmanprogrammer.net/code.php?src=tree
 
+  Backup GIT sites are:
+  https://gitlab.com/OldManProgrammer/unix-tree
+  https://github.com/Old-Man-Programmer/tree
+
+  Old site for as long as it lasts:
   http://mama.indstate.edu/users/ice/tree/
   ftp://mama.indstate.edu/linux/tree/
 
@@ -260,8 +266,21 @@ Josey Smith
 Maxim Cournoyer
  - Reported HTML url output issue w/ 2.0.0-2.0.1
 
+Kenta Arai
+ - Reported Segfault with --filelimit option
+
+Ben Brown
+ - Updates to the Makefile
+ - Reported use after free error
+
+Erik Skultety
+ - Reported same use after error
+
+Saniya Maheshwari / Mig-hub ? / Carlos Pinto
+ - Reported various issues with --gitignore
+
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
 
-						- Steve Baker
-						  ice@mama.indstate.edu
+					- Steve Baker
+					  oldmanprogrammer.llc@gmail.com

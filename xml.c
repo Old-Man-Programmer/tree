@@ -1,6 +1,5 @@
 /* $Copyright: $
  * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
- * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +19,7 @@
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 extern bool Dflag, inodeflag, devflag, Rflag, cflag, duflag, siflag;
-extern bool noindent, force_color, xdev, nolinks, flimit, noreport;
+extern bool noindent, force_color, xdev, nolinks, noreport;
 extern const char *charset;
 
 extern const int ifmt[];
@@ -117,6 +116,16 @@ int xml_printinfo(char *dirname, struct _info *file, int level)
 
 int xml_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
+  int t, mt;
+
+  if (file) {
+    if (file->lnk) mt = file->mode & S_IFMT;
+    else mt = file->mode & S_IFMT;
+  } else mt = 0;
+  for(t=0;ifmt[t];t++)
+    if (ifmt[t] == mt) break;
+  fprintf(outfile,"<%s", ftype[t]);
+
   fprintf(outfile, " name=\"");
   html_encode(outfile, filename);
   fputc('"',outfile);
@@ -156,7 +165,7 @@ void xml_newline(struct _info *file, int level, int postdir, int needcomma)
 void xml_close(struct _info *file, int level, int needcomma)
 {
   if (!noindent && level >= 0) xml_indent(level-1);
-  fprintf(outfile,"</%s>%s", file->tag, noindent? "" : "\n");
+  fprintf(outfile,"</%s>%s", file? file->tag : "unknown", noindent? "" : "\n");
 }
 
 

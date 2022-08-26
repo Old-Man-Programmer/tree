@@ -1,6 +1,5 @@
 /* $Copyright: $
  * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
- * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +19,7 @@
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 extern bool Dflag, inodeflag, devflag, Rflag, cflag, hflag, siflag, duflag;
-extern bool noindent, force_color, xdev, nolinks, flimit, noreport;
+extern bool noindent, force_color, xdev, nolinks, noreport;
 
 extern const int ifmt[];
 extern const char fmt[], *ftype[];
@@ -133,7 +132,7 @@ int json_printinfo(char *dirname, struct _info *file, int level)
 
 int json_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
-  fprintf(outfile, ",\"name\":\"");
+  fprintf(outfile, "\"name\":\"");
   json_encode(outfile, filename);
   fputc('"',outfile);
 
@@ -153,6 +152,7 @@ int json_printfile(char *dirname, char *filename, struct _info *file, int descen
   }
   if (file) json_fillinfo(file);
 
+  if (file && file->err) fprintf(outfile, ",\"error\": \"%s\"", file->err);
   if (!descend) fputc('}',outfile);
   else fprintf(outfile, ",\"contents\":[");
 

@@ -1,6 +1,5 @@
 /* $Copyright: $
  * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
- * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +18,7 @@
 #include "tree.h"
 
 extern bool dflag, Fflag, aflag, fflag, pruneflag;
-extern bool noindent, force_color, flimit, matchdirs;
+extern bool noindent, force_color, matchdirs;
 extern bool reverse;
 extern int pattern, ipattern;
 

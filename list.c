@@ -1,6 +1,5 @@
 /* $Copyright: $
  * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
- * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,12 +19,12 @@
 
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 extern bool Dflag, Hflag, inodeflag, devflag, Rflag, duflag, pruneflag, metafirst;
-extern bool hflag, siflag, noreport, noindent, force_color, xdev, nolinks, flimit;
+extern bool Jflag, hflag, siflag, noreport, noindent, force_color, xdev, nolinks;
 
 extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern int (*topsort)();
 extern FILE *outfile;
-extern int Level, *dirs, maxdirs, errors;
+extern int flimit, Level, *dirs, maxdirs, errors;
 extern int htmldirlen;
 
 extern bool colorize, linktargetcolor;
@@ -93,7 +92,7 @@ void emit_tree(char **dirname, bool needfulltree)
       lc.printinfo(dirname[i], info, 0);
     } else info = NULL;
 
-    needsclosed = lc.printfile(NULL, dirname[i], info, dir != NULL);
+    needsclosed = lc.printfile(NULL, dirname[i], info, (dir != NULL) || (!dir && n));
 
     if (!dir && n) {
       lc.error("error opening dir");
@@ -107,9 +106,12 @@ void emit_tree(char **dirname, bool needfulltree)
     } else {
       lc.newline(info, 0, 0, 0);
       if (dir) {
-	tot = listdir(dirname[i], dir, 1, 0, needfulltree);
-	free_dir(dir);
+	tot = listdir(dirname[i], dir, 1, st.st_dev, needfulltree);
       } else tot = (struct totals){0, 0};
+    }
+    if (dir) {
+      free_dir(dir);
+      dir = NULL;
     }
     if (needsclosed) lc.close(info, 0, dirname[i+1] != NULL);
 
@@ -130,7 +132,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
   struct totals tot = {0}, subtotal;
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
-  struct _info **subdir;
+  struct _info **subdir = NULL;
   int descend, htmldescend = 0, found, n, dirlen = strlen(dirname), pathlen = dirlen + 257;
   int needsclosed;
   char *path, *newpath, *filename, *err = NULL;
@@ -221,7 +223,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
       }
     } else tot.files++;
 
-    needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend);
+    needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (Jflag && errors));
     if (err) lc.error(err);
 
     if (descend) {
@@ -231,9 +233,12 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
       tot.dirs += subtotal.dirs;
       tot.files += subtotal.files;
       tot.size += subtotal.size;
-      free_dir(subdir);
     } else if (!needsclosed) lc.newline(*dir, lev, 0, *(dir+1)!=NULL);
 
+    if (subdir) {
+      free_dir(subdir);
+      subdir = NULL;
+    }
     if (needsclosed) lc.close(*dir, descend? lev : -1, *(dir+1)!=NULL);
 
     if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;

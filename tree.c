@@ -1,6 +1,5 @@
 /* $Copyright: $
  * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
- * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,8 +18,8 @@
 
 #include "tree.h"
 
-char *version ="$Version: $ tree v2.0.2 (c) 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion="\t\t tree v2.0.2 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
+char *version ="$Version: $ tree v2.0.3 (c) 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion="\t\t tree v2.0.3 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		      "\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -29,9 +28,10 @@ char *hversion="\t\t tree v2.0.2 %s 1996 - 2022 by Steve Baker and Thomas Moore 
 bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
 bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag;
-bool noindent, force_color, nocolor, xdev, noreport, nolinks, flimit;
+bool noindent, force_color, nocolor, xdev, noreport, nolinks;
 bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
 bool reverse;
+int flimit;
 
 struct listingcalls lc;
 
@@ -610,6 +610,7 @@ void usage(int n)
 	"  --ignore-case Ignore case when pattern matching.\n"
 	"  --matchdirs   Include directory names in -P pattern matching.\n"
 	"  --metafirst   Print meta-data at the beginning of each line.\n"
+	"  --prune       Prune empty directories from the output.\n"
 	"  --info        Print information about files found in .info files.\n"
 	"  --noreport    Turn off file/directory count at end of tree listing.\n"
 	"  --charset X   Use charset X for terminal/HTML and indentation line output.\n"
@@ -625,6 +626,7 @@ void usage(int n)
 	"  -s            Print the size in bytes of each file.\n"
 	"  -h            Print the size in a more human readable way.\n"
 	"  --si          Like -h, but use in SI units (powers of 1000).\n"
+	"  --du          Compute size of directories by their contents.\n"
 	"  -D            Print the date of last modification or (-c) status change.\n"
 	"  --timefmt <f> Print and format time according to the format <f>.\n"
 	"  -F            Appends '/', '=', '*', '@', '|' or '>' as per ls -F.\n"
@@ -1061,7 +1063,7 @@ void *xrealloc (void *ptr, size_t size)
 void free_dir(struct _info **d)
 {
   int i;
-  
+
   for(i=0;d[i];i++) {
     free(d[i]->name);
     if (d[i]->lnk) free(d[i]->lnk);
@@ -1121,6 +1123,7 @@ int patmatch(char *buf, char *pat, int isdir)
     return match;
   }
 
+//  printf("> buf[%s], pat[%s]\n", buf, pat);
   while(*pat && match) {
     switch(*pat) {
     case '[':
@@ -1151,7 +1154,11 @@ int patmatch(char *buf, char *pat, int isdir)
       break;
     case '*':
       pat++;
-      if(!*pat) return 1;
+      if(!*pat) {
+	int f = (strchr(buf, '/') == NULL);
+// 	printf("end *: buf = '%s', f = %d\n", buf, f);
+        return f;
+      }
       match = 0;
       /* "Support" ** for .gitignore support, mostly the same as *: */
       if (*pat == '*') {
@@ -1165,10 +1172,13 @@ int patmatch(char *buf, char *pat, int isdir)
 	  while(*buf && *buf != '/') buf++;
 	}
       } else {
-	while(*buf && !(match = patmatch(buf++, pat, isdir)));
+//	printf("* buf[%s], pat[%s]\n", buf, pat);
+	while(*buf && !(match = patmatch(buf++, pat, isdir)))
+	  if (*buf == '/') break;
 //	if (!*buf && !match) match = patmatch(buf, pat, isdir);
       }
-      if (!*buf && !match) match = patmatch(buf, pat, isdir);
+//       printf("*|%d buf[%s], pat[%s]\n", match, buf, pat);
+      if (!match && (!*buf || *buf == '/')) match = patmatch(buf, pat, isdir);
       return match;
     case '?':
       if(!*buf) return 0;

@@ -1,6 +1,5 @@
 /* $Copyright: $
  * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
- * All Rights reserved
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +23,7 @@ static char fpattern[PATH_MAX];
 
 void gittrim(char *s)
 {
-  int i, e = strnlen(s,PATH_MAX)-1;
+  int i, e = strlen(s)-1;
 
   if (s[e] == '\n') e--;
 
@@ -43,7 +42,8 @@ void gittrim(char *s)
 struct pattern *new_pattern(char *pattern)
 {
   struct pattern *p = xmalloc(sizeof(struct pattern));
-  p->pattern = scopy(pattern);
+  p->pattern = scopy(pattern + ((pattern[0] == '/')? 1 : 0));
+  p->relative = (strchr(pattern,'/') == NULL);
   p->next = NULL;
   return p;
 }
@@ -132,17 +132,33 @@ int filtercheck(char *path, char *name, int isdir)
     int fpos = sprintf(fpattern, "%s/", ig->path);
 
     for(p = ig->remove; p != NULL; p = p->next) {
-      if (patmatch(path, p->pattern, isdir) == 1) {
-	filter = 1;
-	break;
+      if (p->relative) {
+	if (patmatch(name, p->pattern, isdir) == 1) {
+// 	  printf("> name: %s, pattern: %s\n", path, p->pattern);
+	  filter = 1;
+	  break;
+	}
+      } else {
+	sprintf(fpattern + fpos, "%s", p->pattern);
+// 	printf("> path: %s, fpattern: %s\n", path, fpattern);
+	if (patmatch(path, fpattern, isdir) == 1) {
+// 	  printf("Matched path: %s, fpattern: %s\n", path, fpattern);
+	  filter = 1;
+	  break;
+	}
       }
-      if (p->pattern[0] == '/') continue;
-      sprintf(fpattern + fpos, "%s", p->pattern);
-      if (patmatch(path, fpattern, isdir) == 1) {
-	filter = 1;
-	break;
-      }
-    }
+
+//       if (patmatch(path, p->pattern, isdir) == 1) {
+// 	filter = 1;
+// 	break;
+//       }
+//       if (p->pattern[0] == '/') continue;
+//       sprintf(fpattern + fpos, "%s", p->pattern);
+//       if (patmatch(path, fpattern, isdir) == 1) {
+// 	filter = 1;
+// 	break;
+//       }
+     }
   }
   if (!filter) return 0;
 
@@ -150,12 +166,19 @@ int filtercheck(char *path, char *name, int isdir)
     int fpos = sprintf(fpattern, "%s/", ig->path);
 
     for(p = ig->reverse; p != NULL; p = p->next) {
-      if (patmatch(path, p->pattern, isdir) == 1) return 0;
+      if (p->relative) {
+	if (patmatch(name, p->pattern, isdir) == 1) return 0;
+      } else {
+	sprintf(fpattern + fpos, "%s", p->pattern);
+	if (patmatch(path, fpattern, isdir) == 1) return 0;
+      }
 
-      if (p->pattern[0] == '/') continue;
-      sprintf(fpattern + fpos, "%s", p->pattern);
-
-      if (patmatch(path, fpattern, isdir) == 1) return 0;
+//       if (patmatch(path, p->pattern, isdir) == 1) return 0;
+//
+//       if (p->pattern[0] == '/') continue;
+//       sprintf(fpattern + fpos, "%s", p->pattern);
+//
+//       if (patmatch(path, fpattern, isdir) == 1) return 0;
     }
   }
 

@@ -1,3 +1,29 @@
+Version 2.0.3 (08/26/2022)
+  - Fix segfault when filelimit is used and tree encounters a directory it
+    cannot enter. (Kenta Arai)
+  - Use += when assigning CFLAGS and LDFLAGS in the Makefile allowing
+    them to be modified by environment variables during make. (Ben Brown)
+    Possibly assumes GNU make.
+  - Fixed broken -x option (stops recursing.) (balping)
+  - Fix use after free (causing segfault) for dir/subdir in list.c (Erik
+    Skultety / Ben Brown)
+  - Fixes for .gitignore functionality (Saniya Maheshwari / Mig-hub ? / Carlos
+    Pinto)
+    - Fixed * handing in patmatch. Worked almost like ** before, now properly
+      stops at /'s.  These issues were the result of forgetting that patmatch()
+      was just to match filenames to patterns, not paths.
+    - Patterns starting with / are actually relative to the .gitignore file,
+      not the root of the filesystem, go figure.
+    - Patterns without /'s in .gitignore apply to any file in any directory
+      under the .gitignore, not just the .gitignore directory
+  - Remove "All rights reserved" from copyright statements.  A left-over from
+    trees original artistic license.
+  - Add in --du and --prune to --help output (Nxueyamao?)
+  - Fixed segfault when an unknown directory is given with -X
+  - Fixed output up for -X and -J options.
+  - Remove one reference to strnlen which isn't necessary since it may not
+    be available on some OS's.
+
 Version 2.0.2 (02/16/2022)
   - Okay, apparently the stddata addition is causing havoc (who knew how many
     scripts just haphazardly hand programs random file descriptors, that's
