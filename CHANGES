@@ -1,3 +1,7 @@
+Version 2.0.4 (09/06/2022)
+  - Brown paper bag release:
+    - Fix missing comma in JSON output. (jogbear?)
+
 Version 2.0.3 (08/26/2022)
   - Fix segfault when filelimit is used and tree encounters a directory it
     cannot enter. (Kenta Arai)

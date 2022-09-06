@@ -132,7 +132,7 @@ int json_printinfo(char *dirname, struct _info *file, int level)
 
 int json_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
-  fprintf(outfile, "\"name\":\"");
+  fprintf(outfile, ",\"name\":\"");
   json_encode(outfile, filename);
   fputc('"',outfile);
 

@@ -18,8 +18,8 @@
 
 #include "tree.h"
 
-char *version ="$Version: $ tree v2.0.3 (c) 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion="\t\t tree v2.0.3 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
+char *version ="$Version: $ tree v2.0.4 (c) 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion="\t\t tree v2.0.4 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
 		      "\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		      "\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		      "\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
