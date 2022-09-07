@@ -161,7 +161,7 @@ int json_printfile(char *dirname, char *filename, struct _info *file, int descen
 
 int json_error(char *error)
 {
-  fprintf(outfile,"{\"error\": \"%s\"}%s",error, noindent?"":"\n");
+  fprintf(outfile,",%s{\"error\": \"%s\"}", noindent?"":"\n", error);
   return 0;
 }
 
