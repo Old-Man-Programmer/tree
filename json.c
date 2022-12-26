@@ -92,7 +92,7 @@ void json_fillinfo(struct _info *ent)
       char nbuf[64];
       int i;
       psize(nbuf,ent->size);
-      for(i=0; isspace(nbuf[i]); i++);	// trim() hack
+      for(i=0; isspace(nbuf[i]); i++);	/* trim() hack */
       fprintf(outfile, ",\"size\":\"%s\"", nbuf+i);
     } else
       fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
@@ -120,8 +120,10 @@ int json_printinfo(char *dirname, struct _info *file, int level)
 
   if (!noindent) json_indent(level);
 
-  if (file->lnk) mt = file->mode & S_IFMT;
-  else mt = file->mode & S_IFMT;
+  if (file != NULL) {
+    if (file->lnk) mt = file->mode & S_IFMT;
+    else mt = file->mode & S_IFMT;
+  } else mt = 0;
 
   for(t=0;ifmt[t];t++)
     if (ifmt[t] == mt) break;
@@ -132,13 +134,15 @@ int json_printinfo(char *dirname, struct _info *file, int level)
 
 int json_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
+  int i;
+
   fprintf(outfile, ",\"name\":\"");
   json_encode(outfile, filename);
   fputc('"',outfile);
 
   if (file && file->comment) {
     fprintf(outfile, ",\"info\":\"");
-    for(int i=0; file->comment[i]; i++) {
+    for(i=0; file->comment[i]; i++) {
       json_encode(outfile, file->comment[i]);
       if (file->comment[i+1]) fprintf(outfile, "\\n");
     }
@@ -174,7 +178,7 @@ void json_newline(struct _info *file, int level, int postdir, int needcomma)
 
 void json_close(struct _info *file, int level, int needcomma)
 {
-  if (!noindent) json_indent(level-1);
+  if (!noindent) json_indent(level);
   fprintf(outfile,"]}%s%s", needcomma? ",":"", noindent? "":"\n");
 }
 

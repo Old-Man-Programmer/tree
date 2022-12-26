@@ -18,11 +18,11 @@
 
 #include "tree.h"
 
-char *version ="$Version: $ tree v2.0.4 (c) 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion="\t\t tree v2.0.4 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
-		      "\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
-		      "\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
-		      "\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
+char *version = "$Version: $ tree v2.1.0 %s 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion= "\t\t tree v2.1.0 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
+		"\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
+		"\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
+		"\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
 
 /* Globals */
 bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
@@ -30,7 +30,7 @@ bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
 bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag;
 bool noindent, force_color, nocolor, xdev, noreport, nolinks;
 bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
-bool reverse;
+bool reverse, fflinks;
 int flimit;
 
 struct listingcalls lc;
@@ -39,12 +39,13 @@ int pattern = 0, maxpattern = 0, ipattern = 0, maxipattern = 0;
 char **patterns = NULL, **ipatterns = NULL;
 
 char *host = NULL, *title = "Directory Tree", *sp = " ", *_nl = "\n";
+char *Hintro = NULL, *Houtro = NULL;
 char *file_comment = "#", *file_pathsep = "/";
 char *timefmt = NULL;
 const char *charset = NULL;
 
 struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err) = unix_getfulltree;
-//off_t (*listdir)(char *, int *, int *, u_long, dev_t) = unix_listdir;
+/* off_t (*listdir)(char *, int *, int *, u_long, dev_t) = unix_listdir; */
 int (*basesort)() = alnumsort;
 int (*topsort)() = NULL;
 
@@ -91,18 +92,47 @@ extern bool colorize, ansilines, linktargetcolor;
 extern char *leftcode, *rightcode, *endcode;
 extern const struct linedraw *linedraw;
 
+/* Time to switch to getopt()? */
+char *long_arg(char *argv[], int i, int *j, int *n, char *prefix) {
+  char *ret = NULL;
+  int len = strlen(prefix);
+
+  if (!strncmp(prefix,argv[i],len)) {
+    *j = len;
+    if (*(argv[i]+(*j)) == '=') {
+      if (*(argv[i]+ (++(*j)))) {
+	ret=(argv[i] + (*j));
+	*j = strlen(argv[i])-1;
+      } else {
+	fprintf(stderr,"tree: Missing argument to %s=\n", prefix);
+	exit(1);
+      }
+    } else if (argv[*n] != NULL) {
+      ret = argv[*n];
+      (*n)++;
+      *j = strlen(argv[i])-1;
+    } else {
+      fprintf(stderr,"tree: Missing argument to %s\n", prefix);
+      exit(1);
+    }
+  }
+  return ret;
+}
 
 int main(int argc, char **argv)
 {
+  struct ignorefile *ig;
+  struct infofile *inf;
   char **dirname = NULL;
-  int i,j=0,k,n,optf,p = 0,q = 0;
-  char *stmp, *outfilename = NULL;;
-  bool needfulltree;
+  int i, j=0, k, n, optf, p = 0, q = 0;
+  char *stmp, *outfilename = NULL, *arg;
+  char *stddata_fd;
+  bool needfulltree, showversion = FALSE;
 
   aflag = dflag = fflag = lflag = pflag = sflag = Fflag = uflag = gflag = FALSE;
   Dflag = qflag = Nflag = Qflag = Rflag = hflag = Hflag = siflag = cflag = FALSE;
   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = FALSE;
-  ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = FALSE;
+  ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = FALSE;
   duflag = pruneflag = metafirst = gitignore = FALSE;
 
   flimit = 0;
@@ -134,8 +164,8 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef __linux__
-  // Output JSON automatically to "stddata" if present:
-  char *stddata_fd = getenv(ENV_STDDATA_FD);
+  /* Output JSON automatically to "stddata" if present: */
+  stddata_fd = getenv(ENV_STDDATA_FD);
   if (stddata_fd != NULL) {
     int std_fd = atoi(stddata_fd);
     if (std_fd <= 0) std_fd = STDDATA_FILENO;
@@ -216,7 +246,7 @@ int main(int argc, char **argv)
 	  break;
 	case 'P':
 	  if (argv[n] == NULL) {
-	    fprintf(stderr,"tree: missing argument to -P option.\n");
+	    fprintf(stderr,"tree: Missing argument to -P option.\n");
 	    exit(1);
 	  }
 	  if (pattern >= maxpattern-1) patterns = xrealloc(patterns, sizeof(char *) * (maxpattern += 10));
@@ -225,7 +255,7 @@ int main(int argc, char **argv)
 	  break;
 	case 'I':
 	  if (argv[n] == NULL) {
-	    fprintf(stderr,"tree: missing argument to -I option.\n");
+	    fprintf(stderr,"tree: Missing argument to -I option.\n");
 	    exit(1);
 	  }
 	  if (ipattern >= maxipattern-1) ipatterns = xrealloc(ipatterns, sizeof(char *) * (maxipattern += 10));
@@ -281,15 +311,18 @@ int main(int argc, char **argv)
 	    html_close, html_report
 	  };
 	  if (argv[n] == NULL) {
-	    fprintf(stderr,"tree: missing argument to -H option.\n");
+	    fprintf(stderr,"tree: Missing argument to -H option.\n");
 	    exit(1);
 	  }
 	  host = argv[n++];
+	  k = strlen(host)-1;
+	  /* Allows a / if that is the only character as the 'host': */
+	  if (k && host[k] == '/') host[k] = '\0';
 	  sp = "&nbsp;";
 	  break;
 	case 'T':
 	  if (argv[n] == NULL) {
-	    fprintf(stderr,"tree: missing argument to -T option.\n");
+	    fprintf(stderr,"tree: Missing argument to -T option.\n");
 	    exit(1);
 	  }
 	  title = argv[n++];
@@ -310,7 +343,7 @@ int main(int argc, char **argv)
 	  break;
 	case 'o':
 	  if (argv[n] == NULL) {
-	    fprintf(stderr,"tree: missing argument to -o option.\n");
+	    fprintf(stderr,"tree: Missing argument to -o option.\n");
 	    exit(1);
 	  }
 	  outfilename = argv[n++];
@@ -321,14 +354,15 @@ int main(int argc, char **argv)
 	      optf = FALSE;
 	      break;
 	    }
+	    /* Long options that don't take parameters should just use strcmp: */
 	    if (!strcmp("--help",argv[i])) {
 	      usage(2);
 	      exit(0);
 	    }
 	    if (!strcmp("--version",argv[i])) {
-	      char *v = version+12;
-	      printf("%.*s\n",(int)strlen(v)-1,v);
-	      exit(0);
+	      j = strlen(argv[i])-1;
+	      showversion = TRUE;
+	      break;
 	    }
 	    if (!strcmp("--inodes",argv[i])) {
 	      j = strlen(argv[i])-1;
@@ -360,156 +394,124 @@ int main(int argc, char **argv)
 	      topsort = filesfirst;
 	      break;
 	    }
-	    if (!strncmp("--filelimit",argv[i],11)) {
-	      j = 11;
-	      if (*(argv[i]+11) == '=') {
-		if (*(argv[i]+12)) {
-		  flimit=atoi(argv[i]+12);
-		  j = strlen(argv[i])-1;
-		  break;
-		} else {
-		  fprintf(stderr,"tree: missing argument to --filelimit=\n");
-		  exit(1);
-		}
-	      }
-	      if (argv[n] != NULL) {
-		flimit = atoi(argv[n++]);
-		j = strlen(argv[i])-1;
-	      } else {
-		fprintf(stderr,"tree: missing argument to --filelimit\n");
-		exit(1);
-	      }
+	    if ((arg = long_arg(argv, i, &j, &n, "--filelimit")) != NULL) {
+	      flimit = atoi(arg);
 	      break;
 	    }
-	    if (!strncmp("--charset",argv[i],9)){
-	      j = 9;
-	      if (*(argv[i]+j) == '=') {
-		if (*(charset = (argv[i]+10))) {
-		  j = strlen(argv[i])-1;
-		  break;
-		} else {
-		  fprintf(stderr,"tree: missing argument to --charset=\n");
-		  exit(1);
-		}
-	      }
-	      if (argv[n] != NULL) {
-		charset = argv[n++];
-		j = strlen(argv[i])-1;
-	      } else {
-		initlinedraw(1);
-		exit(1);
-	      }
+	    if ((arg = long_arg(argv, i, &j, &n, "--charset")) != NULL) {
+	      charset = arg;
 	      break;
 	    }
-	    if (!strncmp("--si", argv[i], 4)) {
+	    if (!strcmp("--si", argv[i])) {
 	      j = strlen(argv[i])-1;
 	      sflag = TRUE;
 	      hflag = TRUE;
 	      siflag = TRUE;
 	      break;
 	    }
-	    if (!strncmp("--du",argv[i],4)) {
+	    if (!strcmp("--du",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      sflag = TRUE;
 	      duflag = TRUE;
 	      break;
 	    }
-	    if (!strncmp("--prune",argv[i],7)) {
+	    if (!strcmp("--prune",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      pruneflag = TRUE;
 	      break;
 	    }
-	    if (!strncmp("--timefmt",argv[i],9)) {
-	      j = 9;
-	      if (*(argv[i]+j) == '=') {
-		if (*(argv[i]+ (++j))) {
-		  timefmt=scopy(argv[i]+j);
-		  j = strlen(argv[i])-1;
-		  break;
-		}else {
-		  fprintf(stderr,"tree: missing argument to --timefmt=\n");
-		  exit(1);
-		}
-	      } else if (argv[n] != NULL) {
-		timefmt = scopy(argv[n]);
-		n++;
-		j = strlen(argv[i])-1;
-	      } else {
-		fprintf(stderr,"tree: missing argument to --timefmt\n");
-		exit(1);
-	      }
+	    if ((arg = long_arg(argv, i, &j, &n, "--timefmt")) != NULL) {
+	      timefmt = scopy(arg);
 	      Dflag = TRUE;
 	      break;
 	    }
-	    if (!strncmp("--ignore-case",argv[i],13)) {
+	    if (!strcmp("--ignore-case",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      ignorecase = TRUE;
 	      break;
 	    }
-	    if (!strncmp("--matchdirs",argv[i],11)) {
+	    if (!strcmp("--matchdirs",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      matchdirs = TRUE;
 	      break;
 	    }
-	    if (!strncmp("--sort",argv[i],6)) {
-	      j = 6;
-	      if (*(argv[i]+j) == '=') {
-		if (*(argv[i]+(++j))) {
-		  stmp = argv[i]+j;
-		  j = strlen(argv[i])-1;
-		} else {
-		  fprintf(stderr,"tree: missing argument to --sort=\n");
-		  exit(1);
-		}
-	      } else if (argv[n] != NULL) {
-		stmp = argv[n++];
-		j = strlen(argv[i])-1;
-	      } else {
-		fprintf(stderr,"tree: missing argument to --sort\n");
-		exit(1);
-	      }
+	    if ((arg = long_arg(argv, i, &j, &n, "--sort")) != NULL) {
 	      basesort = NULL;
 	      for(k=0;sorts[k].name;k++) {
-		if (strcasecmp(sorts[k].name,stmp) == 0) {
+		if (strcasecmp(sorts[k].name,arg) == 0) {
 		  basesort = sorts[k].cmpfunc;
 		  break;
 		}
 	      }
 	      if (basesort == NULL) {
-		fprintf(stderr,"tree: sort type '%s' not valid, should be one of: ", stmp);
+		fprintf(stderr,"tree: Sort type '%s' not valid, should be one of: ", arg);
 		for(k=0; sorts[k].name; k++)
 		  printf("%s%c", sorts[k].name, sorts[k+1].name? ',': '\n');
 		exit(1);
 	      }
 	      break;
 	    }
-	    if (!strncmp("--fromfile",argv[i],10)) {
+	    if (!strcmp("--fromfile",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      fromfile=TRUE;
 	      getfulltree = file_getfulltree;
 	      break;
 	    }
-	    if (!strncmp("--metafirst",argv[i],11)) {
+	    if (!strcmp("--metafirst",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      metafirst=TRUE;
 	      break;
 	    }
-	    if (!strncmp("--gitignore",argv[i],11)) {
+	    if ((arg = long_arg(argv, i, &j, &n, "--gitfile")) != NULL) {
+	      gitignore=TRUE;
+	      ig = new_ignorefile(arg);
+	      if (ig != NULL) push_filterstack(ig);
+	      else {
+		fprintf(stderr,"tree: Could not load gitignore file\n");
+		exit(1);
+	      }
+	      break;
+	    }
+	    if (!strcmp("--gitignore",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      gitignore=TRUE;
 	      break;
-	    }	    
-	    if (!strncmp("--info",argv[i],6)) {
+	    }
+	    if (!strcmp("--info",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      showinfo=TRUE;
 	      break;
-	    }	    
+	    }
+	    if ((arg = long_arg(argv, i, &j, &n, "--infofile")) != NULL) {
+	      showinfo = TRUE;
+	      inf = new_infofile(arg);
+	      if (inf != NULL) push_infostack(inf);
+	      else {
+		fprintf(stderr,"tree: Could not load infofile\n");
+		exit(1);
+	      }
+	      break;
+	    }
+	    if ((arg = long_arg(argv, i, &j, &n, "--hintro")) != NULL) {
+	      Hintro = scopy(arg);
+	      break;
+	    }
+	    if ((arg = long_arg(argv, i, &j, &n, "--houtro")) != NULL) {
+	      Houtro = scopy(arg);
+	      break;
+	    }
+	    if (!strcmp("--fflinks",argv[i])) {
+	      j = strlen(argv[i])-1;
+	      fflinks=TRUE;
+	      break;
+	    }
+
 	    fprintf(stderr,"tree: Invalid argument `%s'.\n",argv[i]);
 	    usage(1);
 	    exit(1);
 	  }
 	default:
-	    printf("here i = %d, n = %d\n", i, n);
+	  /* printf("here i = %d, n = %d\n", i, n); */
 	  fprintf(stderr,"tree: Invalid argument -`%c'.\n",argv[i][j]);
 	  usage(1);
 	  exit(1);
@@ -528,6 +530,11 @@ int main(int argc, char **argv)
 
   parse_dir_colors();
   initlinedraw(0);
+  
+  if (showversion) {
+    print_version(TRUE);
+    exit(0);
+  }
 
   /* Insure sensible defaults and sanity check options: */
   if (dirname == NULL) {
@@ -540,7 +547,7 @@ int main(int argc, char **argv)
   if (dflag) pruneflag = FALSE;  /* You'll just get nothing otherwise. */
   if (Rflag && (Level == -1)) Rflag = FALSE;
 
-  // Not going to implement git configs so no core.excludesFile support.
+  /* Not going to implement git configs so no core.excludesFile support. */
   if (gitignore && (stmp = getenv("GIT_DIR"))) {
     char *path = xmalloc(PATH_MAX);
     snprintf(path, PATH_MAX, "%s/info/exclude", stmp);
@@ -558,6 +565,14 @@ int main(int argc, char **argv)
   if (outfilename != NULL) fclose(outfile);
 
   return errors ? 2 : 0;
+}
+
+void print_version(int nl)
+{
+  char buf[PATH_MAX], *v;
+  v = version+12;
+  sprintf(buf, "%.*s%s", (int)strlen(v)-2, v, nl?"\n":"");
+  fprintf(outfile, buf, linedraw->copy);
 }
 
 void setoutput(char *filename)
@@ -588,11 +603,12 @@ void usage(int n)
   fprintf(n < 2? stderr: stdout,
 	"usage: tree [-acdfghilnpqrstuvxACDFJQNSUX] [-L level [-R]] [-H  baseHREF]\n"
 	"\t[-T title] [-o filename] [-P pattern] [-I pattern] [--gitignore]\n"
-	"\t[--matchdirs] [--metafirst] [--ignore-case] [--nolinks] [--inodes]\n"
-	"\t[--device] [--sort[=]<name>] [--dirsfirst] [--filesfirst]\n"
-	"\t[--filelimit #] [--si] [--du] [--prune] [--charset X]\n"
-	"\t[--timefmt[=]format] [--fromfile] [--noreport] [--version] [--help]\n"
-	"\t[--] [directory ...]\n");
+	"\t[--gitfile[=]file] [--matchdirs] [--metafirst] [--ignore-case]\n"
+	"\t[--nolinks] [--hintro[=]file] [--houtro[=]file] [--inodes] [--device]\n"
+	"\t[--sort[=]<name>] [--dirsfirst] [--filesfirst] [--filelimit #] [--si]\n"
+	"\t[--du] [--prune] [--charset[=]X] [--timefmt[=]format] [--fromfile]\n"
+	"\t[--fflinks] [--info] [--infofile[=]file] [--noreport] [--version]\n"
+	"\t[--help] [--] [directory ...]\n");
 
   if (n < 2) return;
   fprintf(stdout,
@@ -607,11 +623,13 @@ void usage(int n)
 	"  -P pattern    List only those files that match the pattern given.\n"
 	"  -I pattern    Do not list files that match the given pattern.\n"
 	"  --gitignore   Filter by using .gitignore files.\n"
+	"  --gitfile X   Explicitly read gitignore file.\n"
 	"  --ignore-case Ignore case when pattern matching.\n"
 	"  --matchdirs   Include directory names in -P pattern matching.\n"
 	"  --metafirst   Print meta-data at the beginning of each line.\n"
 	"  --prune       Prune empty directories from the output.\n"
 	"  --info        Print information about files found in .info files.\n"
+	"  --infofile X  Explicitly read info file.\n"
 	"  --noreport    Turn off file/directory count at end of tree listing.\n"
 	"  --charset X   Use charset X for terminal/HTML and indentation line output.\n"
 	"  --filelimit # Do not descend dirs with more than # files in them.\n"
@@ -653,8 +671,11 @@ void usage(int n)
 	"  -H baseHREF   Prints out HTML format with baseHREF as top directory.\n"
 	"  -T string     Replace the default HTML title and H1 header with string.\n"
 	"  --nolinks     Turn off hyperlinks in HTML output.\n"
+	"  --hintro X    Use file X as the HTML intro.\n"
+	"  --houtro X    Use file X as the HTML outro.\n"
 	"  ------- Input options -------\n"
 	"  --fromfile    Reads paths from files (.=stdin)\n"
+	"  --fflinks     Process link informtion when using --fromfile.\n"
 	"  ------- Miscellaneous options -------\n"
 	"  --version     Print version and exit.\n"
 	"  --help        Print usage and this help message and exit.\n"
@@ -667,7 +688,8 @@ void usage(int n)
  */
 int patignore(char *name, int isdir)
 {
-  for(int i=0; i < ipattern; i++)
+  int i;
+  for(i=0; i < ipattern; i++)
     if (patmatch(name, ipatterns[i], isdir)) return 1;
   return 0;
 }
@@ -677,13 +699,12 @@ int patignore(char *name, int isdir)
  */
 int patinclude(char *name, int isdir)
 {
-//  printf("%s ", name);
-  for(int i=0; i < pattern; i++)
+  int i;
+  for(i=0; i < pattern; i++) {
     if (patmatch(name, patterns[i], isdir)) {
-//      printf("included\n");
       return 1;
     }
-//  printf("failed include\n");
+  }
   return 0;
 }
 
@@ -696,7 +717,7 @@ struct _info *getinfo(char *name, char *path)
   static int lbufsize = 0;
   struct _info *ent;
   struct stat st, lst;
-  int len, rs;
+  int len, rs, isdir;
 
   if (lbuf == NULL) lbuf = xmalloc(lbufsize = PATH_MAX);
 
@@ -711,7 +732,7 @@ struct _info *getinfo(char *name, char *path)
     st.st_ino = lst.st_ino;
   }
 
-  int isdir = (st.st_mode & S_IFMT) == S_IFDIR;
+  isdir = (st.st_mode & S_IFMT) == S_IFDIR;
 
 #ifndef __EMX__
   if (gitignore && filtercheck(path, name, isdir)) return NULL;
@@ -725,7 +746,7 @@ struct _info *getinfo(char *name, char *path)
   if (dflag && ((st.st_mode & S_IFMT) != S_IFDIR)) return NULL;
 
 #ifndef __EMX__
-//    if (pattern && ((lst.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue;
+/*    if (pattern && ((lst.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue; */
 #endif
 
   ent = (struct _info *)xmalloc(sizeof(struct _info));
@@ -869,7 +890,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
     stat(d,&sb);
     dev = sb.st_dev;
   }
-  // if the directory name matches, turn off pattern matching for contents
+  /* if the directory name matches, turn off pattern matching for contents */
   if (matchdirs && pattern) {
     lev_tmp = lev;
     start_rel_path = d + strlen(d);
@@ -897,7 +918,6 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
   }
   if (dir == NULL && n) {
     *err = scopy("error opening dir");
-    errors++;
     return NULL;
   }
   if (n == 0) {
@@ -943,7 +963,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 	saveino((*dir)->inode, (*dir)->dev);
 	(*dir)->child = unix_getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
       }
-      // prune empty folders, unless they match the requested pattern
+      /* prune empty folders, unless they match the requested pattern */
       if (pruneflag && (*dir)->child == NULL &&
 	  !(matchdirs && pattern && patinclude((*dir)->name, (*dir)->isdir))) {
 	sp = *dir;
@@ -959,7 +979,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
     dir++;
   }
 
-  // sorting needs to be deferred for --du:
+  /* sorting needs to be deferred for --du: */
   if (topsort) qsort(sav,n,sizeof(struct _info *),topsort);
 
   free(path);
@@ -1086,7 +1106,7 @@ char *gnu_getcwd()
   }
 }
 
-static inline char cond_lower(char c)
+static char cond_lower(char c)
 {
   return ignorecase ? tolower(c) : c;
 }
@@ -1123,7 +1143,6 @@ int patmatch(char *buf, char *pat, int isdir)
     return match;
   }
 
-//  printf("> buf[%s], pat[%s]\n", buf, pat);
   while(*pat && match) {
     switch(*pat) {
     case '[':
@@ -1156,7 +1175,6 @@ int patmatch(char *buf, char *pat, int isdir)
       pat++;
       if(!*pat) {
 	int f = (strchr(buf, '/') == NULL);
-// 	printf("end *: buf = '%s', f = %d\n", buf, f);
         return f;
       }
       match = 0;
@@ -1166,18 +1184,15 @@ int patmatch(char *buf, char *pat, int isdir)
 	if(!*pat) return 1;
 
 	while(*buf && !(match = patmatch(buf, pat, isdir))) {
-	  // ../**/.. is allowed to match a null /:
+	  /* ** between two /'s is allowed to match a null /: */
 	  if (pprev == '/' && *pat == '/' && *(pat+1) && (match = patmatch(buf, pat+1, isdir))) return match;
 	  buf++;
 	  while(*buf && *buf != '/') buf++;
 	}
       } else {
-//	printf("* buf[%s], pat[%s]\n", buf, pat);
 	while(*buf && !(match = patmatch(buf++, pat, isdir)))
 	  if (*buf == '/') break;
-//	if (!*buf && !match) match = patmatch(buf, pat, isdir);
       }
-//       printf("*|%d buf[%s], pat[%s]\n", match, buf, pat);
       if (!match && (!*buf || *buf == '/')) match = patmatch(buf, pat, isdir);
       return match;
     case '?':

@@ -42,7 +42,7 @@ enum {
   COL_ORPHAN, COL_SOCK, COL_SETUID, COL_SETGID, COL_STICKY_OTHER_WRITABLE,
   COL_OTHER_WRITABLE, COL_STICKY, COL_EXEC, COL_MISSING,
   COL_LEFTCODE, COL_RIGHTCODE, COL_ENDCODE,
-// Keep this one last, sets the size of the color_code array:
+/* Keep this one last, sets the size of the color_code array: */
   DOT_EXTENSION
 };
 
@@ -75,22 +75,25 @@ extern const char *charset;
 
 void parse_dir_colors()
 {
-  char buf[1025], **arg, **c, *colors, *s, *cc;
-  int i, n, col;
+  char buf[1025], **arg, **c, *colors, *s;
+  int i, n, col, cc;
   struct extensions *e;
 
   if (Hflag) return;
+
+  s = getenv("NO_COLOR");
+  if (s && s[0]) nocolor = TRUE;
 
   if (getenv("TERM") == NULL) {
     colorize = FALSE;
     return;
   }
 
+  cc = getenv("CLICOLOR") != NULL;
+  if (getenv("CLICOLOR_FORCE") != NULL && !nocolor) force_color=TRUE;
   s = getenv("TREE_COLORS");
   if (s == NULL) s = getenv("LS_COLORS");
-  cc = getenv("CLICOLOR");
-  if (getenv("CLICOLOR_FORCE") != NULL && !nocolor) force_color=TRUE;
-  if ((s == NULL || strlen(s) == 0) && (force_color || cc != NULL)) s = ":no=00:rs=0:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
+  if ((s == NULL || strlen(s) == 0) && (force_color || cc)) s = ":no=00:rs=0:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
 
   if (s == NULL || (!force_color && (nocolor || !isatty(1)))) {
     colorize = FALSE;
@@ -99,7 +102,7 @@ void parse_dir_colors()
 
   colorize = TRUE;
 
-  for(int i=0; i < DOT_EXTENSION; i++) color_code[i] = NULL;
+  for(i=0; i < DOT_EXTENSION; i++) color_code[i] = NULL;
 
   colors = scopy(s);
 
@@ -186,7 +189,7 @@ int cmd(char *s)
   };
   int i;
 
-  if (s == NULL) return ERROR;  // Probably can't happen
+  if (s == NULL) return ERROR;  /* Probably can't happen */
 
   if (s[0] == '*') return DOT_EXTENSION;
   for(i=0;cmds[i].cmdnum;i++) {
@@ -224,7 +227,7 @@ int color(u_short mode, char *name, bool orphan, bool islink)
     }
   }
 
-  // It's probably safe to assume short-circuit evaluation, but we'll do it this way:
+  /* It's probably safe to assume short-circuit evaluation, but we'll do it this way: */
   switch(mode & S_IFMT) {
     case S_IFIFO:
       return print_color(COL_FIFO);
@@ -282,69 +285,72 @@ int color(u_short mode, char *name, bool orphan, bool islink)
  */
 const char *getcharset(void)
 {
-  #ifndef __EMX__
-  return getenv("TREE_CHARSET");
-  #else
-  static char buffer[13];
+  char *cs;
+  static char buffer[256];
+
+  cs = getenv("TREE_CHARSET");
+  if (cs) return strncpy(buffer,cs,255);
+
+#ifndef __EMX__
+  return NULL;
+#else
   ULONG aulCpList[3],ulListSize,codepage=0;
-  char*charset=getenv("TREE_CHARSET");
-  if(charset)
-    return charset;
-  
+
   if(!getenv("WINDOWID"))
     if(!DosQueryCp(sizeof aulCpList,aulCpList,&ulListSize))
       if(ulListSize>=sizeof*aulCpList)
 	codepage=*aulCpList;
-      
-      switch(codepage){
-	case 437: case 775: case 850: case 851: case 852: case 855:
-	case 857: case 860: case 861: case 862: case 863: case 864:
-	case 865: case 866: case 868: case 869: case 891: case 903:
-	case 904:
-	  sprintf(buffer,"IBM%03lu",codepage);
-	  break;
-	case 367:
-	  return"US-ASCII";
-	case 813:
-	  return"ISO-8859-7";
-	case 819:
-	  return"ISO-8859-1";
-	case 881: case 882: case 883: case 884: case 885:
-	  sprintf(buffer,"ISO-8859-%lu",codepage-880);
-	  break;
-	case  858: case  924:
-	  sprintf(buffer,"IBM%05lu",codepage);
-	  break;
-	case 874:
-	  return"TIS-620";
-	case 897: case 932: case 942: case 943:
-	  return"Shift_JIS";
-	case 912:
-	  return"ISO-8859-2";
-	case 915:
-	  return"ISO-8859-5";
-	case 916:
-	  return"ISO-8859-8";
-	case 949: case 970:
-	  return"EUC-KR";
-	case 950:
-	  return"Big5";
-	case 954:
-	  return"EUC-JP";
-	case 1051:
-	  return"hp-roman8";
-	case 1089:
-	  return"ISO-8859-6";
-	case 1250: case 1251: case 1253: case 1254: case 1255: case 1256:
-	case 1257: case 1258:
-	  sprintf(buffer,"windows-%lu",codepage);
-	  break;
-	case 1252:
-	  return"ISO-8859-1-Windows-3.1-Latin-1";
-	default:
-	  return NULL;
-      }
-      #endif
+
+  switch(codepage) {
+    case 437: case 775: case 850: case 851: case 852: case 855:
+    case 857: case 860: case 861: case 862: case 863: case 864:
+    case 865: case 866: case 868: case 869: case 891: case 903:
+    case 904:
+      sprintf(buffer,"IBM%03lu",codepage);
+      break;
+    case 367:
+      return"US-ASCII";
+    case 813:
+      return"ISO-8859-7";
+    case 819:
+      return"ISO-8859-1";
+    case 881: case 882: case 883: case 884: case 885:
+      sprintf(buffer,"ISO-8859-%lu",codepage-880);
+      break;
+    case  858: case  924:
+      sprintf(buffer,"IBM%05lu",codepage);
+      break;
+    case 874:
+      return"TIS-620";
+    case 897: case 932: case 942: case 943:
+      return"Shift_JIS";
+    case 912:
+      return"ISO-8859-2";
+    case 915:
+      return"ISO-8859-5";
+    case 916:
+      return"ISO-8859-8";
+    case 949: case 970:
+      return"EUC-KR";
+    case 950:
+      return"Big5";
+    case 954:
+      return"EUC-JP";
+    case 1051:
+      return"hp-roman8";
+    case 1089:
+      return"ISO-8859-6";
+    case 1250: case 1251: case 1253: case 1254: case 1255: case 1256:
+    case 1257: case 1258:
+      sprintf(buffer,"windows-%lu",codepage);
+      break;
+    case 1252:
+      return"ISO-8859-1-Windows-3.1-Latin-1";
+    default:
+      return NULL;
+  }
+  return buffer;
+#endif
 }
 
 void initlinedraw(int flag)

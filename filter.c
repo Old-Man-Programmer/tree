@@ -50,6 +50,7 @@ struct pattern *new_pattern(char *pattern)
 
 struct ignorefile *new_ignorefile(char *path)
 {
+  struct stat st;
   char buf[PATH_MAX];
   struct ignorefile *ig;
   struct pattern *remove = NULL, *remend, *p;
@@ -57,8 +58,11 @@ struct ignorefile *new_ignorefile(char *path)
   int rev;
   FILE *fp;
 
-  snprintf(buf, PATH_MAX, "%s/.gitignore", path);
-  fp = fopen(buf, "r");
+  rev = stat(path, &st);
+  if (rev < 0 || !S_ISREG(st.st_mode)) {
+    snprintf(buf, PATH_MAX, "%s/.gitignore", path);
+    fp = fopen(buf, "r");
+  } else fp = fopen(path, "r");
   if (fp == NULL) return NULL;
 
   while (fgets(buf, PATH_MAX, fp) != NULL) {
@@ -102,8 +106,12 @@ void push_filterstack(struct ignorefile *ig)
 
 struct ignorefile *pop_filterstack(void)
 {
-  struct ignorefile *ig = filterstack;
+  struct ignorefile *ig;
   struct pattern *p, *c;
+
+  ig = filterstack;
+  if (ig == NULL) return NULL;
+
   filterstack = filterstack->next;
 
   for(p=c=ig->remove; p != NULL; c = p) {
@@ -134,30 +142,16 @@ int filtercheck(char *path, char *name, int isdir)
     for(p = ig->remove; p != NULL; p = p->next) {
       if (p->relative) {
 	if (patmatch(name, p->pattern, isdir) == 1) {
-// 	  printf("> name: %s, pattern: %s\n", path, p->pattern);
 	  filter = 1;
 	  break;
 	}
       } else {
 	sprintf(fpattern + fpos, "%s", p->pattern);
-// 	printf("> path: %s, fpattern: %s\n", path, fpattern);
 	if (patmatch(path, fpattern, isdir) == 1) {
-// 	  printf("Matched path: %s, fpattern: %s\n", path, fpattern);
 	  filter = 1;
 	  break;
 	}
       }
-
-//       if (patmatch(path, p->pattern, isdir) == 1) {
-// 	filter = 1;
-// 	break;
-//       }
-//       if (p->pattern[0] == '/') continue;
-//       sprintf(fpattern + fpos, "%s", p->pattern);
-//       if (patmatch(path, fpattern, isdir) == 1) {
-// 	filter = 1;
-// 	break;
-//       }
      }
   }
   if (!filter) return 0;
@@ -172,13 +166,6 @@ int filtercheck(char *path, char *name, int isdir)
 	sprintf(fpattern + fpos, "%s", p->pattern);
 	if (patmatch(path, fpattern, isdir) == 1) return 0;
       }
-
-//       if (patmatch(path, p->pattern, isdir) == 1) return 0;
-//
-//       if (p->pattern[0] == '/') continue;
-//       sprintf(fpattern + fpos, "%s", p->pattern);
-//
-//       if (patmatch(path, fpattern, isdir) == 1) return 0;
     }
   }
 

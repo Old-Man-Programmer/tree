@@ -1,3 +1,56 @@
+Version 2.1.0 (12/26/2022)
+  This is a bit bigger release, due to not realizing that gitlab/github was
+  not sending me email and ice+tree@mama.indstate.edu was broken.  This has
+  been fixed and I think I have gone through most all of the outstanding issues
+  that were submitted over the last few months.  Note to those that are sending
+  me git merge requests: because I distribute this in multiple ways and places,
+  and I tend to manually go over patches and often re-work them in any event, I
+  will not likely ever directly accept any merge requests. I will still use the
+  patch information from them for inclusion into the code, so you are more than
+  welcome to still submit such merges.
+  - Add support for --info and --gitignore for the --fromfile option.
+    (Suggested by Piotr Andruszkow)
+  - Add options --infofile and --gitfile to load .info and .gitignore files
+    explicitly.  Each implies --info or --gitignore respectively.
+  - Add NULL guard for json_printinfo() and xml_printinfo() (and fix ftype
+    printing for XML) (Kenta Arai)
+  - Fix getcharset() to not return a getenv() pointer (fix for ENV34-C issue.)
+    (Kenta Arai)
+  - Another attempt at fixing extraneous /'s in HTML URLs/output. (Sebastian
+    Rose)
+  - Fixed XML output (Dave Rice)
+  - Remove the (very outdated) French version of the manpage.  Look to
+    localization projects such as Debian's 'manpages-l10n' for localized
+    translations. (hmartink)
+  - Add support for the NO_COLOR environment variable (https://no-color.org/).
+    Equivalent to the -n option (can be still be overridden with -C).
+    (Timm Fitschen)
+  - Removed many C99isms to enable compiling on C90 compilers with fewer
+    warnings.  (Sith Wijesinghe and Matthew Sessions)  It should not be
+    necessary to avoid using a standard that is old enough to drink,
+    furthermore it is all but impossible to remove the remaining warnings and
+    have modern features like compound literals. In the meantime I've added
+    -std=c11 to the default CFLAGS for Linux and will likely not worry about
+    C90 compatibility going forward unless there is some other reason for it.
+  - Added a helper function for long command line arguments to clean up option
+    processing (and fixes the processing for a few of the options such as
+    --timefmt= (наб?).)
+  - Added --hintro and --houtro options to select files to use as the HTML
+    intro and outro.  Use /dev/null or an empty file to eliminate them
+    entirely.  This should make it much easier to create your own custom CSS
+    or embed one or more trees into a web page.
+  - Defer printing the version until the character set is known so we can use
+    the linedraw copyright symbol.
+  - Revert change to the error code to not return an error (code 2) when
+    attempting to list a non-directory that actually exists.  Tree will still
+    return an error when attempting to list a non-existing directory/file.
+  - Added option --fflinks which will process symbolic link information from
+    a file generated with 'tree -if --noreport' when using --fromfile.
+    (Suggested by Chentao Credungtao)
+  - Updated the totals reporting code to also include in the total the file or
+    directory that is being listed.  This should make a correct report when
+    doing something like 'tree *'.
+
 Version 2.0.4 (09/06/2022)
   - Brown paper bag release:
     - Fix missing comma in JSON output. (jogbear?)

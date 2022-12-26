@@ -1,5 +1,5 @@
 .\" $Copyright: $
-.\" Copyright (c) 1996 - 2021 by Steve Baker
+.\" Copyright (c) 1996 - 2022 by Steve Baker
 .\" All Rights reserved
 .\"
 .\" This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "" "Tree 2.0.0"
+.TH TREE 1 "" "Tree 2.1.0"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
@@ -30,10 +30,13 @@ tree \- list contents of directories in a tree-like format.
 [\fB-P\fP \fIpattern\fP]
 [\fB-I\fP \fIpattern\fP]
 [\fB--gitignore\fP]
+[\fB--gitfile\fP[\fB=\fP]\fIfile\fP]
 [\fB--matchdirs\fP]
 [\fB--metafirst\fP]
 [\fB--ignore-case\fP]
 [\fB--nolinks\fP]
+[\fB--hintro\fP[\fB=\fP]\fIfile\fP]
+[\fB--houtro\fP[\fB=\fP]\fIfile\fP]
 [\fB--inodes\fP]
 [\fB--device\fP]
 [\fB--sort\fP[\fB=\fP]\fIname\fP]
@@ -43,9 +46,12 @@ tree \- list contents of directories in a tree-like format.
 [\fB--si\fP]
 [\fB--du\fP]
 [\fB--prune\fP]
+[\fB--charset[\fB=\fP]X\fP]
 [\fB--timefmt\fP[\fB=\fP]\fIformat\fP]
 [\fB--fromfile\fP]
+[\fB--fflinks\fP]
 [\fB--info\fP]
+[\fB--infofile\fP[\fB=\fP]\fIfile\fP]
 [\fB--noreport\fP]
 [\fB--version\fP]
 [\fB--help\fP]
@@ -110,8 +116,8 @@ Max display depth of the directory tree.
 .TP
 .B -R
 Recursively cross down the tree each \fIlevel\fP directories (see \fB-L\fP
-option), and at each of them execute \fBtree\fP again adding `-o 00Tree.html'
-as a new option.
+option), and at each level outputting to a file named \fB00Tree.html\fP
+(ala \fB-o\fP).
 .PP
 .TP
 .B -P \fIpattern\fP
@@ -136,9 +142,13 @@ Uses git \fB.gitignore\fP files for filtering files and directories.  Also
 uses \fB$GIT_DIR/info/exclude\fP if present.
 .PP
 .TP
+.B --gitfile\fR[\fB=\fR]\fIfile\fP
+Use \fIfile\fP explicitly as a gitignore file.
+.PP
+.TP
 .B --ignore-case
 If a match pattern is specified by the \fB-P\fP or \fB-I\fP option, this will
-cause the pattern to match without regards to the case of each letter.
+cause the pattern to match without regard to the case of each letter.
 .PP
 .TP
 .B --matchdirs
@@ -165,20 +175,24 @@ Prints file comments found in .info files.  See \fB.INFO FILES\fP below
 for more information on the format of .info files.
 .PP
 .TP
+.B --infofile\fR[\fB=\fR]\fIfile\fP
+Use \fIfile\fP explicitly as a info file.
+.PP
+.TP
 .B --noreport
 Omits printing of the file and directory report at the end of the tree
 listing.
 .PP
 .TP
-.B --charset \fIcharset\fP
+.B --charset\fR[\fB=\fR]\fIcharset\fP
 Set the character set to use when outputting HTML and for line drawing.
 .PP
 .TP
-.B --filelimit \fI#\fP
+.B --filelimit\fR[\fB=\fR]\fI#\fP
 Do not descend directories that contain more than \fI#\fP entries.
 .PP
 .TP
-.B --timefmt \fIformat\fP
+.B --timefmt\fR[\fB=\fR]\fIformat\fP
 Prints (implies -D) and formats the date according to the format string
 which uses the \fBstrftime\fP(3) syntax.
 .PP
@@ -347,6 +361,16 @@ wish to use colors via CSS style-sheet, use the -C option in addition to this
 option to force color output.
 .PP
 .TP
+.B --hintro\fR[\fB=\fR]\fIfile\fP
+Use \fIfile\fP as the HTML intro in place of the default one.  Use an empty
+file or \fI/dev/null\fP to eliminate the intro altogether.
+.PP
+.TP
+.B --houtro\fR[\fB=\fR]\fIfile\fP
+Use \fIfile\fP as the HTML outro in place of the default one.  Use an empty
+file or \fI/dev/null\fP to eliminate the outro altogether.
+.PP
+.TP
 .B -T \fItitle\fP
 Sets the title and H1 header string in HTML output mode.
 .PP
@@ -357,13 +381,22 @@ Turns off hyperlinks in HTML output.
 
 .SH INPUT OPTIONS
 
+.TP
 .B --fromfile
 Reads a directory listing from a file rather than the file-system.  Paths
 provided on the command line are files to read from rather than directories to
 search.  The dot (.) directory indicates that tree should read paths from
 standard input. NOTE: this is only suitable for reading the output of a program
-such as find, not 'tree -fi' as symlinks cannot (at least as yet) be distinguished
-from files that simply contain ' -> ' as part of the filename.
+such as find, not 'tree -fi' as symlinks are not distinguished from files that
+simply contain ' -> ' as part of the filename unless the \fB--fflinks\fP option
+is used.
+.PP
+.TP
+.B --fflinks
+Processes symbolic link information found in a file, as from the output of
+\fB'tree -fi --noreport'\fP.  Only the first occurrence of the string \fB' -> '\fP
+is used to denote the separation of the filename from the link.
+.PP
 
 .SH MISC OPTIONS
 
@@ -416,6 +449,8 @@ share the same comment.
 \fBCLICOLOR\fP		Enables colorization even if TREE_COLORS or LS_COLORS is not set.
 .br
 \fBCLICOLOR_FORCE\fP	Always enables colorization (effectively -C)
+.br
+\fBNO_COLOR\fP		Disable colorization (effectively -n) (see \fBhttps://no-color.org/\fP)
 .br
 \fBLC_CTYPE\fP		Locale for filename output.
 .br

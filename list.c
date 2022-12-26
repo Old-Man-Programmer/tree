@@ -57,7 +57,7 @@ void null_close(struct _info *file, int level, int needcomma)
 
 void emit_tree(char **dirname, bool needfulltree)
 {
-  struct totals tot = { 0 };
+  struct totals tot = { 0 }, subtotal;
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
   struct _info **dir = NULL, *info = NULL;
@@ -93,21 +93,25 @@ void emit_tree(char **dirname, bool needfulltree)
     } else info = NULL;
 
     needsclosed = lc.printfile(NULL, dirname[i], info, (dir != NULL) || (!dir && n));
+    subtotal = (struct totals){0, 0, 0};
+    if (duflag) subtotal.size = info? info->size : 0;
 
     if (!dir && n) {
       lc.error("error opening dir");
       lc.newline(info, 0, 0, dirname[i+1] != NULL);
-      errors++;
+      if (!info) errors++;
+      else subtotal.files++;
     } else if (flimit > 0 && n > flimit) {
       sprintf(errbuf,"%d entries exceeds filelimit, not opening dir", n);
       lc.error(errbuf);
       lc.newline(info, 0, 0, dirname[i+1] != NULL);
-      errors++;
+      subtotal.dirs++;
     } else {
       lc.newline(info, 0, 0, 0);
       if (dir) {
-	tot = listdir(dirname[i], dir, 1, st.st_dev, needfulltree);
-      } else tot = (struct totals){0, 0};
+	subtotal = listdir(dirname[i], dir, 1, st.st_dev, needfulltree);
+	subtotal.dirs++;
+      }
     }
     if (dir) {
       free_dir(dir);
@@ -115,8 +119,11 @@ void emit_tree(char **dirname, bool needfulltree)
     }
     if (needsclosed) lc.close(info, 0, dirname[i+1] != NULL);
 
-    if (duflag) tot.size = info->size;
-    else tot.size += st.st_size;
+    tot.files += subtotal.files;
+    tot.dirs += subtotal.dirs;
+    tot.size += subtotal.size;
+//     if (duflag) tot.size = info->size;
+//     else tot.size += st.st_size;
 
     if (ig != NULL) ig = pop_filterstack();
     if (inf != NULL) inf = pop_infostack();

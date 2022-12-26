@@ -104,8 +104,10 @@ int xml_printinfo(char *dirname, struct _info *file, int level)
 
   if (!noindent) xml_indent(level);
 
-  if (file->lnk) mt = file->mode & S_IFMT;
-  else mt = file->mode & S_IFMT;
+  if (file != NULL) {
+    if (file->lnk) mt = file->mode & S_IFMT;
+    else mt = file->mode & S_IFMT;
+  } else mt = 0;
 
   for(t=0;ifmt[t];t++)
     if (ifmt[t] == mt) break;
@@ -116,15 +118,7 @@ int xml_printinfo(char *dirname, struct _info *file, int level)
 
 int xml_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
-  int t, mt;
-
-  if (file) {
-    if (file->lnk) mt = file->mode & S_IFMT;
-    else mt = file->mode & S_IFMT;
-  } else mt = 0;
-  for(t=0;ifmt[t];t++)
-    if (ifmt[t] == mt) break;
-  fprintf(outfile,"<%s", ftype[t]);
+  int i;
 
   fprintf(outfile, " name=\"");
   html_encode(outfile, filename);
@@ -132,7 +126,7 @@ int xml_printfile(char *dirname, char *filename, struct _info *file, int descend
 
   if (file && file->comment) {
     fprintf(outfile, " info=\"");
-    for(int i=0; file->comment[i]; i++) {
+    for(i=0; file->comment[i]; i++) {
       html_encode(outfile, file->comment[i]);
       if (file->comment[i+1]) fprintf(outfile, "\n");
     }
@@ -164,7 +158,7 @@ void xml_newline(struct _info *file, int level, int postdir, int needcomma)
 
 void xml_close(struct _info *file, int level, int needcomma)
 {
-  if (!noindent && level >= 0) xml_indent(level-1);
+  if (!noindent && level >= 0) xml_indent(level);
   fprintf(outfile,"</%s>%s", file? file->tag : "unknown", noindent? "" : "\n");
 }
 

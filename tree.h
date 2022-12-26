@@ -59,7 +59,7 @@
 #define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
 #endif
 
-// Start using PATH_MAX instead of the magic number 4096 everywhere.
+/* Start using PATH_MAX instead of the magic number 4096 everywhere. */
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
@@ -189,6 +189,7 @@ struct infofile {
 /* Function prototypes: */
 /* tree.c */
 void setoutput(char *filename);
+void print_version(int nl);
 void usage(int);
 void push_files(char *dir, struct ignorefile **ig, struct infofile **inf);
 int patignore(char *name, int isdir);

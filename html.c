@@ -21,7 +21,7 @@ extern char *version, *hversion;
 extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 extern bool Dflag, inodeflag, devflag, Rflag, duflag, hflag, siflag;
 extern bool noindent, force_color, xdev, nolinks, metafirst, noreport;
-extern char *host, *sp, *title;
+extern char *host, *sp, *title, *Hintro, *Houtro;
 extern const char *charset;
 
 extern FILE *outfile;
@@ -60,7 +60,6 @@ void html_encode(FILE *fd, char *s)
 	break;
       default:
 	fputc(*s,fd);
-	//	fputc(isprint(*s)?*s:'?',fd);
 	break;
     }
   }
@@ -94,15 +93,32 @@ void url_encode(FILE *fd, char *s)
   }
 }
 
+void fcat(char *filename)
+{
+  FILE *fp;
+  char buf[PATH_MAX];
+  int n;
+
+  if ((fp = fopen(filename, "r")) == NULL) return;
+  while((n = fread(buf, sizeof(char), PATH_MAX, fp)) > 0) {
+    fwrite(buf, sizeof(char), n, outfile);
+  }
+  fclose(fp);
+}
+
 void html_intro(void)
 {
-  fprintf(outfile,
+  if (Hintro) fcat(Hintro);
+  else {
+    fprintf(outfile,
 	"<!DOCTYPE html>\n"
 	"<html>\n"
 	"<head>\n"
 	" <meta http-equiv=\"Content-Type\" content=\"text/html; charset=%s\">\n"
 	" <meta name=\"Author\" content=\"Made by 'tree'\">\n"
-	" <meta name=\"GENERATOR\" content=\"%s\">\n"
+	" <meta name=\"GENERATOR\" content=\"", charset ? charset : "iso-8859-1");
+    print_version(FALSE);
+    fprintf(outfile, "\">\n"
 	" <title>%s</title>\n"
 	" <style type=\"text/css\">\n"
 	"  BODY { font-family : monospace, sans-serif;  color: black;}\n"
@@ -123,22 +139,27 @@ void html_intro(void)
 	" </style>\n"
 	"</head>\n"
 	"<body>\n"
-	"\t<h1>%s</h1><p>\n",charset ? charset : "iso-8859-1", version, title, title);
+	"\t<h1>%s</h1><p>\n", title, title);
+  }
 }
 
 void html_outtro(void)
 {
-  fprintf(outfile,"\t<hr>\n");
-  fprintf(outfile,"\t<p class=\"VERSION\">\n");
-  fprintf(outfile,hversion,linedraw->copy, linedraw->copy, linedraw->copy, linedraw->copy);
-  fprintf(outfile,"\t</p>\n");
-  fprintf(outfile,"</body>\n");
-  fprintf(outfile,"</html>\n");
+  if (Houtro) fcat(Houtro);
+  else {
+    fprintf(outfile,"\t<hr>\n");
+    fprintf(outfile,"\t<p class=\"VERSION\">\n");
+    fprintf(outfile,hversion,linedraw->copy, linedraw->copy, linedraw->copy, linedraw->copy);
+    fprintf(outfile,"\t</p>\n");
+    fprintf(outfile,"</body>\n");
+    fprintf(outfile,"</html>\n");
+  }
 }
 
 void html_print(char *s)
 {
-  for(int i=0; s[i]; i++) {
+  int i;
+  for(i=0; s[i]; i++) {
     if (s[i] == ' ') fprintf(outfile,"%s",sp);
     else fprintf(outfile,"%c", s[i]);
   }
@@ -167,16 +188,17 @@ int html_printinfo(char *dirname, struct _info *file, int level)
   return 0;
 }
 
-// descend == add 00Tree.html to the link
+/* descend == add 00Tree.html to the link */
 int html_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
-  // Switch to using 'a' elements only. Omit href attribute if not a link
+  int i;
+  /* Switch to using 'a' elements only. Omit href attribute if not a link */
   fprintf(outfile,"<a");
   if (file) {
     if (force_color) fprintf(outfile," class=\"%s\"", class(file));
     if (file->comment) {
       fprintf(outfile," title=\"");
-      for(int i=0; file->comment[i]; i++) {
+      for(i=0; file->comment[i]; i++) {
 	html_encode(outfile, file->comment[i]);
 	if (file->comment[i+1]) fprintf(outfile, "\n");
       }
@@ -193,7 +215,7 @@ int html_printfile(char *dirname, char *filename, struct _info *file, int descen
 	url_encode(outfile, filename);
 	fprintf(outfile,"%s%s\"",(descend > 1? "/00Tree.html" : ""), (file->isdir?"/":""));
       } else {
-	fprintf(outfile,"%s\"",(descend > 1? "/00Tree.html" : ""));
+	fprintf(outfile,"%s/\"",(descend > 1? "/00Tree.html" : ""));
       }
     }
   }
