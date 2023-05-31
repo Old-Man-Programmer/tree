@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -123,7 +123,7 @@ struct _info **fprune(struct _info *head, char *path, bool matched, bool root)
   cur = fpath + strlen(fpath);
   *(cur++) = '/';
 
-  push_files(path, &ig, &inf);
+  push_files(path, &ig, &inf, root);
 
   for(ent = head; ent != NULL;) {
     strcpy(cur, ent->name);
@@ -184,19 +184,18 @@ struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 {
   FILE *fp = (strcmp(d,".")? fopen(d,"r") : stdin);
   char *path, *spath, *s, *link;
-  long pathsize;
   struct _info *root = NULL, **cwd, *ent;
   int l, tok;
 
-  size = 0;
+  *size = 0;
   if (fp == NULL) {
-    fprintf(stderr,"Error opening %s for reading.\n", d);
+    fprintf(stderr,"tree: Error opening %s for reading.\n", d);
     return NULL;
   }
-  path = xmalloc(sizeof(char *) * (pathsize = MAXPATH));
+  path = xmalloc(sizeof(char) * MAXPATH);
 
-  while(fgets(path, pathsize, fp) != NULL) {
-    if (file_comment != NULL && strcmp(path,file_comment) == 0) continue;
+  while(fgets(path, MAXPATH, fp) != NULL) {
+    if (file_comment != NULL && strncmp(path,file_comment,strlen(file_comment)) == 0) continue;
     l = strlen(path);
     while(l && (path[l-1] == '\n' || path[l-1] == '\r')) path[--l] = '\0';
     if (l == 0) continue;
@@ -235,12 +234,74 @@ struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
     if (link) {
       ent->isdir = 0;
       ent->mode = S_IFLNK;
-      ent->lnk = strdup(link);
+      ent->lnk = scopy(link);
     }
   }
   if (fp != stdin) fclose(fp);
 
   free(path);
+
+  /* Prune accumulated directory tree: */
+  return fprune(root, "", FALSE, TRUE);
+}
+
+struct _info **tabedfile_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err)
+{
+  FILE *fp = (strcmp(d,".")? fopen(d,"r") : stdin);
+  char *path, *spath, *link;
+  struct _info *root = NULL, **istack, *ent;
+  int line = 0, tabs, maxstack = 2048, top = 0, l;
+
+  *size = 0;
+  if (fp == NULL) {
+    fprintf(stderr,"tree: Error opening %s for reading.\n", d);
+    return NULL;
+  }
+  path = xmalloc(sizeof(char) * MAXPATH);
+  istack = xmalloc(sizeof(struct _info *) * maxstack);
+  memset(istack, 0, sizeof(struct _info *) * maxstack);
+
+  while(fgets(path, MAXPATH, fp) != NULL) {
+    line++;
+    if (file_comment != NULL && strncmp(path,file_comment,strlen(file_comment)) == 0) continue;
+    l = strlen(path);
+    while(l && (path[l-1] == '\n' || path[l-1] == '\r')) path[--l] = '\0';
+    if (l == 0) continue;
+
+    for(tabs=0; path[tabs] == '\t'; tabs++);
+    if (tabs >= maxstack) {
+      fprintf(stderr, "tree: Tab depth exceeds maximum path depth (%d >= %d) on line %d\n", tabs, maxstack, line);
+      continue;
+    }
+
+    spath = path+tabs;
+
+    link = fflinks? strstr(spath, " -> ") : NULL;
+    if (link) {
+      *link = '\0';
+      link += 4;
+    }
+    if (tabs-1 > top) {
+	fprintf(stderr, "tree: Orphaned file [%s] on line %d, check tab depth in file.\n", spath, line);
+	continue;
+    }
+    ent = istack[tabs] = search(tabs? &(istack[tabs-1]->tchild) : &root, spath);
+    ent->mode = S_IFREG;
+    if (tabs) {
+      istack[tabs-1]->isdir = 1;
+      istack[tabs-1]->mode = S_IFDIR;
+    }
+    if (link) {
+      ent->isdir = 0;
+      ent->mode = S_IFLNK;
+      ent->lnk = scopy(link);
+    }
+    top = tabs;
+  }
+  if (fp != stdin) fclose(fp);
+
+  free(path);
+  free(istack);
 
   /* Prune accumulated directory tree: */
   return fprune(root, "", FALSE, TRUE);

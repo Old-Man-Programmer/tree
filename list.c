@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -85,7 +85,7 @@ void emit_tree(char **dirname, bool needfulltree)
 	dir = getfulltree(dirname[i], 0, st.st_dev, &(info->size), &err);
 	n = err? -1 : 0;
       } else {
-	push_files(dirname[i], &ig, &inf);
+	push_files(dirname[i], &ig, &inf, TRUE);
 	dir = read_dir(dirname[i], &n, inf != NULL);
       }
 
@@ -140,11 +140,15 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
   struct _info **subdir = NULL;
+  int namemax = 257, namelen;
   int descend, htmldescend = 0, found, n, dirlen = strlen(dirname), pathlen = dirlen + 257;
   int needsclosed;
   char *path, *newpath, *filename, *err = NULL;
 
   int es = (dirname[strlen(dirname) - 1] == '/');
+
+  // Sanity check on dir, may or may not be necessary when using --fromfile:
+  if (dir == NULL || *dir == NULL) return tot;
 
   for(n=0; dir[n]; n++);
   if (topsort) qsort(dir, n, sizeof(struct _info *), topsort);
@@ -156,6 +160,9 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
   for (;*dir != NULL; dir++) {
     lc.printinfo(dirname, *dir, lev);
 
+    namelen = strlen((*dir)->name) + 1;
+    if (namemax < namelen)
+      path = xrealloc(path, dirlen + (namemax = namelen));
     if (es) sprintf(path,"%s%s",dirname,(*dir)->name);
     else sprintf(path,"%s/%s",dirname,(*dir)->name);
     if (fflag) filename = path;
@@ -167,8 +174,12 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
     if ((*dir)->isdir) {
       tot.dirs++;
 
-      found = findino((*dir)->inode,(*dir)->dev);
-      if (!found) saveino((*dir)->inode, (*dir)->dev);
+      if (!hasfulltree) {
+	found = findino((*dir)->inode,(*dir)->dev);
+	if (!found) {
+	  saveino((*dir)->inode, (*dir)->dev);
+	}
+      } else found = FALSE;
 
       if (!(xdev && dev != (*dir)->dev) && (!(*dir)->lnk || ((*dir)->lnk && lflag))) {
 	descend = 1;
@@ -182,7 +193,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	  }
 	  if (found) {
 	    err = "recursive, not followed";
-	    descend = 0;
+	    descend = -1;
 	  }
 	}
 
@@ -208,12 +219,12 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	  descend = 0;
 	}
 
-	if (descend) {
+	if (descend > 0) {
 	  if (hasfulltree) {
 	    subdir = (*dir)->child;
 	    err = (*dir)->err;
 	  } else {
-	    push_files(newpath, &ig, &inf);
+	    push_files(newpath, &ig, &inf, FALSE);
 	    subdir = read_dir(newpath, &n, inf != NULL);
 	    if (!subdir && n) {
 	      err = "error opening dir";
@@ -233,7 +244,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
     needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (Jflag && errors));
     if (err) lc.error(err);
 
-    if (descend) {
+    if (descend > 0) {
       lc.newline(*dir, lev, 0, 0);
 
       subtotal = listdir(newpath, subdir, lev+1, dev, hasfulltree);

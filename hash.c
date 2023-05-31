@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

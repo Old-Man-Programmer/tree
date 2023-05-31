@@ -17,7 +17,7 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "" "Tree 2.1.0"
+.TH TREE 1 "" "Tree 2.1.1"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
@@ -49,6 +49,7 @@ tree \- list contents of directories in a tree-like format.
 [\fB--charset[\fB=\fP]X\fP]
 [\fB--timefmt\fP[\fB=\fP]\fIformat\fP]
 [\fB--fromfile\fP]
+[\fB--fromtabfile\fP]
 [\fB--fflinks\fP]
 [\fB--info\fP]
 [\fB--infofile\fP[\fB=\fP]\fIfile\fP]
@@ -325,7 +326,7 @@ Turn on ANSI line graphics hack when printing the indentation lines.
 .TP
 .B -S
 Turn on CP437 line graphics (useful when using Linux console mode fonts). This
-option is now equivalent to `--charset=IBM437' and may eventually be depreciated.
+option is now equivalent to `\fB--charset=IBM437\fP' and may eventually be depreciated.
 .PP
 .TP
 .B -n
@@ -392,6 +393,12 @@ simply contain ' -> ' as part of the filename unless the \fB--fflinks\fP option
 is used.
 .PP
 .TP
+.B --fromtabfile
+Like \fB--fromfile\fP, tree reads a directory tree from a text file where the
+files are tab indented in a tree like format to indicate the directory nesting
+level.
+.PP
+.TP
 .B --fflinks
 Processes symbolic link information found in a file, as from the output of
 \fB'tree -fi --noreport'\fP.  Only the first occurrence of the string \fB' -> '\fP
@@ -415,7 +422,7 @@ Option processing terminator.  No further options will be processed after this.
 
 .SH .INFO FILES
 
-\fB.info\fP files are similiar to \.gitignore files, if a .info file is found
+\fB.info\fP files are similar to \.gitignore files, if a .info file is found
 while scanning a directory it is read and added to a stack of .info
 information. Each file is composed of comments (lines starting with hash marks
 (#),) or wild-card patterns which may match a file relative to the directory

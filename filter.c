@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,9 +17,9 @@
  */
 #include "tree.h"
 
-struct ignorefile *filterstack = NULL;
+extern char xpattern[PATH_MAX];
 
-static char fpattern[PATH_MAX];
+struct ignorefile *filterstack = NULL;
 
 void gittrim(char *s)
 {
@@ -48,10 +48,10 @@ struct pattern *new_pattern(char *pattern)
   return p;
 }
 
-struct ignorefile *new_ignorefile(char *path)
+struct ignorefile *new_ignorefile(char *path, bool checkparents)
 {
   struct stat st;
-  char buf[PATH_MAX];
+  char buf[PATH_MAX], rpath[PATH_MAX];
   struct ignorefile *ig;
   struct pattern *remove = NULL, *remend, *p;
   struct pattern *reverse = NULL, *revend;
@@ -62,6 +62,16 @@ struct ignorefile *new_ignorefile(char *path)
   if (rev < 0 || !S_ISREG(st.st_mode)) {
     snprintf(buf, PATH_MAX, "%s/.gitignore", path);
     fp = fopen(buf, "r");
+
+    if (fp == NULL && checkparents) {
+      strcpy(rpath, path);
+      while ((fp == NULL) && (strcmp(rpath, "/") != 0)) {
+	snprintf(buf, PATH_MAX, "%.*s/..", PATH_MAX-4, rpath);
+	if (realpath(buf, rpath) == NULL) break;
+	snprintf(buf, PATH_MAX, "%.*s/.gitignore", PATH_MAX-12, rpath);
+	fp = fopen(buf, "r");
+      }
+    }
   } else fp = fopen(path, "r");
   if (fp == NULL) return NULL;
 
@@ -137,7 +147,7 @@ int filtercheck(char *path, char *name, int isdir)
   struct pattern *p;
 
   for(ig = filterstack; !filter && ig; ig = ig->next) {
-    int fpos = sprintf(fpattern, "%s/", ig->path);
+    int fpos = sprintf(xpattern, "%s/", ig->path);
 
     for(p = ig->remove; p != NULL; p = p->next) {
       if (p->relative) {
@@ -146,8 +156,8 @@ int filtercheck(char *path, char *name, int isdir)
 	  break;
 	}
       } else {
-	sprintf(fpattern + fpos, "%s", p->pattern);
-	if (patmatch(path, fpattern, isdir) == 1) {
+	sprintf(xpattern + fpos, "%s", p->pattern);
+	if (patmatch(path, xpattern, isdir) == 1) {
 	  filter = 1;
 	  break;
 	}
@@ -157,14 +167,14 @@ int filtercheck(char *path, char *name, int isdir)
   if (!filter) return 0;
 
   for(ig = filterstack; ig; ig = ig->next) {
-    int fpos = sprintf(fpattern, "%s/", ig->path);
+    int fpos = sprintf(xpattern, "%s/", ig->path);
 
     for(p = ig->reverse; p != NULL; p = p->next) {
       if (p->relative) {
 	if (patmatch(name, p->pattern, isdir) == 1) return 0;
       } else {
-	sprintf(fpattern + fpos, "%s", p->pattern);
-	if (patmatch(path, fpattern, isdir) == 1) return 0;
+	sprintf(xpattern + fpos, "%s", p->pattern);
+	if (patmatch(path, xpattern, isdir) == 1) return 0;
       }
     }
   }

@@ -1,3 +1,24 @@
+Version 2.1.1 (05/31/2023)
+  - Various spelling corrections.
+  - Fix issue where following links while doing JSON output would lead to
+    incorrect JSON output. (simonpmind)
+  - Fix issue where .info patterns relative to the .info file that did not use
+    a wildcard for matching the prefix were not matching files properly.
+    (German Lashevich)
+  - Added support for making trees from tab indented files (--fromtabfile)
+    (gitlab @AvidSeeker), also cleaned up some other issues in the fromfile
+    code.
+  - Fix buffer overflow in listdir() when file names are allowed to be longer
+    than 256 characters (like when using fromfile.) (Javier Jaramago Fernández)
+  - If when attempting to open a .gitignore or .info file from a top level
+    directory and failing, recursively check the parents for such a file.  This
+    stops when successful at opening such a file. This behavior might in the
+    future be modified to open all such files in all parents to until root is
+    reached. (Damien Bezborodov) Note that this requires the use of realpath()
+    which I think may be an issue for some OSes.
+  - Fix issue where tree would never descend (-l) a symbolic link when a full
+    tree is gathered (--du/matchdirs/prune) (gitlab @6ramr)
+
 Version 2.1.0 (12/26/2022)
   This is a bit bigger release, due to not realizing that gitlab/github was
   not sending me email and ice+tree@mama.indstate.edu was broken.  This has

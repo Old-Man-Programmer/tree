@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 
 #include "tree.h"
 
-char *version = "$Version: $ tree v2.1.0 %s 1996 - 2022 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion= "\t\t tree v2.1.0 %s 1996 - 2022 by Steve Baker and Thomas Moore <br>\n"
+char *version = "$Version: $ tree v2.1.1 %s 1996 - 2023 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion= "\t\t tree v2.1.1 %s 1996 - 2023 by Steve Baker and Thomas Moore <br>\n"
 		"\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		"\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		"\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -53,6 +53,8 @@ char *sLevel, *curdir;
 FILE *outfile = NULL;
 int Level, *dirs, maxdirs;
 int errors;
+
+char xpattern[PATH_MAX];
 
 int mb_cur_max;
 
@@ -451,6 +453,12 @@ int main(int argc, char **argv)
 	      }
 	      break;
 	    }
+	    if (!strcmp("--fromtabfile", argv[i])) {
+	      j = strlen(argv[i])-1;
+	      fromfile=TRUE;
+	      getfulltree = tabedfile_getfulltree;
+	      break;
+	    }
 	    if (!strcmp("--fromfile",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      fromfile=TRUE;
@@ -464,7 +472,7 @@ int main(int argc, char **argv)
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--gitfile")) != NULL) {
 	      gitignore=TRUE;
-	      ig = new_ignorefile(arg);
+	      ig = new_ignorefile(arg, FALSE);
 	      if (ig != NULL) push_filterstack(ig);
 	      else {
 		fprintf(stderr,"tree: Could not load gitignore file\n");
@@ -484,7 +492,7 @@ int main(int argc, char **argv)
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--infofile")) != NULL) {
 	      showinfo = TRUE;
-	      inf = new_infofile(arg);
+	      inf = new_infofile(arg, FALSE);
 	      if (inf != NULL) push_infostack(inf);
 	      else {
 		fprintf(stderr,"tree: Could not load infofile\n");
@@ -551,11 +559,11 @@ int main(int argc, char **argv)
   if (gitignore && (stmp = getenv("GIT_DIR"))) {
     char *path = xmalloc(PATH_MAX);
     snprintf(path, PATH_MAX, "%s/info/exclude", stmp);
-    push_filterstack(new_ignorefile(path));
+    push_filterstack(new_ignorefile(path, FALSE));
     free(path);
   }
   if (showinfo) {
-    push_infostack(new_infofile(INFO_PATH));
+    push_infostack(new_infofile(INFO_PATH, FALSE));
   }
 
   needfulltree = duflag || pruneflag || matchdirs || fromfile;
@@ -607,8 +615,8 @@ void usage(int n)
 	"\t[--nolinks] [--hintro[=]file] [--houtro[=]file] [--inodes] [--device]\n"
 	"\t[--sort[=]<name>] [--dirsfirst] [--filesfirst] [--filelimit #] [--si]\n"
 	"\t[--du] [--prune] [--charset[=]X] [--timefmt[=]format] [--fromfile]\n"
-	"\t[--fflinks] [--info] [--infofile[=]file] [--noreport] [--version]\n"
-	"\t[--help] [--] [directory ...]\n");
+	"\t[--fromtabfile] [--fflinks] [--info] [--infofile[=]file] [--noreport]\n"
+	"\t[--version] [--help] [--] [directory ...]\n");
 
   if (n < 2) return;
   fprintf(stdout,
@@ -675,7 +683,8 @@ void usage(int n)
 	"  --houtro X    Use file X as the HTML outro.\n"
 	"  ------- Input options -------\n"
 	"  --fromfile    Reads paths from files (.=stdin)\n"
-	"  --fflinks     Process link informtion when using --fromfile.\n"
+	"  --fromtabfile Reads trees from tab indented files (.=stdin)\n"
+	"  --fflinks     Process link information when using --fromfile.\n"
 	"  ------- Miscellaneous options -------\n"
 	"  --version     Print version and exit.\n"
 	"  --help        Print usage and this help message and exit.\n"
@@ -855,14 +864,14 @@ struct _info **read_dir(char *dir, int *n, int infotop)
   return dl;
 }
 
-void push_files(char *dir, struct ignorefile **ig, struct infofile **inf)
+void push_files(char *dir, struct ignorefile **ig, struct infofile **inf, bool top)
 {
   if (gitignore) {
-    *ig = new_ignorefile(dir);
+    *ig = new_ignorefile(dir, top);
     if (*ig != NULL) push_filterstack(*ig);
   }
   if (showinfo) {
-    *inf = new_infofile(dir);
+    *inf = new_infofile(dir, top);
     if (*inf != NULL) push_infostack(*inf);
   }
 }
@@ -909,7 +918,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
     }
   }
 
-  push_files(d, &ig, &inf);
+  push_files(d, &ig, &inf, lev==0);
 
   sav = dir = read_dir(d, &n, inf != NULL);
   if (tmp_pattern) {

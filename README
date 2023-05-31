@@ -9,7 +9,7 @@ handy to peruse a directory tree though, especially when someone is trying to
 hide something from you.
 
   The main distribution site for tree is here:
-  http://oldmanprogrammer.net/code.php?src=tree
+  http://oldmanprogrammer.net/source.php?dir=projects/tree
 
   Backup GIT sites are:
   https://gitlab.com/OldManProgrammer/unix-tree
@@ -303,6 +303,20 @@ Chentao Credungtao
 Sith Wijesinghe and Matthew Sessions
  - Remove many C90 isms to make compiling with C90 compilers easier.
 
+simonpmind (gitlab)
+ - Reported issue where following links while doing JSON output would lead to
+   incorrect JSON output.
+
+German Lashevich
+ - Reported an issue where .info patterns relative to the .info file that did
+   not use a wildcard for matching the prefix were not matching files properly.
+
+Javier Jaramago Fernández
+ - Reported a buffer overflow in listdir() when file names are allowed to be
+   longer than 256 characters (like when using fromfile.)
+
+6ramr (gitlab)
+ - Reported issue with following symbolic links when a full tree was gathered.
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

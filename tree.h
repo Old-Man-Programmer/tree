@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2022 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 #  include <os2.h>
 #  include <sys/nls.h>
 #  include <io.h>
-  /* On many systems stat() function is idential to lstat() function.
+  /* On many systems stat() function is identical to lstat() function.
    * But the OS/2 does not support symbolic links and doesn't have lstat() function.
    */
 #  define         lstat          stat
@@ -191,7 +191,7 @@ struct infofile {
 void setoutput(char *filename);
 void print_version(int nl);
 void usage(int);
-void push_files(char *dir, struct ignorefile **ig, struct infofile **inf);
+void push_files(char *dir, struct ignorefile **ig, struct infofile **inf, bool top);
 int patignore(char *name, int isdir);
 int patinclude(char *name, int isdir);
 struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
@@ -286,17 +286,18 @@ void saveino(ino_t, dev_t);
 
 /* file.c */
 struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
+struct _info **tabedfile_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 
 /* filter.c */
 void gittrim(char *s);
 struct pattern *new_pattern(char *pattern);
 int filtercheck(char *path, char *name, int isdir);
-struct ignorefile *new_ignorefile(char *path);
+struct ignorefile *new_ignorefile(char *path, bool checkparents);
 void push_filterstack(struct ignorefile *ig);
 struct ignorefile *pop_filterstack(void);
 
 /* info.c */
-struct infofile *new_infofile(char *path);
+struct infofile *new_infofile(char *path, bool checkparents);
 void push_infostack(struct infofile *inf);
 struct infofile *pop_infostack(void);
 struct comment *infocheck(char *path, char *name, int top, int isdir);
