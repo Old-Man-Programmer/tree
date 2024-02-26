@@ -308,6 +308,6 @@ void new_emit_unix(char **dirname, bool needfulltree);
 
 
 /* We use the strverscmp.c file if we're not linux: */
-#ifndef __linux__
+#if !defined(__linux__) || defined(__ANDROID__)
 int strverscmp (const char *s1, const char *s2);
 #endif
