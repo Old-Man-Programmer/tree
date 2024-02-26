@@ -1,7 +1,7 @@
 /* Compare strings while treating digits characters numerically.
    Copyright (C) 1997, 2002, 2005 Free Software Foundation, Inc.
    This file is part of the libiberty library.
-   Contributed by Jean-FranÁois Bignolles <bignolle@ecoledoc.ibp.fr>, 1997.
+   Contributed by Jean-FranÈèæis Bignolles <bignolle@ecoledoc.ibp.fr>, 1997.
 
    Libiberty is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -21,7 +21,7 @@
 /* #include "libiberty.h" */
 /* #include "safe-ctype.h" */
 #include <ctype.h>
-#ifndef __linux__
+#if !defined(__linux__) || defined(__ANDROID__)
 
 /* 
 @deftypefun int strverscmp (const char *@var{s1}, const char *@var{s2})
