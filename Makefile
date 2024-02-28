@@ -120,6 +120,7 @@ $(OBJS): %.o:	%.c tree.h
 
 clean:
 	rm -f $(TREE_DEST) *.o *~
+	$(MAKE) clean -C tests
 
 install: tree
 	$(INSTALL) -d $(DESTDIR)
@@ -132,3 +133,7 @@ distclean:
 
 dist:	distclean
 	tar zcf ../tree-$(VERSION).tgz -C .. `cat .tarball`
+
+.PHONY: check
+check:	tree
+	$(MAKE) -C tests

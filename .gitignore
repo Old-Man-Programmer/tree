@@ -3,3 +3,4 @@
 tree
 *~
 /work
+tests/*/actual
