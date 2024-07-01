@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,8 @@
 
 #include "tree.h"
 
-char *version = "$Version: $ tree v2.1.1 %s 1996 - 2023 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion= "\t\t tree v2.1.1 %s 1996 - 2023 by Steve Baker and Thomas Moore <br>\n"
+char *version = "$Version: $ tree v2.1.2 %s 1996 - 2023 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion= "\t\t tree v2.1.2 %s 1996 - 2023 by Steve Baker and Thomas Moore <br>\n"
 		"\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		"\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		"\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -551,6 +551,7 @@ int main(int argc, char **argv)
     dirname[1] = NULL;
   }
   if (topsort == NULL) topsort = basesort;
+  if (basesort == NULL) topsort = NULL;
   if (timefmt) setlocale(LC_TIME,"");
   if (dflag) pruneflag = FALSE;  /* You'll just get nothing otherwise. */
   if (Rflag && (Level == -1)) Rflag = FALSE;

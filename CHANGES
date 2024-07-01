@@ -1,3 +1,23 @@
+Version 2.1.2 (07/01/2024)
+  - Fix issue where --gitignore does not think a pattern with a singular
+    terminal '/' (indicating it matches only directories,) is a relative path.
+    (Clinton)
+  - Don't emit the error 'recursive, not followed' if when using -L, the depth
+    would prevent descending anyway. This also fixes up a JSON output error 
+    (missing comma) when this happens. (simonpmind)
+  - Don't prematurely sort files/directories with --from*file. (gitlab @jack6th)
+  - Various seg-faults fixed (Hanqin Guan (The OSLab of Peking University)):
+    - Make doubly sure that there is actually a previous path entry when reading
+      from a tabbed file.
+    - Make sure there is actually a file entity when applying the link info to
+      it when reading fromfile using --fflinks.
+    - Increase space for the path a little in listdir(), just to be sure.
+    - Make sure that there is no topsort (--dirsfirst / --filesfirst) if there
+      is no basesort (-U).
+    - Make sure gittrim() function can handle a null string.
+  - Update email address to steve.baker.llc@gmail.com from ice@mama.indstate.edu
+    which has been permanently disabled.
+
 Version 2.1.1 (05/31/2023)
   - Various spelling corrections.
   - Fix issue where following links while doing JSON output would lead to

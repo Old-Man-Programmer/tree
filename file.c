@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -77,19 +77,15 @@ struct _info *newent(char *name) {
 struct _info *search(struct _info **dir, char *name)
 {
   struct _info *ptr, *prev, *n;
-  int cmp;
 
   if (*dir == NULL) return (*dir = newent(name));
 
+  /* FIXME: Add a end pointer to the end of *dir somehow */
   for(prev = ptr = *dir; ptr != NULL; ptr=ptr->next) {
-    cmp = strcmp(ptr->name,name);
-    if (cmp == 0) return ptr;
-    if (cmp > 0) break;
     prev = ptr;
   }
   n = newent(name);
-  n->next = ptr;
-  if (prev == ptr) *dir = n;
+  if (prev == ptr) *dir = n;	/* Already taken care of above */
   else prev->next = n;
   return n;
 }
@@ -231,7 +227,7 @@ struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
       }
     } while (tok != T_FILE && tok != T_EOP);
 
-    if (link) {
+    if (ent && link) {
       ent->isdir = 0;
       ent->mode = S_IFLNK;
       ent->lnk = scopy(link);
@@ -281,7 +277,7 @@ struct _info **tabedfile_getfulltree(char *d, u_long lev, dev_t dev, off_t *size
       *link = '\0';
       link += 4;
     }
-    if (tabs-1 > top) {
+    if ((tabs-1 > top) || (istack[tabs-1] == NULL)) {
 	fprintf(stderr, "tree: Orphaned file [%s] on line %d, check tab depth in file.\n", spath, line);
 	continue;
     }

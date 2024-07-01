@@ -19,6 +19,8 @@ hide something from you.
   http://mama.indstate.edu/users/ice/tree/
   ftp://mama.indstate.edu/linux/tree/
 
+  Current e-mail address to reach me at: steve.baker.llc@gmail.com
+
   If you don't like the way it looks let me know how you think it should be
 formatted. Feel free to suggest modifications and additions.
 
@@ -317,6 +319,23 @@ Javier Jaramago Fernández
 
 6ramr (gitlab)
  - Reported issue with following symbolic links when a full tree was gathered.
+
+Clinton
+ - Reported issue where --gitignore does not think a pattern with a singular
+   terminal '/' (indicating it matches only directories,) is a relative path.
+
+simonpmind
+ - Suggested suppressing 'recursive, not followed' when using -L, fixing JSON
+   error.
+
+gitlab @jack6th
+ - Don't prematurely sort files/directories with --from*file.
+
+Hanqin Guan (The OSLab of Peking University):
+ - Fuzzing testing that identified several problems in --fromfile and
+   --fromtabfile processing.
+ - -U should disable --dirsfirst / --filesfirst sorting.
+ - Make sure gittrim() function can handle a null string.
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

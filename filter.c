@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ void gittrim(char *s)
 {
   int i, e = strlen(s)-1;
 
+  if (e < 0) return;
   if (s[e] == '\n') e--;
 
   for(i = e; i >= 0; i--) {
@@ -42,8 +43,11 @@ void gittrim(char *s)
 struct pattern *new_pattern(char *pattern)
 {
   struct pattern *p = xmalloc(sizeof(struct pattern));
+  char *sl;
+
   p->pattern = scopy(pattern + ((pattern[0] == '/')? 1 : 0));
-  p->relative = (strchr(pattern,'/') == NULL);
+  sl = strchr(pattern, '/');
+  p->relative = (sl == NULL || (sl && !*(sl+1)));
   p->next = NULL;
   return p;
 }

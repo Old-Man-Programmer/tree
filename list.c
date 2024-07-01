@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ extern int (*topsort)();
 extern FILE *outfile;
 extern int flimit, Level, *dirs, maxdirs, errors;
 extern int htmldirlen;
+extern char *host;
 
 extern bool colorize, linktargetcolor;
 extern char *endcode;
@@ -92,7 +93,7 @@ void emit_tree(char **dirname, bool needfulltree)
       lc.printinfo(dirname[i], info, 0);
     } else info = NULL;
 
-    needsclosed = lc.printfile(NULL, dirname[i], info, (dir != NULL) || (!dir && n));
+    needsclosed = lc.printfile(dirname[i], dirname[i], info, (dir != NULL) || (!dir && n));
     subtotal = (struct totals){0, 0, 0};
     if (duflag) subtotal.size = info? info->size : 0;
 
@@ -141,7 +142,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
   struct infofile *inf = NULL;
   struct _info **subdir = NULL;
   int namemax = 257, namelen;
-  int descend, htmldescend = 0, found, n, dirlen = strlen(dirname), pathlen = dirlen + 257;
+  int descend, htmldescend = 0, found, n, dirlen = strlen(dirname)+2, pathlen = dirlen + 257;
   int needsclosed;
   char *path, *newpath, *filename, *err = NULL;
 
@@ -193,6 +194,8 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	  }
 	  if (found) {
 	    err = "recursive, not followed";
+	    /* Not actually a problem if we weren't going to descend anyway: */
+	    if (Level >= 0 && lev > Level) err = NULL;
 	    descend = -1;
 	  }
 	}

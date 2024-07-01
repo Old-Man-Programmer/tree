@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2023 by Steve Baker
+# Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
 # All Rights reserved
 #
 # This program is free software; you can redistribute it and/or modify
@@ -21,7 +21,7 @@ PREFIX=/usr/local
 CC=gcc
 INSTALL=install
 
-VERSION=2.1.1
+VERSION=2.1.2
 TREE_DEST=tree
 DESTDIR=${PREFIX}/bin
 MAN=tree.1
@@ -32,8 +32,8 @@ OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o htm
 # Uncomment options below for your particular OS:
 
 # Linux defaults:
-CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
-#CFLAGS+=-O3 -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+#CFLAGS+=-ggdb -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+CFLAGS+=-O3 -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 #LDFLAGS+=-s
 
 # Uncomment for FreeBSD:

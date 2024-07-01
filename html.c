@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2023 by Steve Baker (ice@mama.indstate.edu)
+ * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -208,14 +208,17 @@ int html_printfile(char *dirname, char *filename, struct _info *file, int descen
     if (!nolinks) {
       fprintf(outfile," href=\"%s",host);
       if (dirname != NULL) {
-	int len = strlen(dirname);
-	int off = (len >= htmldirlen? htmldirlen : 0);
-	url_encode(outfile, dirname + off);
-	putc('/',outfile);
-	url_encode(outfile, filename);
-	fprintf(outfile,"%s%s\"",(descend > 1? "/00Tree.html" : ""), (file->isdir?"/":""));
+	if (host[strlen(host)-1] != '/') putc('/', outfile);
+	url_encode(outfile, dirname);
+	if (strcmp(dirname, filename) != 0) {
+	  if (dirname[strlen(dirname)-1] != '/') putc('/', outfile);
+	  url_encode(outfile, filename);
+	}
+	fprintf(outfile,"%s%s\"",(descend > 1? "/00Tree.html" : ""), (file->isdir && descend < 2?"/":""));
       } else {
-	fprintf(outfile,"%s/\"",(descend > 1? "/00Tree.html" : ""));
+	if (host[strlen(host)-1] != '/') putc('/', outfile);
+	url_encode(outfile, filename);
+	fprintf(outfile,"%s\"",(descend > 1? "/00Tree.html" : ""));
       }
     }
   }
