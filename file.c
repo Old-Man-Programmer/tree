@@ -77,15 +77,19 @@ struct _info *newent(char *name) {
 struct _info *search(struct _info **dir, char *name)
 {
   struct _info *ptr, *prev, *n;
+  int cmp;
 
   if (*dir == NULL) return (*dir = newent(name));
 
-  /* FIXME: Add a end pointer to the end of *dir somehow */
+  /* Don't insertion sort, let fprune() do the sort if necessary */
   for(prev = ptr = *dir; ptr != NULL; ptr=ptr->next) {
+    cmp = strcmp(ptr->name,name);
+    if (cmp == 0) return ptr;
     prev = ptr;
   }
   n = newent(name);
-  if (prev == ptr) *dir = n;	/* Already taken care of above */
+  n->next = ptr;
+  if (prev == ptr) *dir = n;
   else prev->next = n;
   return n;
 }

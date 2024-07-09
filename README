@@ -270,6 +270,9 @@ Maxim Cournoyer
 
 Kenta Arai
  - Reported Segfault with --filelimit option
+ - Add NULL guard for json_printinfo() and xml_printinfo() (and fix ftype
+   printing for XML)
+ - Fix getcharset() to not return a getenv() pointer.
 
 Ben Brown
  - Updates to the Makefile
@@ -284,11 +287,6 @@ Saniya Maheshwari / Mig-hub ? / Carlos Pinto
 Piotr Andruszkow
  - Suggested adding support for --info and --gitignore for the --fromfile
    option.
-
-Kenta Arai
- - Add NULL guard for json_printinfo() and xml_printinfo() (and fix ftype
-   printing for XML)
- - Fix getcharset() to not return a getenv() pointer.
 
 Sebastian Rose
  - Another attempt at fixing extraneous /'s in HTML URLs/output.
@@ -308,6 +306,8 @@ Sith Wijesinghe and Matthew Sessions
 simonpmind (gitlab)
  - Reported issue where following links while doing JSON output would lead to
    incorrect JSON output.
+ - Suggested suppressing 'recursive, not followed' when using -L, fixing JSON
+   error.
 
 German Lashevich
  - Reported an issue where .info patterns relative to the .info file that did
@@ -324,10 +324,6 @@ Clinton
  - Reported issue where --gitignore does not think a pattern with a singular
    terminal '/' (indicating it matches only directories,) is a relative path.
 
-simonpmind
- - Suggested suppressing 'recursive, not followed' when using -L, fixing JSON
-   error.
-
 gitlab @jack6th
  - Don't prematurely sort files/directories with --from*file.
 
@@ -336,6 +332,9 @@ Hanqin Guan (The OSLab of Peking University):
    --fromtabfile processing.
  - -U should disable --dirsfirst / --filesfirst sorting.
  - Make sure gittrim() function can handle a null string.
+
+Trevor Gross
+ - Suggested adding support for immediate values to -L with no spacing.
 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.

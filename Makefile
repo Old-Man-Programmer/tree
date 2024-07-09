@@ -21,7 +21,7 @@ PREFIX=/usr/local
 CC=gcc
 INSTALL=install
 
-VERSION=2.1.2
+VERSION=2.1.3
 TREE_DEST=tree
 DESTDIR=${PREFIX}/bin
 MAN=tree.1

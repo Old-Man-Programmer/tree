@@ -18,8 +18,8 @@
 
 #include "tree.h"
 
-char *version = "$Version: $ tree v2.1.2 %s 1996 - 2023 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion= "\t\t tree v2.1.2 %s 1996 - 2023 by Steve Baker and Thomas Moore <br>\n"
+char *version = "$Version: $ tree v2.1.3 %s 1996 - 2024 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion= "\t\t tree v2.1.3 %s 1996 - 2024 by Steve Baker and Thomas Moore <br>\n"
 		"\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		"\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		"\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -333,9 +333,18 @@ int main(int argc, char **argv)
 	  Rflag = TRUE;
 	  break;
 	case 'L':
-	  if ((sLevel = argv[n++]) == NULL) {
-	    fprintf(stderr,"tree: Missing argument to -L option.\n");
-	    exit(1);
+	  if (isdigit(argv[i][j+1])) {
+	    for(k=0; (argv[i][j+1+k] != '\0') && (isdigit(argv[i][j+1+k])) && (k < PATH_MAX-1); k++) {
+	      xpattern[k] = argv[i][j+1+k];
+	    }
+	    xpattern[k] = '\0';
+	    j += k;
+	    sLevel = xpattern;
+	  } else {
+	    if ((sLevel = argv[n++]) == NULL) {
+	      fprintf(stderr,"tree: Missing argument to -L option.\n");
+	      exit(1);
+	    }
 	  }
 	  Level = strtoul(sLevel,NULL,0)-1;
 	  if (Level < 0) {

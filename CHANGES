@@ -1,3 +1,12 @@
+Version 2.1.3 (07/09/2024)
+  - Mostly a brown-paper bag release to fix the below regression and add a
+    feature I forgot to add.
+  - Fix regression in search() function that broke --fromfile (Florian Ernst)
+    (caused by removing too much code while fixing premature sort for
+    --fromfile)
+  - Allow the -L option to accept its parameter immediately (with no space)
+    instead of requiring it be the next option word. (Trevor Gross)
+
 Version 2.1.2 (07/01/2024)
   - Fix issue where --gitignore does not think a pattern with a singular
     terminal '/' (indicating it matches only directories,) is a relative path.
