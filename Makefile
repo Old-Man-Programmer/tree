@@ -89,6 +89,10 @@ CFLAGS+=-O3 -std=c11 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=6
 #LD=ld -d64
 #LDFLAGS+=-lc
 
+# Android NDK
+#CC=aarch64-linux-android26-clang # Need >= 26
+#CFLAGS+=-ggdb -std=c89 -pedantic -Wall -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wno-error=int-conversion
+
 #------------------------------------------------------------
 
 all:	tree
