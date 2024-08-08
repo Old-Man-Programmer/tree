@@ -30,6 +30,7 @@ bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
 bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag;
 bool noindent, force_color, nocolor, xdev, noreport, nolinks;
 bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
+bool hyperlinkflag;
 bool reverse, fflinks;
 int flimit;
 
@@ -135,7 +136,7 @@ int main(int argc, char **argv)
   Dflag = qflag = Nflag = Qflag = Rflag = hflag = Hflag = siflag = cflag = FALSE;
   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = FALSE;
   ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = FALSE;
-  duflag = pruneflag = metafirst = gitignore = FALSE;
+  duflag = pruneflag = metafirst = gitignore = hyperlinkflag = FALSE;
 
   flimit = 0;
   dirs = xmalloc(sizeof(int) * (maxdirs=PATH_MAX));
@@ -370,6 +371,11 @@ int main(int argc, char **argv)
 	      usage(2);
 	      exit(0);
 	    }
+	    if (!strcmp("--hyperlink", argv[i])) {
+	      j = strlen(argv[i])-1;
+	      hyperlinkflag = TRUE;
+	      break;
+	    }
 	    if (!strcmp("--version",argv[i])) {
 	      j = strlen(argv[i])-1;
 	      showversion = TRUE;
@@ -545,6 +551,7 @@ int main(int argc, char **argv)
 
   setoutput(outfilename);
 
+  osc8_setup();
   parse_dir_colors();
   initlinedraw(0);
   
@@ -622,11 +629,11 @@ void usage(int n)
 	"usage: tree [-acdfghilnpqrstuvxACDFJQNSUX] [-L level [-R]] [-H  baseHREF]\n"
 	"\t[-T title] [-o filename] [-P pattern] [-I pattern] [--gitignore]\n"
 	"\t[--gitfile[=]file] [--matchdirs] [--metafirst] [--ignore-case]\n"
-	"\t[--nolinks] [--hintro[=]file] [--houtro[=]file] [--inodes] [--device]\n"
-	"\t[--sort[=]<name>] [--dirsfirst] [--filesfirst] [--filelimit #] [--si]\n"
-	"\t[--du] [--prune] [--charset[=]X] [--timefmt[=]format] [--fromfile]\n"
-	"\t[--fromtabfile] [--fflinks] [--info] [--infofile[=]file] [--noreport]\n"
-	"\t[--version] [--help] [--] [directory ...]\n");
+	"\t[--nolinks] [--hyperlink] [--hintro[=]file] [--houtro[=]file]\n"
+	"\t[--inodes] [--device] [--sort[=]<name>] [--dirsfirst] [--filesfirst]\n"
+	"\t[--filelimit #] [--si] [--du] [--prune] [--charset[=]X] [--timefmt[=]format]"
+	"\t[--fromfile] [--fromtabfile] [--fflinks] [--info] [--infofile[=]file]\n"
+	"\t[--noreport] [--version] [--help] [--] [directory ...]\n");
 
   if (n < 2) return;
   fprintf(stdout,
@@ -683,6 +690,7 @@ void usage(int n)
 	"  -S            Print with CP437 (console) graphics indentation lines.\n"
 	"  -n            Turn colorization off always (-C overrides).\n"
 	"  -C            Turn colorization on always.\n"
+	" --hyperlink    Turn OSC8 hyperlinks on.\n"
 	"  ------- XML/HTML/JSON options -------\n"
 	"  -X            Prints out an XML representation of the tree.\n"
 	"  -J            Prints out an JSON representation of the tree.\n"

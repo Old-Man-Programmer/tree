@@ -27,7 +27,7 @@ DESTDIR=${PREFIX}/bin
 MAN=tree.1
 # Probably needs to be ${PREFIX}/share/man for most systems now
 MANDIR=${PREFIX}/man
-OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o html.o strverscmp.o
+OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o html.o strverscmp.o osc8.o
 
 # Uncomment options below for your particular OS:
 

@@ -306,6 +306,10 @@ void printcomment(int line, int lines, char *s);
 /* list.c */
 void new_emit_unix(char **dirname, bool needfulltree);
 
+/* osc8.c */
+int print_osc8(const char* dirname, char* filename);
+void osc8_setup();
+void endosc8();
 
 /* We use the strverscmp.c file if we're not linux: */
 #ifndef __linux__

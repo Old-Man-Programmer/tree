@@ -18,10 +18,11 @@
 #include "tree.h"
 
 extern FILE *outfile;
-extern bool dflag, Fflag, duflag, metafirst, hflag, siflag, noindent;
+extern bool dflag, Fflag, duflag, metafirst, hflag, siflag, noindent, hyperlinkflag;
 extern bool colorize, linktargetcolor;
 extern const struct linedraw *linedraw;
 extern int *dirs;
+extern bool osc8_enabled;
 
 static char info[512] = {0};
 
@@ -42,6 +43,9 @@ int unix_printfile(char *dirname, char *filename, struct _info *file, int descen
 {
   int colored = FALSE, c;
 
+  if (osc8_enabled)
+    print_osc8(dirname, filename);
+
   if (file && colorize) {
     if (file->lnk && linktargetcolor) colored = color(file->lnkmode,file->name,file->orphan,FALSE);
     else colored = color(file->mode,file->name,file->orphan,FALSE);
@@ -50,6 +54,7 @@ int unix_printfile(char *dirname, char *filename, struct _info *file, int descen
   printit(filename);
 
   if (colored) endcolor();
+  if (osc8_enabled) endosc8();
 
   if (file) {
     if (Fflag && !file->lnk) {

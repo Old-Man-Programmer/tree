@@ -35,6 +35,7 @@ tree \- list contents of directories in a tree-like format.
 [\fB--metafirst\fP]
 [\fB--ignore-case\fP]
 [\fB--nolinks\fP]
+[\fB--hyperlink\fP]
 [\fB--hintro\fP[\fB=\fP]\fIfile\fP]
 [\fB--houtro\fP[\fB=\fP]\fIfile\fP]
 [\fB--inodes\fP]
@@ -339,6 +340,11 @@ Turn colorization on always, using built-in color defaults if the LS_COLORS or
 TREE_COLORS environment variables are not set.  Useful to colorize output to a
 pipe.
 .PP
+.TP
+.B --hyperlink
+Turn OSC 8 hyperlinks on. This will emit an Operating System Command 8 sequence for 
+each filename. This creates a hyperlink that the terminal emulator is than able to expose
+to the user to interact with.
 
 .SH XML/JSON/HTML OPTIONS
 
@@ -452,6 +458,8 @@ share the same comment.
 \fBTREE_COLORS\fP	Uses this for color information over LS_COLORS if it is set.
 .br
 \fBTREE_CHARSET\fP	Character set for tree to use in HTML mode.
+.br
+\fBTREE_OSC8_HOST\fP	Enables OSC 8 hyperlinks and set the hostname to the variables's value.
 .br
 \fBCLICOLOR\fP		Enables colorization even if TREE_COLORS or LS_COLORS is not set.
 .br
