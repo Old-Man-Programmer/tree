@@ -15,10 +15,6 @@ hide something from you.
   https://gitlab.com/OldManProgrammer/unix-tree
   https://github.com/Old-Man-Programmer/tree
 
-  Old site for as long as it lasts:
-  http://mama.indstate.edu/users/ice/tree/
-  ftp://mama.indstate.edu/linux/tree/
-
   Current e-mail address to reach me at: steve.baker.llc@gmail.com
 
   If you don't like the way it looks let me know how you think it should be
@@ -268,12 +264,6 @@ Josey Smith
 Maxim Cournoyer
  - Reported HTML url output issue w/ 2.0.0-2.0.1
 
-Kenta Arai
- - Reported Segfault with --filelimit option
- - Add NULL guard for json_printinfo() and xml_printinfo() (and fix ftype
-   printing for XML)
- - Fix getcharset() to not return a getenv() pointer.
-
 Ben Brown
  - Updates to the Makefile
  - Reported use after free error
@@ -324,7 +314,7 @@ Clinton
  - Reported issue where --gitignore does not think a pattern with a singular
    terminal '/' (indicating it matches only directories,) is a relative path.
 
-gitlab @jack6th
+jack6th (gitlab)
  - Don't prematurely sort files/directories with --from*file.
 
 Hanqin Guan (The OSLab of Peking University):
@@ -336,8 +326,39 @@ Hanqin Guan (The OSLab of Peking University):
 Trevor Gross
  - Suggested adding support for immediate values to -L with no spacing.
 
+Christoph Anton Mitterer
+ - Suggested option negation, which led to --opt-toggle.
+
+Nicolai Dagestad
+ - Suggested --hyperlink option.
+
+Alchemyst (github)
+ - Reported JSON error when using the --du option and unable to open a
+   directory.
+ - Reported that the reported total was incorrect when using the --du option.
+
+Ivan Ivanovich
+ - Reported small rounding error in human readable size output.
+
+Kenta Arai
+ - Reported Segfault with --filelimit option
+ - Add NULL guard for json_printinfo() and xml_printinfo() (and fix ftype
+   printing for XML)
+ - Fix getcharset() to not return a getenv() pointer.
+ - Suggest adding .gitignore file to the distribution.
+ - Clean up some warnings issued by -Wextra
+
+freemedom (github)
+ - Provided Makefile information for cross compiling for Android.
+
+David Seifert
+ - Provided updates for Makefile
+ - Suggested move to stdbool.h to avoid problems with newer compilers.
+
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
 
 					- Steve Baker
+					  Steve.Baker.llc@gmail.com
+					  or
 					  oldmanprogrammer.llc@gmail.com

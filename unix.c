@@ -19,14 +19,19 @@
 
 extern FILE *outfile;
 extern bool dflag, Fflag, duflag, metafirst, hflag, siflag, noindent;
-extern bool colorize, linktargetcolor;
+extern bool colorize, linktargetcolor, hyperflag;
 extern const struct linedraw *linedraw;
 extern int *dirs;
-
+extern char *scheme, *authority;
 static char info[512] = {0};
+
+extern char realbasepath[PATH_MAX], xpattern[PATH_MAX];
+extern size_t dirpathoffset;
 
 int unix_printinfo(char *dirname, struct _info *file, int level)
 {
+  UNUSED(dirname);
+
   fillinfo(info, file);
   if (metafirst) {
     if (info[0] == '[') fprintf(outfile, "%s  ",info);
@@ -38,18 +43,41 @@ int unix_printinfo(char *dirname, struct _info *file, int level)
   return 0;
 }
 
+void open_hyperlink(char *dirname, char *filename)
+{
+  fprintf(outfile,"\033]8;;%s", scheme);
+  url_encode(outfile, authority);
+  url_encode(outfile, realbasepath);
+  url_encode(outfile, dirname+dirpathoffset);
+  fputc('/',outfile);
+  url_encode(outfile, filename);
+  fprintf(outfile,"\033\\");
+}
+
+void close_hyperlink(void)
+{
+  fprintf(outfile, "\033]8;;\033\\");
+}
+
 int unix_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
-  int colored = FALSE, c;
+  UNUSED(descend);
+
+  bool colored = false;
+  int c;
+
+  if (hyperflag) open_hyperlink(dirname, file->name);
 
   if (file && colorize) {
-    if (file->lnk && linktargetcolor) colored = color(file->lnkmode,file->name,file->orphan,FALSE);
-    else colored = color(file->mode,file->name,file->orphan,FALSE);
+    if (file->lnk && linktargetcolor) colored = color(file->lnkmode, file->name, file->orphan, false);
+    else colored = color(file->mode, file->name, file->orphan, false);
   }
 
   printit(filename);
 
   if (colored) endcolor();
+
+  if (hyperflag) close_hyperlink();
 
   if (file) {
     if (Fflag && !file->lnk) {
@@ -58,9 +86,11 @@ int unix_printfile(char *dirname, char *filename, struct _info *file, int descen
 
     if (file->lnk) {
       fprintf(outfile," -> ");
-      if (colorize) colored = color(file->lnkmode,file->lnk,file->orphan,TRUE);
+      if (hyperflag) open_hyperlink(dirname, file->name);
+      if (colorize) colored = color(file->lnkmode, file->lnk, file->orphan, true);
       printit(file->lnk);
       if (colored) endcolor();
+      if (hyperflag) close_hyperlink();
       if (Fflag) {
 	if ((c = Ftype(file->lnkmode))) fputc(c, outfile);
       }
@@ -77,16 +107,18 @@ int unix_error(char *error)
 
 void unix_newline(struct _info *file, int level, int postdir, int needcomma)
 {
+  UNUSED(needcomma);
+
   if (postdir <= 0) fprintf(outfile, "\n");
   if (file && file->comment) {
-    int infosize = 0, line, lines;
+    size_t infosize = 0, line, lines;
     if (metafirst) infosize = info[0] == '['? strlen(info)+2 : 0;
 
     for(lines = 0; file->comment[lines]; lines++);
     dirs[level+1] = 1;
     for(line = 0; line < lines; line++) {
       if (metafirst) {
-	printf("%*s", infosize, "");
+	printf("%*s", (int)infosize, "");
       }
       indent(level);
       printcomment(line, lines, file->comment[line]);

@@ -78,7 +78,7 @@ char *gidtoname(gid_t gid)
   return t->name;
 }
 
-/* Record inode numbers of followed sym-links to avoid refollowing them */
+/* Record inode numbers of followed sym-links to avoid re-following them */
 void saveino(ino_t inode, dev_t device)
 {
   struct inotable *it, *ip, *pp;
@@ -100,7 +100,7 @@ void saveino(ino_t inode, dev_t device)
   else pp->nxt = it;
 }
 
-int findino(ino_t inode, dev_t device)
+bool findino(ino_t inode, dev_t device)
 {
   struct inotable *it;
 
@@ -109,6 +109,6 @@ int findino(ino_t inode, dev_t device)
     if (it->inode == inode && it->device >= device) break;
   }
 
-  if (it && it->inode == inode && it->device == device) return TRUE;
-  return FALSE;
+  if (it && it->inode == inode && it->device == device) return true;
+  return false;
 }

@@ -17,17 +17,12 @@
  */
 #include "tree.h"
 
-extern bool dflag, Fflag, aflag, fflag, pruneflag, gitignore, showinfo;
-extern bool noindent, force_color, matchdirs, fflinks;
-extern bool reverse;
+extern bool dflag, aflag, pruneflag, gitignore, showinfo;
+extern bool matchdirs, fflinks;
 extern int pattern, ipattern;
 
-extern int (*topsort)();
+extern int (*topsort)(const struct _info **, const struct _info **);
 extern FILE *outfile;
-extern int Level, *dirs, maxdirs;
-
-extern bool colorize;
-extern char *endcode;
 
 extern char *file_comment, *file_pathsep;
 
@@ -64,7 +59,7 @@ char *nextpc(char **p, int *tok)
   return s;
 }
 
-struct _info *newent(char *name) {
+struct _info *newent(const char *name) {
   struct _info *n = xmalloc(sizeof(struct _info));
   memset(n,0,sizeof(struct _info));
   n->name = scopy(name);
@@ -73,15 +68,14 @@ struct _info *newent(char *name) {
   return n;
 }
 
-/* Should replace this with a Red-Black tree implementation or the like */
-struct _info *search(struct _info **dir, char *name)
+/* Don't insertion sort, let fprune() do the sort if necessary */
+struct _info *search(struct _info **dir, const char *name)
 {
   struct _info *ptr, *prev, *n;
   int cmp;
 
   if (*dir == NULL) return (*dir = newent(name));
 
-  /* Don't insertion sort, let fprune() do the sort if necessary */
   for(prev = ptr = *dir; ptr != NULL; ptr=ptr->next) {
     cmp = strcmp(ptr->name,name);
     if (cmp == 0) return ptr;
@@ -110,14 +104,15 @@ void freefiletree(struct _info *ent)
  * Recursively prune (unset show flag) files/directories of matches/ignored
  * patterns:
  */
-struct _info **fprune(struct _info *head, char *path, bool matched, bool root)
+struct _info **fprune(struct _info *head, const char *path, bool matched, bool root)
 {
   struct _info **dir, *new = NULL, *end = NULL, *ent, *t;
   struct comment *com;
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
   char *cur, *fpath = xmalloc(sizeof(char) * MAXPATH);
-  int i, show, count = 0;
+  size_t i, count = 0;
+  bool show;
 
   strcpy(fpath, path);
   cur = fpath + strlen(fpath);
@@ -129,27 +124,27 @@ struct _info **fprune(struct _info *head, char *path, bool matched, bool root)
     strcpy(cur, ent->name);
     if (ent->tchild) ent->isdir = 1;
 
-    show = 1;
-    if (dflag && !ent->isdir) show = 0;
-    if (!aflag && !root && ent->name[0] == '.') show = 0;
+    show = true;
+    if (dflag && !ent->isdir) show = false;
+    if (!aflag && !root && ent->name[0] == '.') show = false;
     if (show && !matched) {
       if (!ent->isdir) {
-	if (pattern && !patinclude(ent->name, 0)) show = 0;
-	if (ipattern && patignore(ent->name, 0)) show = 0;
+	if (pattern && !patinclude(ent->name, 0)) show = false;
+	if (ipattern && patignore(ent->name, 0)) show = false;
       }
       if (ent->isdir && show && matchdirs && pattern) {
-	if (patinclude(ent->name, 1)) matched = TRUE;
+	if (patinclude(ent->name, 1)) matched = true;
       }
     }
-    if (pruneflag && !matched && ent->isdir && ent->tchild == NULL) show = 0;
-    if (gitignore && filtercheck(path, ent->name, ent->isdir)) show = 0;
+    if (pruneflag && !matched && ent->isdir && ent->tchild == NULL) show = false;
+    if (gitignore && filtercheck(path, ent->name, ent->isdir)) show = false;
     if (show && showinfo && (com = infocheck(path, ent->name, inf != NULL, ent->isdir))) {
       for(i = 0; com->desc[i] != NULL; i++);
       ent->comment = xmalloc(sizeof(char *) * (i+1));
       for(i = 0; com->desc[i] != NULL; i++) ent->comment[i] = scopy(com->desc[i]);
       ent->comment[i] = NULL;
     }
-    if (show && ent->tchild != NULL) ent->child = fprune(ent->tchild, fpath, matched, FALSE);
+    if (show && ent->tchild != NULL) ent->child = fprune(ent->tchild, fpath, matched, false);
 
 
     t = ent;
@@ -171,7 +166,7 @@ struct _info **fprune(struct _info *head, char *path, bool matched, bool root)
   }
   dir[count] = NULL;
 
-  if (topsort) qsort(dir,count,sizeof(struct _info *),topsort);
+  if (topsort) qsort(dir,count,sizeof(struct _info *), (int (*)(const void *, const void *))topsort);
 
   if (ig != NULL) ig = pop_filterstack();
   if (inf != NULL) inf = pop_infostack();
@@ -182,10 +177,12 @@ struct _info **fprune(struct _info *head, char *path, bool matched, bool root)
 
 struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err)
 {
+  UNUSED(lev);UNUSED(dev);UNUSED(err);
   FILE *fp = (strcmp(d,".")? fopen(d,"r") : stdin);
   char *path, *spath, *s, *link;
   struct _info *root = NULL, **cwd, *ent;
-  int l, tok;
+  int tok;
+  size_t l;
 
   *size = 0;
   if (fp == NULL) {
@@ -211,7 +208,6 @@ struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
     ent = NULL;
     do {
       s = nextpc(&spath, &tok);
-      if (tok == T_PATHSEP) continue;
       switch(tok) {
 	case T_PATHSEP: continue;
 	case T_FILE:
@@ -242,15 +238,16 @@ struct _info **file_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
   free(path);
 
   /* Prune accumulated directory tree: */
-  return fprune(root, "", FALSE, TRUE);
+  return fprune(root, "", false, true);
 }
 
 struct _info **tabedfile_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err)
 {
+  UNUSED(lev);UNUSED(dev);UNUSED(err);
   FILE *fp = (strcmp(d,".")? fopen(d,"r") : stdin);
   char *path, *spath, *link;
   struct _info *root = NULL, **istack, *ent;
-  int line = 0, tabs, maxstack = 2048, top = 0, l;
+  size_t line = 0, l, tabs, top = 0, maxstack = 2048;
 
   *size = 0;
   if (fp == NULL) {
@@ -270,7 +267,7 @@ struct _info **tabedfile_getfulltree(char *d, u_long lev, dev_t dev, off_t *size
 
     for(tabs=0; path[tabs] == '\t'; tabs++);
     if (tabs >= maxstack) {
-      fprintf(stderr, "tree: Tab depth exceeds maximum path depth (%d >= %d) on line %d\n", tabs, maxstack, line);
+      fprintf(stderr, "tree: Tab depth exceeds maximum path depth (%ld >= %ld) on line %ld\n", tabs, maxstack, line);
       continue;
     }
 
@@ -281,9 +278,9 @@ struct _info **tabedfile_getfulltree(char *d, u_long lev, dev_t dev, off_t *size
       *link = '\0';
       link += 4;
     }
-    if ((tabs-1 > top) || (istack[tabs-1] == NULL)) {
-	fprintf(stderr, "tree: Orphaned file [%s] on line %d, check tab depth in file.\n", spath, line);
-	continue;
+    if (tabs > 0 && ((tabs-1 > top) || (istack[tabs-1] == NULL))) {
+      fprintf(stderr, "tree: Orphaned file [%s] on line %ld, check tab depth in file.\n", spath, line);
+      continue;
     }
     ent = istack[tabs] = search(tabs? &(istack[tabs-1]->tchild) : &root, spath);
     ent->mode = S_IFREG;
@@ -304,5 +301,5 @@ struct _info **tabedfile_getfulltree(char *d, u_long lev, dev_t dev, off_t *size
   free(istack);
 
   /* Prune accumulated directory tree: */
-  return fprune(root, "", FALSE, TRUE);
+  return fprune(root, "", false, true);
 }

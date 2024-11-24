@@ -54,6 +54,7 @@
 #include <langinfo.h>
 #include <wchar.h>
 #include <wctype.h>
+#include <stdbool.h>
 
 #ifdef __ANDROID
 #define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
@@ -81,11 +82,7 @@
 #define MINIT		30	/* number of dir entries to initially allocate */
 #define MINC		20	/* allocation increment */
 
-#ifndef TRUE
-typedef enum {FALSE=0, TRUE} bool;
-#else
-typedef int bool;
-#endif
+#define UNUSED(x)	((void)x)
 
 struct _info {
   char *name;
@@ -113,7 +110,7 @@ struct _info {
 
 /* list.c */
 struct totals {
-  u_long files, dirs;
+  size_t files, dirs;
   off_t size;
 };
 
@@ -142,12 +139,10 @@ struct inotable {
 };
 
 /* color.c */
-struct colortable {
-  char *term_flg, *CSS_name, *font_fg, *font_bg;
-};
 struct extensions {
   char *ext;
-  char *term_flg, *CSS_name, *web_fg, *web_bg, *web_extattr;
+  char *term_flg;
+  //char *CSS_name, *web_fg, *web_bg, *web_extattr;
   struct extensions *nxt;
 };
 struct linedraw {
@@ -188,14 +183,14 @@ struct infofile {
 
 /* Function prototypes: */
 /* tree.c */
-void setoutput(char *filename);
+void setoutput(const char *filename);
 void print_version(int nl);
 void usage(int);
-void push_files(char *dir, struct ignorefile **ig, struct infofile **inf, bool top);
-int patignore(char *name, int isdir);
-int patinclude(char *name, int isdir);
+void push_files(const char *dir, struct ignorefile **ig, struct infofile **inf, bool top);
+int patignore(const char *name, bool isdir);
+int patinclude(const char *name, bool isdir);
 struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
-struct _info **read_dir(char *dir, int *n, int infotop);
+struct _info **read_dir(char *dir, ssize_t *n, int infotop);
 
 int filesfirst(struct _info **, struct _info **);
 int dirsfirst(struct _info **, struct _info **);
@@ -208,8 +203,8 @@ int sizecmp(off_t a, off_t b);
 int fsizesort(struct _info **a, struct _info **b);
 
 void *xmalloc(size_t), *xrealloc(void *, size_t);
-char *gnu_getcwd();
-int patmatch(char *, char *, int);
+char *gnu_getcwd(void);
+int patmatch(const char *buf, const char *pat, bool isdir);
 void indent(int maxlevel);
 void free_dir(struct _info **);
 #ifdef __EMX__
@@ -218,11 +213,11 @@ char *prot(long);
 char *prot(mode_t);
 #endif
 char *do_date(time_t);
-void printit(char *);
+void printit(const char *);
 int psize(char *buf, off_t size);
 char Ftype(mode_t mode);
-struct _info *stat2info(struct stat *st);
-char *fillinfo(char *buf, struct _info *ent);
+struct _info *stat2info(const struct stat *st);
+char *fillinfo(char *buf, const struct _info *ent);
 
 /* list.c */
 void null_intro(void);
@@ -239,6 +234,7 @@ void unix_newline(struct _info *file, int level, int postdir, int needcomma);
 void unix_report(struct totals tot);
 
 /* html.c */
+void url_encode(FILE *fd, char *s);
 void html_intro(void);
 void html_outtro(void);
 int html_printinfo(char *dirname, struct _info *file, int level);
@@ -272,16 +268,17 @@ void json_close(struct _info *file, int level, int needcomma);
 void json_report(struct totals tot);
 
 /* color.c */
-void parse_dir_colors();
-int color(u_short mode, char *name, bool orphan, bool islink);
+void parse_dir_colors(void);
+bool color(mode_t mode, const char *name, bool orphan, bool islink);
 void endcolor(void);
+void fancy(FILE *out, char *s);
 const char *getcharset(void);
-void initlinedraw(int);
+void initlinedraw(bool flag);
 
 /* hash.c */
 char *uidtoname(uid_t uid);
 char *gidtoname(gid_t gid);
-int findino(ino_t, dev_t);
+bool findino(ino_t, dev_t);
 void saveino(ino_t, dev_t);
 
 /* file.c */
@@ -291,23 +288,23 @@ struct _info **tabedfile_getfulltree(char *d, u_long lev, dev_t dev, off_t *size
 /* filter.c */
 void gittrim(char *s);
 struct pattern *new_pattern(char *pattern);
-int filtercheck(char *path, char *name, int isdir);
-struct ignorefile *new_ignorefile(char *path, bool checkparents);
+bool filtercheck(const char *path, const char *name, int isdir);
+struct ignorefile *new_ignorefile(const char *path, bool checkparents);
 void push_filterstack(struct ignorefile *ig);
 struct ignorefile *pop_filterstack(void);
 
 /* info.c */
-struct infofile *new_infofile(char *path, bool checkparents);
+struct infofile *new_infofile(const char *path, bool checkparents);
 void push_infostack(struct infofile *inf);
 struct infofile *pop_infostack(void);
-struct comment *infocheck(char *path, char *name, int top, int isdir);
-void printcomment(int line, int lines, char *s);
+struct comment *infocheck(const char *path, const char *name, int top, bool isdir);
+void printcomment(size_t line, size_t lines, char *s);
 
 /* list.c */
 void new_emit_unix(char **dirname, bool needfulltree);
 
 
 /* We use the strverscmp.c file if we're not linux: */
-#ifndef __linux__
+#if !defined(__linux__) || defined(__ANDROID__)
 int strverscmp (const char *s1, const char *s2);
 #endif

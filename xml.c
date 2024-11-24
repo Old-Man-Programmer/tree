@@ -17,20 +17,16 @@
  */
 #include "tree.h"
 
-extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-extern bool Dflag, inodeflag, devflag, Rflag, cflag, duflag, siflag;
-extern bool noindent, force_color, xdev, nolinks, noreport;
-extern const char *charset;
 
-extern const int ifmt[];
-extern const char fmt[], *ftype[];
+extern bool dflag, pflag, sflag, uflag, gflag;
+extern bool Dflag, inodeflag, devflag, cflag, duflag;
+extern bool noindent;
+
+extern const char *charset;
+extern const mode_t ifmt[];
+extern const char *ftype[];
 
 extern FILE *outfile;
-extern int Level, *dirs, maxdirs, errors;
-
-extern char *endcode;
-
-extern struct listingcalls lc;
 
 /*
 <tree>
@@ -99,6 +95,8 @@ void xml_outtro(void)
 
 int xml_printinfo(char *dirname, struct _info *file, int level)
 {
+  UNUSED(dirname);
+
   mode_t mt;
   int t;
 
@@ -118,6 +116,8 @@ int xml_printinfo(char *dirname, struct _info *file, int level)
 
 int xml_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
+  UNUSED(dirname);UNUSED(descend);
+
   int i;
 
   fprintf(outfile, " name=\"");
@@ -153,11 +153,15 @@ int xml_error(char *error)
 
 void xml_newline(struct _info *file, int level, int postdir, int needcomma)
 {
+  UNUSED(file);UNUSED(level);UNUSED(needcomma);
+
   if (postdir >= 0) fprintf(outfile, "\n");
 }
 
 void xml_close(struct _info *file, int level, int needcomma)
 {
+  UNUSED(needcomma);
+
   if (!noindent && level >= 0) xml_indent(level);
   fprintf(outfile,"</%s>%s", file? file->tag : "unknown", noindent? "" : "\n");
 }

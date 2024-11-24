@@ -16,6 +16,8 @@ Should do:
 - Just incorporate the stat structure into _info, since we now need most of
   the structure anyway.
 
+- Move as many globals into a struct or structs to reduce namespace pollution.
+
 Maybe do:
 
 - With the addition of TREE_COLORS, add some custom options to perhaps colorize

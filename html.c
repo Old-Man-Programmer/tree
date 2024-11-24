@@ -17,21 +17,17 @@
  */
 #include "tree.h"
 
-extern char *version, *hversion;
-extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-extern bool Dflag, inodeflag, devflag, Rflag, duflag, hflag, siflag;
-extern bool noindent, force_color, xdev, nolinks, metafirst, noreport;
+
+extern bool duflag, dflag, hflag, siflag;
+extern bool metafirst, noindent, force_color, nolinks;
+
+extern char *hversion;
 extern char *host, *sp, *title, *Hintro, *Houtro;
 extern const char *charset;
 
 extern FILE *outfile;
-extern int Level, *dirs, maxdirs;
 
-extern bool colorize, linktargetcolor;
-extern char *endcode;
 extern const struct linedraw *linedraw;
-
-int htmldirlen = 0;
 
 char *class(struct _info *info)
 {
@@ -67,37 +63,19 @@ void html_encode(FILE *fd, char *s)
 
 void url_encode(FILE *fd, char *s)
 {
+  // Removes / from the reserved list:
+  static const char *reserved = "!#$&'()*+,:;=?@[]";
+
   for(;*s;s++) {
-    switch(*s) {
-      case ' ':
-      case '"':
-      case '#':
-      case '%':
-      case '<':
-      case '>':
-      case '[':
-      case ']':
-      case '^':
-      case '\\':
-      case '?':
-      case '+':
-	fprintf(fd,"%%%02X",*s);
-	break;
-      case '&':
-	fprintf(fd,"&amp;");
-	break;
-      default:
-	fprintf(fd,isprint((u_int)*s)?"%c":"%%%02X",(u_char)*s);
-	break;
-    }
+    fprintf(fd, (isprint((u_int)*s) && (strchr(reserved, *s) == NULL))? "%c":"%%%02X", *s);
   }
 }
 
-void fcat(char *filename)
+void fcat(const char *filename)
 {
   FILE *fp;
   char buf[PATH_MAX];
-  int n;
+  size_t n;
 
   if ((fp = fopen(filename, "r")) == NULL) return;
   while((n = fread(buf, sizeof(char), PATH_MAX, fp)) > 0) {
@@ -117,7 +95,7 @@ void html_intro(void)
 	" <meta http-equiv=\"Content-Type\" content=\"text/html; charset=%s\">\n"
 	" <meta name=\"Author\" content=\"Made by 'tree'\">\n"
 	" <meta name=\"GENERATOR\" content=\"", charset ? charset : "iso-8859-1");
-    print_version(FALSE);
+    print_version(false);
     fprintf(outfile, "\">\n"
 	" <title>%s</title>\n"
 	" <style type=\"text/css\">\n"
@@ -168,6 +146,8 @@ void html_print(char *s)
 
 int html_printinfo(char *dirname, struct _info *file, int level)
 {
+  UNUSED(dirname);
+
   char info[512];
 
   fillinfo(info,file);
@@ -239,11 +219,15 @@ int html_error(char *error)
 
 void html_newline(struct _info *file, int level, int postdir, int needcomma)
 {
+  UNUSED(file);UNUSED(level);UNUSED(postdir);UNUSED(needcomma);
+
   fprintf(outfile, "<br>\n");
 }
 
 void html_close(struct _info *file, int level, int needcomma)
 {
+  UNUSED(level);UNUSED(needcomma);
+
   fprintf(outfile, "</%s><br>\n", file->tag);
 }
 

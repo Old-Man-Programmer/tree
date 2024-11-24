@@ -17,17 +17,13 @@
  */
 #include "tree.h"
 
-extern bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-extern bool Dflag, inodeflag, devflag, Rflag, cflag, hflag, siflag, duflag;
-extern bool noindent, force_color, xdev, nolinks, noreport;
+extern bool dflag, pflag, sflag, uflag, gflag, Dflag, inodeflag, devflag;
+extern bool cflag, hflag, siflag, duflag, noindent;
 
-extern const int ifmt[];
-extern const char fmt[], *ftype[];
+extern const mode_t ifmt[];
+extern const char *ftype[];
 
 extern FILE *outfile;
-extern int Level, *dirs, maxdirs, errors;
-
-extern char *endcode;
 
 /*  JSON code courtesy of Florian Sesser <fs@it-agenten.com>
 [
@@ -115,6 +111,7 @@ void json_outtro(void)
 
 int json_printinfo(char *dirname, struct _info *file, int level)
 {
+  UNUSED(dirname);
   mode_t mt;
   int t;
 
@@ -134,6 +131,7 @@ int json_printinfo(char *dirname, struct _info *file, int level)
 
 int json_printfile(char *dirname, char *filename, struct _info *file, int descend)
 {
+  UNUSED(dirname);
   int i;
 
   fprintf(outfile, ",\"name\":\"");
@@ -156,21 +154,22 @@ int json_printfile(char *dirname, char *filename, struct _info *file, int descen
   }
   if (file) json_fillinfo(file);
 
-  if (file && file->err) fprintf(outfile, ",\"error\": \"%s\"", file->err);
-  if (!descend) fputc('}',outfile);
-  else fprintf(outfile, ",\"contents\":[");
+//   if (file && file->err) fprintf(outfile, ",\"error\": \"%s\"", file->err);
+  if (descend || (file->isdir && file->err)) fprintf(outfile, ",\"contents\":[");
+  else fputc('}',outfile);
 
-  return descend;
+  return descend || (file->isdir && file->err);
 }
 
 int json_error(char *error)
 {
-  fprintf(outfile,"{\"error\": \"%s\"}%s",error, noindent?"":"\n");
+  fprintf(outfile,"{\"error\": \"%s\"}%s",error, noindent?"":"");
   return 0;
 }
 
 void json_newline(struct _info *file, int level, int postdir, int needcomma)
 {
+  UNUSED(file);UNUSED(level);UNUSED(postdir);
   extern char *_nl;
 
   fprintf(outfile, "%s%s", needcomma? "," : "", _nl);
@@ -178,6 +177,7 @@ void json_newline(struct _info *file, int level, int postdir, int needcomma)
 
 void json_close(struct _info *file, int level, int needcomma)
 {
+  UNUSED(file);
   if (!noindent) json_indent(level);
   fprintf(outfile,"]}%s%s", needcomma? ",":"", noindent? "":"\n");
 }

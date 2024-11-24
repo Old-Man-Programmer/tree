@@ -41,7 +41,7 @@ enum {
   COL_NORMAL, COL_FILE, COL_DIR, COL_LINK, COL_FIFO, COL_DOOR, COL_BLK, COL_CHR,
   COL_ORPHAN, COL_SOCK, COL_SETUID, COL_SETGID, COL_STICKY_OTHER_WRITABLE,
   COL_OTHER_WRITABLE, COL_STICKY, COL_EXEC, COL_MISSING,
-  COL_LEFTCODE, COL_RIGHTCODE, COL_ENDCODE,
+  COL_LEFTCODE, COL_RIGHTCODE, COL_ENDCODE, COL_BOLD, COL_ITALIC,
 /* Keep this one last, sets the size of the color_code array: */
   DOT_EXTENSION
 };
@@ -51,56 +51,60 @@ enum {
   MCOL_INDENTLINES
 };
 
-bool colorize = FALSE, ansilines = FALSE, linktargetcolor = FALSE;
-char *term, termmatch = FALSE, istty;
+bool colorize = false, ansilines = false, linktargetcolor = false;
 
 char *color_code[DOT_EXTENSION+1] = {NULL};
 
+/*
 char *vgacolor[] = {
   "black", "red", "green", "yellow", "blue", "fuchsia", "aqua", "white",
   NULL, NULL,
   "transparent", "red", "green", "yellow", "blue", "fuchsia", "aqua", "black"
 };
+struct colortable {
+  char *term_flg, *CSS_name, *font_fg, *font_bg;
+} colortable[11];
+*/
 
-struct colortable colortable[11];
 struct extensions *ext = NULL;
 const struct linedraw *linedraw;
 
-char **split(char *str, char *delim, int *nwrds);
+char **split(char *str, const char *delim, size_t *nwrds);
 int cmd(char *s);
 
 extern FILE *outfile;
 extern bool Hflag, force_color, nocolor;
 extern const char *charset;
 
-void parse_dir_colors()
+void parse_dir_colors(void)
 {
-  char buf[1025], **arg, **c, *colors, *s;
-  int i, n, col, cc;
+  char **arg, **c, *colors, *s;
+  int i, col, cc;
+  size_t n;
   struct extensions *e;
 
   if (Hflag) return;
 
   s = getenv("NO_COLOR");
-  if (s && s[0]) nocolor = TRUE;
+  if (s && s[0]) nocolor = true;
 
   if (getenv("TERM") == NULL) {
-    colorize = FALSE;
+    colorize = false;
     return;
   }
 
   cc = getenv("CLICOLOR") != NULL;
-  if (getenv("CLICOLOR_FORCE") != NULL && !nocolor) force_color=TRUE;
+  if (getenv("CLICOLOR_FORCE") != NULL && !nocolor) force_color=true;
   s = getenv("TREE_COLORS");
   if (s == NULL) s = getenv("LS_COLORS");
   if ((s == NULL || strlen(s) == 0) && (force_color || cc)) s = ":no=00:rs=0:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
 
   if (s == NULL || (!force_color && (nocolor || !isatty(1)))) {
-    colorize = FALSE;
+    colorize = false;
     return;
   }
 
-  colorize = TRUE;
+  colorize = true;
 
   for(i=0; i < DOT_EXTENSION; i++) color_code[i] = NULL;
 
@@ -124,11 +128,12 @@ void parse_dir_colors()
 	}
 	break;
       case COL_LINK:
-	if (c[1] && strcasecmp("target",c[1]) == 0) {
-	  linktargetcolor = TRUE;
+	if (c[1] && (strcasecmp("target",c[1]) == 0)) {
+	  linktargetcolor = true;
 	  color_code[COL_LINK] = "01;36"; /* Should never actually be used */
 	  break;
 	}
+	/* Falls through */
       default:
 	if (c[1]) color_code[col] = scopy(c[1]);
 	break;
@@ -145,9 +150,17 @@ void parse_dir_colors()
   if (!color_code[COL_LEFTCODE]) color_code[COL_LEFTCODE] = scopy("\033[");
   if (!color_code[COL_RIGHTCODE]) color_code[COL_RIGHTCODE] = scopy("m");
   if (!color_code[COL_RESET]) color_code[COL_RESET] = scopy("0");
+  if (!color_code[COL_BOLD]) {
+    color_code[COL_BOLD] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RIGHTCODE])+2);
+    sprintf(color_code[COL_BOLD],"%s1%s",color_code[COL_LEFTCODE],color_code[COL_RIGHTCODE]);
+  }
+  if (!color_code[COL_ITALIC]) {
+    color_code[COL_ITALIC] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RIGHTCODE])+2);
+    sprintf(color_code[COL_ITALIC],"%s3%s",color_code[COL_LEFTCODE],color_code[COL_RIGHTCODE]);
+  }
   if (!color_code[COL_ENDCODE]) {
-    sprintf(buf,"%s%s%s",color_code[COL_LEFTCODE],color_code[COL_RESET],color_code[COL_RIGHTCODE]);
-    color_code[COL_ENDCODE] = scopy(buf);
+    color_code[COL_ENDCODE] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RESET])+strlen(color_code[COL_RIGHTCODE])+1);
+    sprintf(color_code[COL_ENDCODE],"%s%s%s",color_code[COL_LEFTCODE],color_code[COL_RESET],color_code[COL_RIGHTCODE]);
   }
 
   free(colors);
@@ -157,9 +170,9 @@ void parse_dir_colors()
  * You must free the pointer that is allocated by split() after you
  * are done using the array.
  */
-char **split(char *str, char *delim, int *nwrds)
+char **split(char *str, const char *delim, size_t *nwrds)
 {
-  int n = 128;
+  size_t n = 128;
   char **w = xmalloc(sizeof(char *) * n);
 
   w[*nwrds = 0] = strtok(str,delim);
@@ -198,14 +211,14 @@ int cmd(char *s)
   return ERROR;
 }
 
-int print_color(int color)
+bool print_color(int color)
 {
-  if (!color_code[color]) return FALSE;
+  if (!color_code[color]) return false;
 
   fputs(color_code[COL_LEFTCODE],outfile);
   fputs(color_code[color],outfile);
   fputs(color_code[COL_RIGHTCODE],outfile);
-  return TRUE;
+  return true;
 }
 
 void endcolor(void)
@@ -214,16 +227,30 @@ void endcolor(void)
     fputs(color_code[COL_ENDCODE],outfile);
 }
 
-int color(u_short mode, char *name, bool orphan, bool islink)
+
+void fancy(FILE *out, char *s)
+{
+  for (; *s; s++) {
+    switch(*s) {
+      case '\b': if (colorize && color_code[COL_BOLD])    fputs(color_code[COL_BOLD]   , out); break;
+      case '\f': if (colorize && color_code[COL_ITALIC])  fputs(color_code[COL_ITALIC] , out); break;
+      case '\r': if (colorize && color_code[COL_ENDCODE]) fputs(color_code[COL_ENDCODE], out); break;
+      default:
+	fputc(*s,out);
+    }
+  }
+}
+
+bool color(mode_t mode, const char *name, bool orphan, bool islink)
 {
   struct extensions *e;
-  int l, xl;
+  size_t l, xl;
 
   if (orphan) {
     if (islink) {
-      if (print_color(COL_MISSING)) return TRUE;
+      if (print_color(COL_MISSING)) return true;
     } else {
-      if (print_color(COL_ORPHAN)) return TRUE;
+      if (print_color(COL_ORPHAN)) return true;
     }
   }
 
@@ -236,12 +263,12 @@ int color(u_short mode, char *name, bool orphan, bool islink)
     case S_IFDIR:
       if (mode & S_ISVTX) {
 	if ((mode & S_IWOTH))
-	  if (print_color(COL_STICKY_OTHER_WRITABLE)) return TRUE;
+	  if (print_color(COL_STICKY_OTHER_WRITABLE)) return true;
 	if (!(mode & S_IWOTH))
-	  if (print_color(COL_STICKY)) return TRUE;
+	  if (print_color(COL_STICKY)) return true;
       }
       if ((mode & S_IWOTH))
-	if (print_color(COL_OTHER_WRITABLE)) return TRUE;
+	if (print_color(COL_OTHER_WRITABLE)) return true;
       return print_color(COL_DIR);
 #ifndef __EMX__
     case S_IFBLK:
@@ -257,11 +284,11 @@ int color(u_short mode, char *name, bool orphan, bool islink)
       return print_color(COL_SOCK);
     case S_IFREG:
       if ((mode & S_ISUID))
-	if (print_color(COL_SETUID)) return TRUE;
+	if (print_color(COL_SETUID)) return true;
       if ((mode & S_ISGID))
-	if (print_color(COL_SETGID)) return TRUE;
+	if (print_color(COL_SETGID)) return true;
       if (mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-	if (print_color(COL_EXEC)) return TRUE;
+	if (print_color(COL_EXEC)) return true;
 
       /* not a directory, link, special device, etc, so check for extension match */
       l = strlen(name);
@@ -271,7 +298,7 @@ int color(u_short mode, char *name, bool orphan, bool islink)
 	  fputs(color_code[COL_LEFTCODE], outfile);
 	  fputs(e->term_flg, outfile);
 	  fputs(color_code[COL_RIGHTCODE], outfile);
-	  return TRUE;
+	  return true;
 	}
       }
       /* colorize just normal files too */
@@ -353,7 +380,7 @@ const char *getcharset(void)
 #endif
 }
 
-void initlinedraw(int flag)
+void initlinedraw(bool flag)
 {
   static const char*latin1_3[]={
     "ISO-8859-1", "ISO-8859-1:1987", "ISO_8859-1", "latin1", "l1", "IBM819",
@@ -453,7 +480,7 @@ void initlinedraw(int flag)
   const char**s;
 
   if (flag) {
-    fprintf(stderr,"tree: missing argument to --charset, valid charsets include:\n");
+    fprintf(stderr,"Valid charsets include:\n");
     for(linedraw=cstable;linedraw->name;++linedraw) {
       for(s=linedraw->name;*s;++s) {
 	fprintf(stderr,"  %s\n",*s);

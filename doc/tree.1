@@ -17,7 +17,7 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "" "Tree 2.1.3"
+.TH TREE 1 "" "Tree 2.2.0"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
@@ -42,11 +42,11 @@ tree \- list contents of directories in a tree-like format.
 [\fB--sort\fP[\fB=\fP]\fIname\fP]
 [\fB--dirsfirst\fP]
 [\fB--filesfirst\fP]
-[\fB--filelimit\fP \fI#\fP]
+[\fB--filelimit\fP[\fB=\fP]\fI#\fP]
 [\fB--si\fP]
 [\fB--du\fP]
 [\fB--prune\fP]
-[\fB--charset[\fB=\fP]X\fP]
+[\fB--charset\fP[\fB=\fP]\fIX\fP]
 [\fB--timefmt\fP[\fB=\fP]\fIformat\fP]
 [\fB--fromfile\fP]
 [\fB--fromtabfile\fP]
@@ -54,6 +54,10 @@ tree \- list contents of directories in a tree-like format.
 [\fB--info\fP]
 [\fB--infofile\fP[\fB=\fP]\fIfile\fP]
 [\fB--noreport\fP]
+[\fB--hyperlink\fP]
+[\fB--scheme\fP[\fB=\fP]\fIschema\fP]
+[\fB--authority\fP[\fB=\fP]\fIhostname\fP]
+[\fB--opt-toggle\fP]
 [\fB--version\fP]
 [\fB--help\fP]
 [\fB--\fP] [\fIdirectory\fP ...]
@@ -292,7 +296,7 @@ Do not sort.  Lists files in directory order. Disables \fB--dirsfirst\fP.
 .PP
 .TP
 .B -r
-Sort the output in reverse order.  This is a meta-sort that alter the above sorts.
+Sort the output in reverse order.  This is a meta-sort that alters the above sorts.
 This option is disabled when \fB-U\fP is used.
 .PP
 .TP
@@ -309,7 +313,8 @@ This option is disabled when \fB-U\fP is used.
 .B --sort\fR[\fB=\fR]\fItype\fR
 Sort the output by \fItype\fR instead of name. Possible values are:
 \fBctime\fR (\fB-c\fP),
-\fBmtime\fR (\fB-t\fB), \fBsize\fR, or \fBversion\fR (\fB-v\fB).
+\fBmtime\fR (\fB-t\fB), \fBsize\fR, \fBversion\fR (\fB-v\fR) or \fBnone\fR
+(\fB-U\fR).
 
 .SH GRAPHICS OPTIONS
 
@@ -340,7 +345,7 @@ TREE_COLORS environment variables are not set.  Useful to colorize output to a
 pipe.
 .PP
 
-.SH XML/JSON/HTML OPTIONS
+.SH XML/JSON/HTML/HYPERLINKS OPTIONS
 
 .TP
 .B -X
@@ -379,6 +384,22 @@ Sets the title and H1 header string in HTML output mode.
 .B --nolinks
 Turns off hyperlinks in HTML output.
 .PP
+.TP
+.B --hyperlink
+Enable OSC 8 terminal hyperlinks for terminals that support them. See \fBBUGS
+AND NOTES\fR below.
+.PP
+.TP
+.B --scheme\fR[\fB=\fR]\fIschema\fP
+Sets the schema used in the OSC 8 hyperlinks. The default schema is '\fBfile://\fR'.
+If the schema omits the colon (:), then \fB://\fR will be appended to the schema.
+.TP
+.B --authority\fR[\fB=\fR]\fIhostname|authority\fP
+Sets the authority (hostname) to use for the OSC 8 hyperlinks.  By default the
+local hostname of the machine as returned by gethostname() is used as the
+authority.  A dot (\fB.\fP) or a set of ""'s, sans '=', (i.e. the empty string)
+can be used to indicate a null authority.
+.PP
 
 .SH INPUT OPTIONS
 
@@ -407,6 +428,12 @@ is used to denote the separation of the filename from the link.
 
 .SH MISC OPTIONS
 
+.TP
+.B --opt-toggle
+Enables option "toggling".  Turns on the ability to toggle options such as -a,
+-h, etc.  Useful to add to an alias when you wish to disable options enabled in
+the alias.
+.PP
 .TP
 .B --help
 Outputs a verbose usage listing.
@@ -492,7 +519,13 @@ The timefmt expansion buffer is limited to a ridiculously large 255 characters.
 Output of time strings longer than this will be undefined, but are guaranteed
 to not exceed 255 characters.
 
-XML/JSON trees are not colored, which is a bit of a shame.
+XML/JSON trees are not colored, which is a bit of a shame.  The jq utility
+can colorize the JSON however, just not the filenames by file-type ala LS_COLORS.
+
+OSC 8 hyperlinks may be poorly supported by your terminal.  For my version of
+Konsole it is necessary to set the schema to file: (no //) and use a null
+authority.  It may also be necessary to spend 3.5 hours finding the option to
+turn on hyperlinks.
 
 Probably more.
 
@@ -508,5 +541,6 @@ be a better format for this.
 .BR ls (1),
 .BR find (1),
 .BR du (1),
-.BR strftime (3)
+.BR jq (1),
+.BR strftime (3),
 .BR gitignore (5)

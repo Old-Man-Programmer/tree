@@ -23,7 +23,7 @@ struct ignorefile *filterstack = NULL;
 
 void gittrim(char *s)
 {
-  int i, e = strlen(s)-1;
+  ssize_t i, e = (ssize_t)strlen(s)-1;
 
   if (e < 0) return;
   if (s[e] == '\n') e--;
@@ -52,7 +52,7 @@ struct pattern *new_pattern(char *pattern)
   return p;
 }
 
-struct ignorefile *new_ignorefile(char *path, bool checkparents)
+struct ignorefile *new_ignorefile(const char *path, bool checkparents)
 {
   struct stat st;
   char buf[PATH_MAX], rpath[PATH_MAX];
@@ -144,9 +144,9 @@ struct ignorefile *pop_filterstack(void)
 /**
  * true if remove filter matches and no reverse filter matches.
  */
-int filtercheck(char *path, char *name, int isdir)
+bool filtercheck(const char *path, const char *name, int isdir)
 {
-  int filter = 0;
+  bool filter = false;
   struct ignorefile *ig;
   struct pattern *p;
 
@@ -156,32 +156,32 @@ int filtercheck(char *path, char *name, int isdir)
     for(p = ig->remove; p != NULL; p = p->next) {
       if (p->relative) {
 	if (patmatch(name, p->pattern, isdir) == 1) {
-	  filter = 1;
+	  filter = true;
 	  break;
 	}
       } else {
 	sprintf(xpattern + fpos, "%s", p->pattern);
 	if (patmatch(path, xpattern, isdir) == 1) {
-	  filter = 1;
+	  filter = true;
 	  break;
 	}
       }
      }
   }
-  if (!filter) return 0;
+  if (!filter) return false;
 
   for(ig = filterstack; ig; ig = ig->next) {
     int fpos = sprintf(xpattern, "%s/", ig->path);
 
     for(p = ig->reverse; p != NULL; p = p->next) {
       if (p->relative) {
-	if (patmatch(name, p->pattern, isdir) == 1) return 0;
+	if (patmatch(name, p->pattern, isdir) == 1) return false;
       } else {
 	sprintf(xpattern + fpos, "%s", p->pattern);
-	if (patmatch(path, xpattern, isdir) == 1) return 0;
+	if (patmatch(path, xpattern, isdir) == 1) return false;
       }
     }
   }
 
-  return 1;
+  return true;
 }
