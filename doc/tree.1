@@ -17,14 +17,14 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "" "Tree 2.2.0"
+.TH TREE 1 "" "Tree 2.2.1"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
 \fBtree\fP
 [\fB-acdfghilnpqrstuvxACDFJQNSUX\fP]
 [\fB-L\fP \fIlevel\fP [\fB-R\fP]]
-[\fB-H\fP \fIbaseHREF\fP]
+[\fB-H\fP [-]\fIbaseHREF\fP]
 [\fB-T\fP \fItitle\fP]
 [\fB-o\fP \fIfilename\fP]
 [\fB-P\fP \fIpattern\fP]
@@ -356,12 +356,14 @@ Turn on XML output. Outputs the directory tree as an XML formatted file.
 Turn on JSON output. Outputs the directory tree as a JSON formatted array.
 .PP
 .TP
-.B -H \fIbaseHREF\fP
+.B -H [-]\fIbaseHREF\fP
 Turn on HTML output, including HTTP references. Useful for ftp sites.
 \fIbaseHREF\fP gives the base ftp location when using HTML output. That is, the
 local directory may be `/local/ftp/pub', but it must be referenced as
 `ftp://hostname.organization.domain/pub' (\fIbaseHREF\fP should be
-`ftp://hostname.organization.domain'). Hint: don't use ANSI lines with this
+`ftp://hostname.organization.domain'). If \fIbaseHREF\fP begins with a dash
+(\fB-\fP), then the dash is removed and indicates that tree should remove the
+first directory name from the href URL. Hint: don't use ANSI lines with this
 option, and don't give more than one directory in the directory list. If you
 wish to use colors via CSS style-sheet, use the -C option in addition to this
 option to force color output.

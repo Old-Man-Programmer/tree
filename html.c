@@ -19,7 +19,7 @@
 
 
 extern bool duflag, dflag, hflag, siflag;
-extern bool metafirst, noindent, force_color, nolinks;
+extern bool metafirst, noindent, force_color, nolinks, htmloffset;
 
 extern char *hversion;
 extern char *host, *sp, *title, *Hintro, *Houtro;
@@ -28,6 +28,8 @@ extern const char *charset;
 extern FILE *outfile;
 
 extern const struct linedraw *linedraw;
+
+size_t htmldirlen = 0;
 
 char *class(struct _info *info)
 {
@@ -188,8 +190,9 @@ int html_printfile(char *dirname, char *filename, struct _info *file, int descen
     if (!nolinks) {
       fprintf(outfile," href=\"%s",host);
       if (dirname != NULL) {
-	if (host[strlen(host)-1] != '/') putc('/', outfile);
-	url_encode(outfile, dirname);
+	size_t len = strlen(dirname);
+	size_t off = (len >= htmldirlen? htmldirlen : 0);
+	url_encode(outfile, dirname + (htmloffset? off : 0));
 	if (strcmp(dirname, filename) != 0) {
 	  if (dirname[strlen(dirname)-1] != '/') putc('/', outfile);
 	  url_encode(outfile, filename);

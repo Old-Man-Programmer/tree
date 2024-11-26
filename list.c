@@ -17,13 +17,14 @@
  */
 #include "tree.h"
 
-extern bool fflag, duflag, lflag, Rflag, Jflag, xdev, noreport, hyperflag;
+extern bool fflag, duflag, lflag, Rflag, Jflag, xdev, noreport, hyperflag, Hflag;
 
 extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern int (*topsort)(struct _info **, struct _info **);
 extern FILE *outfile;
 extern int flimit, *dirs, errors;
 extern ssize_t Level;
+extern size_t htmldirlen;
 
 static char errbuf[256];
 char realbasepath[PATH_MAX];
@@ -78,6 +79,7 @@ void emit_tree(char **dirname, bool needfulltree)
 	if (j > 1 && dirname[i][j-1] == '/') dirname[i][--j] = 0;
       } while (j > 1 && dirname[i][j-1] == '/');
     }
+    if (Hflag) htmldirlen = strlen(dirname[i]);
 
     if ((n = lstat(dirname[i],&st)) >= 0) {
       saveino(st.st_ino, st.st_dev);
@@ -175,6 +177,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 
     descend = 0;
     err = NULL;
+    newpath = path;
 
     if ((*dir)->isdir) {
       tot.dirs++;
@@ -188,7 +191,6 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 
       if (!(xdev && dev != (*dir)->dev) && (!(*dir)->lnk || ((*dir)->lnk && lflag))) {
 	descend = 1;
-	newpath = path;
 
 	if ((*dir)->lnk) {
 	  if (*(*dir)->lnk == '/') newpath = (*dir)->lnk;

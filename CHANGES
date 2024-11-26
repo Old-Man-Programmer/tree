@@ -1,3 +1,15 @@
+Version 2.2.1 (11/25/2024)
+  - Yet another brown-paper bag release.  I seem to like doing these.
+  - Fix regression where I free a pointer that should not have been freed due
+    to a variable renaming that wasn't completed. (Daniel Li / Landon Bourma)
+  - Put back, in a modified form, HTML href directory path fixing that was
+    removed in 2.1.2. If the "baseHREF" part after the -H begins with a dash
+    (-), the dash is removed and the lead directory name is removed from the
+    href, otherwise it is left as-is.  It can be very difficult to know how to
+    handle the host and directory part given the plethora of protocols and
+    what-not, so hopefully this should give enough control over that to suit
+    most requirements.
+
 Version 2.2.0 (11/24/2024)
   - Add option --opt-toggle which turns on the ability to toggle options such
     as -a, -p, etc.  Useful to add to an alias for turning an option off when

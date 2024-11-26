@@ -355,6 +355,9 @@ David Seifert
  - Provided updates for Makefile
  - Suggested move to stdbool.h to avoid problems with newer compilers.
 
+Daniel Li / Landon Bourma
+ - Reported segfault from incorrect free.
+ 
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
 

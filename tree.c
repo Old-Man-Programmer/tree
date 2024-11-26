@@ -18,8 +18,8 @@
 
 #include "tree.h"
 
-char *version = "$Version: $ tree v2.2.0 %s 1996 - 2024 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion= "\t\t tree v2.2.0 %s 1996 - 2024 by Steve Baker and Thomas Moore <br>\n"
+char *version = "$Version: $ tree v2.2.1 %s 1996 - 2024 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion= "\t\t tree v2.2.1 %s 1996 - 2024 by Steve Baker and Thomas Moore <br>\n"
 		"\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		"\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		"\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -30,7 +30,7 @@ bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
 bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag, hyperflag;
 bool noindent, force_color, nocolor, xdev, noreport, nolinks;
 bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
-bool reverse, fflinks;
+bool reverse, fflinks, htmloffset;
 int flimit;
 
 struct listingcalls lc;
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
   Dflag = qflag = Nflag = Qflag = Rflag = hflag = Hflag = siflag = cflag = false;
   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = false;
   ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = false;
-  duflag = pruneflag = metafirst = gitignore = hyperflag = false;
+  duflag = pruneflag = metafirst = gitignore = hyperflag = htmloffset = false;
 
   flimit = 0;
   dirs = xmalloc(sizeof(int) * (size_t)(maxdirs=PATH_MAX));
@@ -323,8 +323,12 @@ int main(int argc, char **argv)
 	  }
 	  host = argv[n++];
 	  k = strlen(host)-1;
+	  if (host[0] == '-') {
+	    htmloffset = true;
+	    host++;
+	  }
 	  /* Allows a / if that is the only character as the 'host': */
-	  if (k && host[k] == '/') host[k] = '\0';
+//	  if (k && host[k] == '/') host[k] = '\0';
 	  sp = "&nbsp;";
 	  break;
 	case 'T':
@@ -658,7 +662,7 @@ void usage(int n)
   /*     123456789!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
   /*     \t9!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
   fancy(n < 2? stderr: stdout,
-	"usage: \btree\r [\b-acdfghilnpqrstuvxACDFJQNSUX\r] [\b-L\r \flevel\r [\b-R\r]] [\b-H\r \fbaseHREF\r]\n"
+	"usage: \btree\r [\b-acdfghilnpqrstuvxACDFJQNSUX\r] [\b-L\r \flevel\r [\b-R\r]] [\b-H\r [-]\fbaseHREF\r]\n"
 	"\t[\b-T\r \ftitle\r] [\b-o\r \ffilename\r] [\b-P\r \fpattern\r] [\b-I\r \fpattern\r] [\b--gitignore\r]\n"
 	"\t[\b--gitfile\r[\b=\r]\ffile\r] [\b--matchdirs\r] [\b--metafirst\r] [\b--ignore-case\r]\n"
 	"\t[\b--nolinks\r] [\b--hintro\r[\b=\r]\ffile\r] [\b--houtro\r[\b=\r]\ffile\r] [\b--inodes\r] [\b--device\r]\n"
@@ -1037,7 +1041,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 	n--;
 	free(xp->name);
 	if (xp->lnk) free(xp->lnk);
-	free(sp);
+	free(xp);
 	continue;
       }
     }
