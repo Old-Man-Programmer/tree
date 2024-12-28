@@ -8,6 +8,7 @@ TEST_ENTRIES = \
 	filelimit-option-exceeded \
 	filelimit-option-not-exceeded \
 	f-option \
+	gitignore-option \
 	\
 	$(NULL)
 
