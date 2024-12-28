@@ -7,6 +7,7 @@ TEST_ENTRIES = \
 	d-option \
 	filelimit-option-exceeded \
 	filelimit-option-not-exceeded \
+	f-option \
 	\
 	$(NULL)
 
