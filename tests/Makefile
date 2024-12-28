@@ -4,6 +4,7 @@ TEST_ENTRIES = \
 	\
 	a-option \
 	charset-Shift_JIS-option \
+	d-option \
 	\
 	$(NULL)
 
