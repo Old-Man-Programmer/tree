@@ -9,6 +9,7 @@ TEST_ENTRIES = \
 	filelimit-option-not-exceeded \
 	f-option \
 	gitignore-option \
+	ignore-case-option \
 	\
 	$(NULL)
 
