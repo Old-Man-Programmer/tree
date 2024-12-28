@@ -11,6 +11,7 @@ TEST_ENTRIES = \
 	gitignore-option \
 	ignore-case-option \
 	info-option \
+	I-option \
 	\
 	$(NULL)
 
