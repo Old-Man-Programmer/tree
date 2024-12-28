@@ -20,6 +20,7 @@ TEST_ENTRIES = \
 	matchdirs-option \
 	noreport-option \
 	o-option \
+	P-option \
 	\
 	$(NULL)
 
