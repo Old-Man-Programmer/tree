@@ -12,6 +12,8 @@ TEST_ENTRIES = \
 	ignore-case-option \
 	info-option \
 	I-option \
+	L1-option \
+	L2-option \
 	\
 	$(NULL)
 
