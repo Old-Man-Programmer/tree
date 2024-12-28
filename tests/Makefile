@@ -13,7 +13,9 @@ TEST_ENTRIES = \
 	info-option \
 	I-option \
 	L1-option \
+	L1-R-options \
 	L2-option \
+	L2-R-options \
 	\
 	$(NULL)
 
@@ -35,6 +37,11 @@ update:
 	    rm -rf $${ENTRY}/expected; \
 	    mv $${ENTRY}/actual $${ENTRY}/expected; \
 	done
+	mkdir L1-R-options/expected/b
+	cp $(TEST_DIRECTORY)/L1-R-options/b/00Tree.html L1-R-options/expected/b/
+	mkdir -p L1-R-options/expected/h/j
+	cp $(TEST_DIRECTORY)/L1-R-options/h/00Tree.html L1-R-options/expected/h/
+	cp $(TEST_DIRECTORY)/L1-R-options/h/j/00Tree.html L1-R-options/expected/h/j/
 
 clean:
 	@for ENTRY in $(TEST_ENTRIES); do rm -rf $${ENTRY}/actual; done
