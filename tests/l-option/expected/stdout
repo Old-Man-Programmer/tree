@@ -1,0 +1,15 @@
+.
+├── a
+├── b
+│   └── c
+├── h
+│   ├── i
+│   └── j
+│       └── k
+├── m -> b  [recursive, not followed]
+├── n -> .e
+│   ├── f
+│   └── g
+└── o -> h  [recursive, not followed]
+
+8 directories, 5 files

@@ -16,6 +16,7 @@ TEST_ENTRIES = \
 	L1-R-options \
 	L2-option \
 	L2-R-options \
+	l-option \
 	\
 	$(NULL)
 
