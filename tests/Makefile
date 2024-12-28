@@ -22,6 +22,7 @@ TEST_ENTRIES = \
 	o-option \
 	P-option \
 	prune-option \
+	x-option \
 	\
 	$(NULL)
 
