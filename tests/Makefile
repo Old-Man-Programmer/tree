@@ -2,6 +2,8 @@ TEST_ENTRIES = \
 	\
 	no-arg \
 	\
+	a-option \
+	\
 	$(NULL)
 
 TEST_DIRECTORY := /tmp/tree-$(shell id -un)
