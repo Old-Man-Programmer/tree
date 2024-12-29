@@ -5,6 +5,8 @@ TEST_ENTRIES = \
 	a-option \
 	charset-Shift_JIS-option \
 	d-option \
+	filelimit-option-exceeded \
+	filelimit-option-not-exceeded \
 	\
 	$(NULL)
 
