@@ -18,6 +18,7 @@ TEST_ENTRIES = \
 	L2-R-options \
 	l-option \
 	matchdirs-option \
+	noreport-option \
 	\
 	$(NULL)
 
