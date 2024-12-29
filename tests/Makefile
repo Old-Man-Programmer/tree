@@ -17,6 +17,7 @@ TEST_ENTRIES = \
 	L2-option \
 	L2-R-options \
 	l-option \
+	matchdirs-option \
 	\
 	$(NULL)
 

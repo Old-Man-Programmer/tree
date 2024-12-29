@@ -1,0 +1,9 @@
+.
+├── b
+│   └── c
+└── h
+    ├── b
+    └── j
+        └── b
+
+4 directories, 3 files
