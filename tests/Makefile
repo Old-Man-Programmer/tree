@@ -21,6 +21,7 @@ TEST_ENTRIES = \
 	noreport-option \
 	o-option \
 	P-option \
+	prune-option \
 	\
 	$(NULL)
 
