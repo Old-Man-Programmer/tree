@@ -3,6 +3,7 @@ TEST_ENTRIES = \
 	no-arg \
 	\
 	a-option \
+	charset-Shift_JIS-option \
 	\
 	$(NULL)
 
