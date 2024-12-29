@@ -10,6 +10,7 @@ TEST_ENTRIES = \
 	f-option \
 	gitignore-option \
 	ignore-case-option \
+	info-option \
 	\
 	$(NULL)
 
