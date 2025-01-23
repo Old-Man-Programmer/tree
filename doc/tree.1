@@ -22,7 +22,7 @@
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
 \fBtree\fP
-[\fB-acdfghilnpqrstuvxACDFJQNSUX\fP]
+[\fB-acdfghilnpqrstuvxzACDFJQNSUX\fP]
 [\fB-L\fP \fIlevel\fP [\fB-R\fP]]
 [\fB-H\fP [-]\fIbaseHREF\fP]
 [\fB-T\fP \fItitle\fP]
@@ -55,6 +55,8 @@ tree \- list contents of directories in a tree-like format.
 [\fB--infofile\fP[\fB=\fP]\fIfile\fP]
 [\fB--noreport\fP]
 [\fB--hyperlink\fP]
+[\fB--filetag\fP]
+[\fB--extended\fP]
 [\fB--scheme\fP[\fB=\fP]\fIschema\fP]
 [\fB--authority\fP[\fB=\fP]\fIhostname\fP]
 [\fB--opt-toggle\fP]
@@ -272,6 +274,19 @@ Prints the inode number of the file or directory
 .TP
 .B --device
 Prints the device number to which the file or directory belongs
+.PP
+.TP
+.B --extended
+(z/OS only) Prints the extended attributes with the protection bits, as per ls -E.
+It implicitly enables -p
+.PP
+.TP
+.B --filetag
+(z/OS only) Prints the filetag information for the files, as per ls -T
+.PP
+.TP
+.B -z
+(z/OS only) Convenience option that enables both --extended and --filetag
 .PP
 
 .SH SORTING OPTIONS

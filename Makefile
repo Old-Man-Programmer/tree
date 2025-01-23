@@ -106,6 +106,13 @@ CPPFLAGS+=-DLARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #CFLAGS+=-std=c89 -pedantic -Wall -Wno-error=int-conversion
 #CPPFLAGS+=-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
 
+# Uncomment for z/OS
+#CC=clang
+#CFLAGS+=-fzos-le-char-mode=ascii -std=gnu11 -mnocsect -fno-short-enums -fno-builtin-malloc \
+#        -fno-builtin-calloc -fno-builtin-realloc -m64 -O3 -DNSIG=42 -D_XOPEN_SOURCE=600 \
+#        -D_ALL_SOURCE -D_OPEN_SYS_FILE_EXT=1 -D_AE_BIMODAL=1 -D_ENHANCED_ASCII_EXT=0xFFFFFFFF 
+#MANDIR=${PREFIX}/share/man
+
 #------------------------------------------------------------
 
 all:	tree

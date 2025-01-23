@@ -55,6 +55,9 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <stdbool.h>
+#ifdef __MVS__
+#include <_Ccsid.h>
+#endif
 
 #ifdef __ANDROID
 #define mbstowcs(w,m,x) mbsrtowcs(w,(const char**)(& #m),x,NULL)
@@ -101,6 +104,12 @@ struct _info {
   ino_t inode, linode;
   #ifdef __EMX__
   long attr;
+  #endif
+  #ifdef __MVS__
+  bool islnk;
+  struct file_tag ft;
+  unsigned int genvalue;
+  char hasAcl;
   #endif
   char *err;
   const char *tag;
@@ -218,6 +227,11 @@ int psize(char *buf, off_t size);
 char Ftype(mode_t mode);
 struct _info *stat2info(const struct stat *st);
 char *fillinfo(char *buf, const struct _info *ent);
+#ifdef __MVS__
+char *extended_attributes(const struct _info *ent);
+char *filetag(const struct _info *ent);
+char *acl(const struct _info *ent);
+#endif
 
 /* list.c */
 void null_intro(void);
