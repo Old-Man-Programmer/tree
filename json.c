@@ -19,6 +19,9 @@
 
 extern bool dflag, pflag, sflag, uflag, gflag, Dflag, inodeflag, devflag;
 extern bool cflag, hflag, siflag, duflag, noindent;
+#ifdef __MVS__
+extern bool tagflag, extflag;
+#endif
 
 extern const mode_t ifmt[];
 extern const char *ftype[];
@@ -79,7 +82,13 @@ void json_fillinfo(struct _info *ent)
   #ifdef __EMX__
   if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"",ent->attr, prot(ent->attr));
   #else
+  #ifdef __MVS__
+  if (pflag && !extflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode), acl(ent));
+  if (pflag && extflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s%s\",\"extended\":\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode), acl(ent), extended_attributes(ent));
+  if (tagflag) fprintf(outfile, ",\"filetag\":\"%s\"", filetag(ent));
+  #else
   if (pflag) fprintf(outfile, ",\"mode\":\"%04o\",\"prot\":\"%s\"", ent->mode & (S_IRWXU|S_IRWXG|S_IRWXO|S_ISUID|S_ISGID|S_ISVTX), prot(ent->mode));
+  #endif
   #endif
   if (uflag) fprintf(outfile, ",\"user\":\"%s\"", uidtoname(ent->uid));
   if (gflag) fprintf(outfile, ",\"group\":\"%s\"", gidtoname(ent->gid));
