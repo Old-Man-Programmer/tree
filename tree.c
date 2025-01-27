@@ -382,8 +382,7 @@ int main(int argc, char **argv)
     break;
   #else
   case 'z':
-  	fprintf(stderr,"tree: -z only works on z/OS -`%c'.\n",argv[i][j]);
-	  usage(1);
+  	fprintf(stderr,"tree: -z only works on z/OS.\n");
 	  exit(1);
 	  break;
   #endif
@@ -567,14 +566,12 @@ int main(int argc, char **argv)
       }
       #else
       if (!strcmp("--filetag",argv[i])) {
-  	    fprintf(stderr,"tree: --filetag only works on z/OS -`%c'.\n",argv[i][j]);
-	      usage(1);
+  	    fprintf(stderr,"tree: --filetag only works on z/OS.\n");
 	      exit(1);
 	      break;
       }
       if (!strcmp("--extended",argv[i])) {
-  	    fprintf(stderr,"tree: --extended only works on z/OS -`%c'.\n",argv[i][j]);
-	      usage(1);
+  	    fprintf(stderr,"tree: --extended only works on z/OS.\n");
 	      exit(1);
 	      break;
       }
