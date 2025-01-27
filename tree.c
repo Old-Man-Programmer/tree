@@ -376,11 +376,18 @@ int main(int argc, char **argv)
 	  break;
   #ifdef __MVS__
   case 'z':
-    tagflag=true;
-    extflag=true;
-    pflag=true;
+    tagflag = (opt_toggle? !tagflag : true);
+    extflag = (opt_toggle? !extflag : true);
+    pflag = (opt_toggle? !pflag : true);
     break;
+  #else
+  case 'z':
+  	fprintf(stderr,"tree: -z only works on z/OS -`%c'.\n",argv[i][j]);
+	  usage(1);
+	  exit(1);
+	  break;
   #endif
+
 	case '-':
 	  if (j == 1) {
 	    if (!strcmp("--", argv[i])) {
@@ -557,6 +564,19 @@ int main(int argc, char **argv)
         extflag = (opt_toggle? !extflag : true);
         pflag = (opt_toggle? !pflag : true);
         break;
+      }
+      #else
+      if (!strcmp("--filetag",argv[i])) {
+  	    fprintf(stderr,"tree: --filetag only works on z/OS -`%c'.\n",argv[i][j]);
+	      usage(1);
+	      exit(1);
+	      break;
+      }
+      if (!strcmp("--extended",argv[i])) {
+  	    fprintf(stderr,"tree: --extended only works on z/OS -`%c'.\n",argv[i][j]);
+	      usage(1);
+	      exit(1);
+	      break;
       }
       #endif
 	    if ((arg = long_arg(argv, i, &j, &n, "--scheme")) != NULL) {
