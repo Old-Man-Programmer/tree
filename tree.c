@@ -374,18 +374,18 @@ int main(int argc, char **argv)
 	  }
 	  outfilename = argv[n++];
 	  break;
-  #ifdef __MVS__
-  case 'z':
-    tagflag = (opt_toggle? !tagflag : true);
-    extflag = (opt_toggle? !extflag : true);
-    pflag = (opt_toggle? !pflag : true);
-    break;
-  #else
-  case 'z':
-  	fprintf(stderr,"tree: -z only works on z/OS.\n");
-	  exit(1);
-	  break;
-  #endif
+        #ifdef __MVS__
+        case 'z':
+          tagflag = (opt_toggle? !tagflag : true);
+          extflag = (opt_toggle? !extflag : true);
+          pflag = (opt_toggle? !pflag : true);
+          break;
+        #else
+        case 'z':
+          fprintf(stderr,"tree: -z only works on z/OS.\n");
+          exit(1);
+          break;
+        #endif
 
 	case '-':
 	  if (j == 1) {
@@ -552,30 +552,30 @@ int main(int argc, char **argv)
 	      hyperflag = (opt_toggle? !hyperflag : true);
 	      break;
 	    }
-      #ifdef __MVS__
-      if (!strcmp("--filetag",argv[i])) {
-        j = strlen(argv[i])-1;
-        tagflag = (opt_toggle? !tagflag : true);
-        break;
-      }
-      if (!strcmp("--extended",argv[i])) {
-        j = strlen(argv[i])-1;
-        extflag = (opt_toggle? !extflag : true);
-        pflag = (opt_toggle? !pflag : true);
-        break;
-      }
-      #else
-      if (!strcmp("--filetag",argv[i])) {
-  	    fprintf(stderr,"tree: --filetag only works on z/OS.\n");
-	      exit(1);
-	      break;
-      }
-      if (!strcmp("--extended",argv[i])) {
-  	    fprintf(stderr,"tree: --extended only works on z/OS.\n");
-	      exit(1);
-	      break;
-      }
-      #endif
+            #ifdef __MVS__
+            if (!strcmp("--filetag",argv[i])) {
+              j = strlen(argv[i])-1;
+              tagflag = (opt_toggle? !tagflag : true);
+              break;
+            }
+            if (!strcmp("--extended",argv[i])) {
+              j = strlen(argv[i])-1;
+              extflag = (opt_toggle? !extflag : true);
+              pflag = (opt_toggle? !pflag : true);
+              break;
+            }
+            #else
+            if (!strcmp("--filetag",argv[i])) {
+              fprintf(stderr,"tree: --filetag only works on z/OS.\n");
+              exit(1);
+              break;
+           }
+           if (!strcmp("--extended",argv[i])) {
+              fprintf(stderr,"tree: --extended only works on z/OS.\n");
+              exit(1);
+              break;
+           }
+           #endif
 	    if ((arg = long_arg(argv, i, &j, &n, "--scheme")) != NULL) {
 	      if (strchr(arg, ':') == NULL) {
 		sprintf(xpattern, "%s://", arg);
