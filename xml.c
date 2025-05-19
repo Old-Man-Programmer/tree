@@ -20,6 +20,7 @@
 
 extern bool dflag, pflag, sflag, uflag, gflag;
 extern bool Dflag, inodeflag, devflag, cflag, duflag;
+extern bool wcflag; // Word count flag
 extern bool noindent;
 
 extern const char *charset;
@@ -77,6 +78,9 @@ void xml_fillinfo(struct _info *ent)
   if (gflag) fprintf(outfile, " group=\"%s\"", gidtoname(ent->gid));
   if (sflag) fprintf(outfile, " size=\"%lld\"", (long long int)(ent->size));
   if (Dflag) fprintf(outfile, " time=\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
+  if (wcflag) {
+    fprintf(outfile, " word_count=\"%lld\"", (long long int)ent->word_count);
+  }
 }
 
 void xml_intro(void)
@@ -175,5 +179,8 @@ void xml_report(struct totals tot)
   if (duflag) fprintf(outfile,"%s<size>%lld</size>%s", noindent?"":"    ", (long long int)tot.size, _nl);
   fprintf(outfile,"%s<directories>%ld</directories>%s", noindent?"":"    ", tot.dirs, _nl);
   if (!dflag) fprintf(outfile,"%s<files>%ld</files>%s", noindent?"":"    ", tot.files, _nl);
+  if (wcflag) {
+    fprintf(outfile,"%s<total_word_count>%lld</total_word_count>%s", noindent?"":"    ", (long long int)tot.total_word_count, _nl);
+  }
   fprintf(outfile,"%s</report>%s",noindent?"":"  ", _nl);
 }

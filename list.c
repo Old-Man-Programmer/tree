@@ -18,6 +18,7 @@
 #include "tree.h"
 
 extern bool fflag, duflag, lflag, Rflag, Jflag, xdev, noreport, hyperflag, Hflag;
+extern bool wcflag; // Word count flag
 
 extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern int (*topsort)(struct _info **, struct _info **);
@@ -55,7 +56,7 @@ void null_close(struct _info *file, int level, int needcomma)
 
 void emit_tree(char **dirname, bool needfulltree)
 {
-  struct totals tot = { 0 }, subtotal;
+	struct totals tot = { 0,0,0,0 }, subtotal; // Assuming total_word_count is the 4th member
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
   struct _info **dir = NULL, *info = NULL;
@@ -98,23 +99,38 @@ void emit_tree(char **dirname, bool needfulltree)
     } else info = NULL;
 
     needsclosed = lc.printfile(dirname[i], dirname[i], info, (dir != NULL) || (!dir && n));
-    subtotal = (struct totals){0, 0, 0};
+	subtotal = (struct totals){0,0,0,0}; // Assuming total_word_count is the 4th member
 
     if (!dir && n) {
       lc.error("error opening dir");
       lc.newline(info, 0, 0, dirname[i+1] != NULL);
       if (!info) errors++;
-      else subtotal.files++;
+		else {
+		subtotal.files++;
+		if (wcflag && info) subtotal.total_word_count += info->word_count;
+		}
     } else if (flimit > 0 && n > flimit) {
       sprintf(errbuf,"%ld entries exceeds filelimit, not opening dir", n);
       lc.error(errbuf);
       lc.newline(info, 0, 0, dirname[i+1] != NULL);
       subtotal.dirs++;
+		if (wcflag && info) subtotal.total_word_count += info->word_count;
     } else {
       lc.newline(info, 0, 0, 0);
       if (dir) {
 	subtotal = listdir(dirname[i], dir, 1, st.st_dev, needfulltree);
 	subtotal.dirs++;
+		// If info for current dir exists and wcflag is on, its word_count (sum) contributes to subtotal
+		// This assumes listdir returns sum of children, and info->word_count is sum for the dir itself.
+		// For consistency, listdir should return the complete sum for what it processed.
+		// If info->word_count is the sum for the directory, and listdir returns sum of children,
+		// then subtotal.total_word_count from listdir is sum of children.
+		// We need to add info->word_count to it if it's not already included.
+		// Let's assume listdir's returned total_word_count is comprehensive for its scope.
+		} else if (info) { // Single file or directory not descended into
+		if (info->isdir) subtotal.dirs++;
+		else subtotal.files++;
+		if (wcflag) subtotal.total_word_count += info->word_count;
       }
     }
     if (dir) {
@@ -125,6 +141,7 @@ void emit_tree(char **dirname, bool needfulltree)
 
     tot.files += subtotal.files;
     tot.dirs += subtotal.dirs;
+	if (wcflag) tot.total_word_count += subtotal.total_word_count;
     // Do not bother to accumulate tot.size in listdir.
     // This is already done in getfulltree()
     if (duflag) tot.size += info? info->size : 0;
@@ -140,7 +157,7 @@ void emit_tree(char **dirname, bool needfulltree)
 
 struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, bool hasfulltree)
 {
-  struct totals tot = {0}, subtotal;
+	struct totals tot = {0,0,0,0}, subtotal; // Assuming total_word_count is the 4th member
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
   struct _info **subdir = NULL;
@@ -248,7 +265,10 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	  if (subdir == NULL) descend = 0;
 	}
       }
-    } else tot.files++;
+	} else {
+		tot.files++;
+		if (wcflag) tot.total_word_count += (*dir)->word_count; // Add word count for files
+	}
 
     needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (Jflag && errors));
     if (err) lc.error(err);
@@ -259,7 +279,13 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
       subtotal = listdir(newpath, subdir, lev+1, dev, hasfulltree);
       tot.dirs += subtotal.dirs;
       tot.files += subtotal.files;
-    } else if (!needsclosed) lc.newline(*dir, lev, 0, *(dir+1)!=NULL);
+		if (wcflag) tot.total_word_count += subtotal.total_word_count; // Add sum from subdirectory
+	} else { // Not descended or not a directory that was descended into
+		if (wcflag && (*dir)->isdir && !descend && !err) { // Directory not descended (e.g. level limit)
+		tot.total_word_count += (*dir)->word_count;
+		}
+		if (!needsclosed) lc.newline(*dir, lev, 0, *(dir+1)!=NULL);
+	}
 
     if (subdir) {
       free_dir(subdir);

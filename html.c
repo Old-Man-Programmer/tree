@@ -19,6 +19,7 @@
 
 
 extern bool duflag, dflag, hflag, siflag;
+extern bool wcflag; // Word count flag
 extern bool metafirst, noindent, force_color, nolinks, htmloffset;
 
 extern char *hversion;
@@ -69,7 +70,7 @@ void url_encode(FILE *fd, char *s)
   static const char *reserved = "!#$&'()*+,:;=?@[]";
 
   for(;*s;s++) {
-    fprintf(fd, (isprint((u_int)*s) && (strchr(reserved, *s) == NULL))? "%c":"%%%02X", *s);
+    fprintf(fd, (isprint((unsigned char)*s) && (strchr(reserved, *s) == NULL))? "%c":"%%%02X", *s);
   }
 }
 
@@ -247,7 +248,11 @@ void html_report(struct totals tot)
   if (dflag)
     fprintf(outfile,"%ld director%s\n",tot.dirs,(tot.dirs==1? "y":"ies"));
   else
-    fprintf(outfile,"%ld director%s, %ld file%s\n",tot.dirs,(tot.dirs==1? "y":"ies"),tot.files,(tot.files==1? "":"s"));
+	fprintf(outfile,"%ld director%s, %ld file%s",tot.dirs,(tot.dirs==1? "y":"ies"),tot.files,(tot.files==1? "":"s"));
+
+	if (wcflag) {
+	fprintf(outfile, ", %lld total word%s", (long long int)tot.total_word_count, (tot.total_word_count==1?"":"s"));
+	}
 
   fprintf(outfile, "\n</p>\n");
 }

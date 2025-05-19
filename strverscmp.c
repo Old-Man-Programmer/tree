@@ -1,7 +1,7 @@
 /* Compare strings while treating digits characters numerically.
    Copyright (C) 1997, 2002, 2005 Free Software Foundation, Inc.
    This file is part of the libiberty library.
-   Contributed by Jean-François Bignolles <bignolle@ecoledoc.ibp.fr>, 1997.
+   Contributed by Jean-Francois Bignolles <bignolle@ecoledoc.ibp.fr>, 1997.
 
    Libiberty is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -133,7 +133,7 @@ strverscmp (const char *s1, const char *s2)
 
   while ((diff = c1 - c2) == 0 && c1 != '\0')
     {
-      state = next_state[state];
+      state = (int)next_state[state];
       c1 = *p1++;
       c2 = *p2++;
       state |= (c1 == '0') + (isdigit (c1) != 0);

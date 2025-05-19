@@ -39,6 +39,7 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
   - Display file permissions, owner, group, size, inode, device ID, and modification/status change times.
   - Human-readable file sizes (including SI units).
   - Compute directory sizes based on their contents.
+  - Word count for files (directory word count is 0).
 - **Sorting:**
   - Sort by name, version, size, modification time, or status change time.
   - Reverse sort order.
@@ -59,6 +60,28 @@ make
 ```
 
 This will usually compile the source files and produce an executable named `tree`. You can then move this executable to a directory in your system's `PATH` (e.g., `/usr/local/bin`).
+
+### Local Installation
+
+To install `tree` locally (e.g., in `~/.local/bin`), you can use the `PREFIX` variable during the build and installation process:
+
+```sh
+make PREFIX=$HOME/.local
+make install PREFIX=$HOME/.local
+```
+
+This will install the `tree` executable to `$HOME/.local/bin/tree` and its man page to `$HOME/.local/share/man/man1/tree.1` or `$HOME/.local/man/man1/tree.1`. Ensure that `$HOME/.local/bin` is in your system's `PATH` to run `tree` directly.
+
+### Uninstallation
+
+To uninstall `tree` if you installed it locally using the `PREFIX` method:
+
+```sh
+rm -f $HOME/.local/bin/tree
+rm -f $HOME/.local/share/man/man1/tree.1
+rm -f $HOME/.local/man/man1/tree.1 # On some systems
+make clean # To remove compiled files from the source directory
+```
 
 ## Usage
 
@@ -108,7 +131,7 @@ Below is a comprehensive list of command-line options available for `tree`:
 - `-h` Print the size in a more human readable way.
 - `--si` Like `-h`, but use in SI units (powers of 1000).
 - `--du` Compute size of directories by their contents.
-- `-w` Print the word count for files and directories. (Note: This option appeared in your help output but might not be a standard `tree` option or might be specific to your version.)
+- `-w` Print the word count for files. For directories, the word count is 0. For files, it attempts to process text files and heuristically skips binary files.
 - `-D` Print the date of last modification or (`-c`) status change.
 - `--timefmt fmt` Print and format time according to the format `fmt`.
 - `-F` Appends `/`, `=`, `*`, `@`, `|` or `>` as per `ls -F`.
@@ -138,7 +161,7 @@ Below is a comprehensive list of command-line options available for `tree`:
 
 - `-X` Prints out an XML representation of the tree.
 - `-J` Prints out an JSON representation of the tree.
-- `-M` Prints out a Markdown bullet list representation of the tree. (Note: This option appeared in your help output but might not be a standard `tree` option or might be specific to your version.)
+- `-M` Prints out a Markdown bullet list representation of the tree.
 - `-H baseHREF` Prints out HTML format with `baseHREF` as top directory.
   - If `baseHREF` is `-`, the HTML output will use relative paths.
 - `-T string` Replace the default HTML title and H1 header with `string`.

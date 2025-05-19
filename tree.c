@@ -27,10 +27,10 @@ char *hversion= "\t\t tree v2.2.1 %s 1996 - 2024 by Steve Baker and Thomas Moore
 /* Globals */
 bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
 bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
-bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag, hyperflag;
+bool Hflag, siflag, cflag, Xflag, Jflag, MDflag, duflag, pruneflag, hyperflag; // Added MDflag
 bool noindent, force_color, nocolor, xdev, noreport, nolinks;
 bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
-bool reverse, fflinks, htmloffset;
+bool reverse, fflinks, htmloffset, wcflag; // Added wcflag for word count feature
 int flimit;
 
 struct listingcalls lc;
@@ -134,14 +134,13 @@ int main(int argc, char **argv)
   size_t i, j=0, k, n, p = 0, q = 0;
   bool optf = true;
   char *stmp, *outfilename = NULL, *arg;
-  char *stddata_fd;
   bool needfulltree, showversion = false, opt_toggle = false;
 
   aflag = dflag = fflag = lflag = pflag = sflag = Fflag = uflag = gflag = false;
   Dflag = qflag = Nflag = Qflag = Rflag = hflag = Hflag = siflag = cflag = false;
   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = false;
-  ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = false;
-  duflag = pruneflag = metafirst = gitignore = hyperflag = htmloffset = false;
+	ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = MDflag = fflinks = false; // Added MDflag
+	duflag = pruneflag = metafirst = gitignore = hyperflag = htmloffset = wcflag = false; // Initialize wcflag
 
   flimit = 0;
   dirs = xmalloc(sizeof(int) * (size_t)(maxdirs=PATH_MAX));
@@ -173,7 +172,7 @@ int main(int argc, char **argv)
 
 #ifdef __linux__
   /* Output JSON automatically to "stddata" if present: */
-  stddata_fd = getenv(ENV_STDDATA_FD);
+  char *stddata_fd = getenv(ENV_STDDATA_FD);
   if (stddata_fd != NULL) {
     int std_fd = atoi(stddata_fd);
     if (std_fd <= 0) std_fd = STDDATA_FILENO;
@@ -291,28 +290,52 @@ int main(int argc, char **argv)
 	case 'v':
 	  basesort = versort;
 	  break;
+	case 'w': // Word count flag
+	wcflag = (opt_toggle? !wcflag : true);
+	break;
 	case 'U':
 	  basesort = NULL;
 	  break;
+	case 'M': // Markdown output
+	MDflag = (opt_toggle? !MDflag : true);
+	if (MDflag) {
+	Xflag = Jflag = Hflag = false;
+	lc = (struct listingcalls){
+	markdown_intro, markdown_outtro, markdown_printinfo, markdown_printfile,
+	markdown_error, markdown_newline, null_close, markdown_report
+	};
+	sp = " "; // Ensure default space for Markdown
+	_nl = "\n"; // Ensure default newline for Markdown
+	} else if (!Xflag && !Jflag && !Hflag) { // If MDflag is toggled off, revert to default if no other format active
+	lc = (struct listingcalls){
+	null_intro, null_outtro, unix_printinfo, unix_printfile, unix_error, unix_newline,
+	null_close, unix_report
+	};
+	}
+	break;
 	case 'X':
 	  Xflag = true;
-	  Hflag = Jflag = false;
+	Hflag = Jflag = MDflag = false; // Added MDflag
 	  lc = (struct listingcalls){
 	    xml_intro, xml_outtro, xml_printinfo, xml_printfile, xml_error, xml_newline,
 	    xml_close, xml_report
 	  };
+	sp = " "; // Reset sp and _nl if coming from -H
+	_nl = "\n";
 	  break;
 	case 'J':
 	  Jflag = true;
-	  Xflag = Hflag = false;
+	Xflag = Hflag = MDflag = false; // Added MDflag
 	  lc = (struct listingcalls){
 	    json_intro, json_outtro, json_printinfo, json_printfile, json_error, json_newline,
 	    json_close, json_report
 	  };
+	sp = " "; // Reset sp and _nl if coming from -H
+	_nl = "\n";
 	  break;
 	case 'H':
 	  Hflag = true;
-	  Xflag = Jflag = false;
+	Xflag = Jflag = MDflag = false; // Added MDflag
 	  lc = (struct listingcalls){
 	    html_intro, html_outtro, html_printinfo, html_printfile, html_error, html_newline,
 	    html_close, html_report
@@ -662,7 +685,7 @@ void usage(int n)
   /*     123456789!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
   /*     \t9!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
   fancy(n < 2? stderr: stdout,
-	"usage: \btree\r [\b-acdfghilnpqrstuvxACDFJQNSUX\r] [\b-L\r \flevel\r [\b-R\r]] [\b-H\r [-]\fbaseHREF\r]\n"
+	"usage: \btree\r [\b-acdfghilnpqrstuv\bw\bxACDFJQMNSUX\r] [\b-L\r \flevel\r [\b-R\r]] [\b-H\r [-]\fbaseHREF\r]\n" // Added M
 	"\t[\b-T\r \ftitle\r] [\b-o\r \ffilename\r] [\b-P\r \fpattern\r] [\b-I\r \fpattern\r] [\b--gitignore\r]\n"
 	"\t[\b--gitfile\r[\b=\r]\ffile\r] [\b--matchdirs\r] [\b--metafirst\r] [\b--ignore-case\r]\n"
 	"\t[\b--nolinks\r] [\b--hintro\r[\b=\r]\ffile\r] [\b--houtro\r[\b=\r]\ffile\r] [\b--inodes\r] [\b--device\r]\n"
@@ -707,6 +730,7 @@ void usage(int n)
 	"  \b-h\r            Print the size in a more human readable way.\n"
 	"  \b--si\r          Like \b-h\r, but use in SI units (powers of 1000).\n"
 	"  \b--du\r          Compute size of directories by their contents.\n"
+	"  \b-w\r            Print the word count for files and directories.\n"
 	"  \b-D\r            Print the date of last modification or (-c) status change.\n"
 	"  \b--timefmt\r \ffmt\r Print and format time according to the format \ffmt\r.\n"
 	"  \b-F\r            Appends '\b/\r', '\b=\r', '\b*\r', '\b@\r', '\b|\r' or '\b>\r' as per \bls -F\r.\n"
@@ -731,6 +755,7 @@ void usage(int n)
 	"  \b------- XML/HTML/JSON/HYPERLINK options -------\r\n"
 	"  \b-X\r            Prints out an XML representation of the tree.\n"
 	"  \b-J\r            Prints out an JSON representation of the tree.\n"
+	"  \b-M\r            Prints out a Markdown bullet list representation of the tree.\n"
 	"  \b-H\r \fbaseHREF\r   Prints out HTML format with \fbaseHREF\r as top directory.\n"
 	"  \b-T\r \fstring\r     Replace the default HTML title and H1 header with \fstring\r.\n"
 	"  \b--nolinks\r     Turn off hyperlinks in HTML output.\n"
@@ -774,6 +799,59 @@ int patinclude(const char *name, bool isdir)
     }
   }
   return 0;
+}
+
+static off_t count_words_in_file(const char *filepath)
+{
+	FILE *file;
+	off_t count = 0;
+	bool in_word = false;
+	int c;
+	// For binary check
+	unsigned char buffer[1024];
+	size_t bytes_read;
+	int i; // Using int for loop counter, assuming bytes_read (max 1024) fits
+
+	file = fopen(filepath, "r");
+	if (!file) {
+		return 0; // Cannot open file
+	}
+
+	// Binary file heuristic: check first 1024 bytes for null bytes
+	bytes_read = fread(buffer, 1, sizeof(buffer), file);
+	if (ferror(file)) { // Check for read errors
+		fclose(file);
+		return 0;
+	}
+	for (i = 0; i < (int)bytes_read; i++) {
+		if (buffer[i] == 0) {
+			fclose(file);
+			return 0; // Binary file detected
+		}
+	}
+
+	// Rewind to beginning of file to count words from the start
+	if (fseek(file, 0L, SEEK_SET) != 0) {
+		fclose(file);
+		return 0; // Could not seek
+	}
+	
+	count = 0; // Reset count for word counting pass
+	in_word = false;
+
+	while ((c = fgetc(file)) != EOF) {
+		if (isspace(c)) {
+			in_word = false;
+		} else {
+			if (!in_word) {
+				in_word = true;
+				count++;
+			}
+		}
+	}
+
+	fclose(file);
+	return count;
 }
 
 /**
@@ -821,6 +899,7 @@ struct _info *getinfo(const char *name, char *path)
 
   ent = (struct _info *)xmalloc(sizeof(struct _info));
   memset(ent, 0, sizeof(struct _info));
+	ent->word_count = 0; // Initialize word count
 
   ent->name = scopy(name);
   /* We should just incorporate struct stat into _info, and eliminate this unnecessary copying.
@@ -867,6 +946,15 @@ struct _info *getinfo(const char *name, char *path)
     }
   }
 #endif
+
+	if (wcflag) {
+	// Check if it's a regular file and not executable (heuristic for text file)
+	// st.st_mode is used here as it refers to the target file after symlink resolution (if lflag is on)
+	// or the file itself. ent->isdir and ent->isexe are already populated based on st.st_mode.
+	if (!ent->isdir && (st.st_mode & S_IFMT) == S_IFREG && !ent->isexe) {
+		ent->word_count = count_words_in_file(path);
+	}
+	}
 
   ent->comment = NULL;
 
@@ -1019,7 +1107,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 	    if (*(*dir)->lnk == '/')
 	      (*dir)->child = unix_getfulltree((*dir)->lnk,lev+1,dev,&((*dir)->size),&((*dir)->err));
 	    else {
-	      if (strlen(d)+strlen((*dir)->lnk)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
+	      if (strlen(d)+strlen((*dir)->lnk)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->lnk)+1024));
 	      if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
 	      else sprintf(path,"%s/%s",d,(*dir)->lnk);
 	      (*dir)->child = unix_getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
@@ -1045,6 +1133,17 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 	continue;
       }
     }
+
+	if (wcflag && (*dir)->isdir && (*dir)->child) {
+		off_t current_dir_word_count = 0;
+		struct _info **child_ptr = (*dir)->child;
+		while (*child_ptr) {
+		current_dir_word_count += (*child_ptr)->word_count;
+		child_ptr++;
+		}
+		(*dir)->word_count = current_dir_word_count;
+	}
+
     if (duflag) *size += (*dir)->size;
     dir++;
   }
@@ -1506,6 +1605,9 @@ char *fillinfo(char *buf, const struct _info *ent)
   if (uflag) n += sprintf(buf+n, " %-8.32s", uidtoname(ent->uid));
   if (gflag) n += sprintf(buf+n, " %-8.32s", gidtoname(ent->gid));
   if (sflag) n += psize(buf+n,ent->size);
+	if (wcflag) {
+		n += sprintf(buf+n, " %7lld wc", (long long)ent->word_count);
+	}
   if (Dflag) n += sprintf(buf+n, " %s", do_date(cflag? ent->ctime : ent->mtime));
 
   if (buf[0] == ' ') {

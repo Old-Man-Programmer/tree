@@ -19,6 +19,7 @@
 
 extern bool dflag, pflag, sflag, uflag, gflag, Dflag, inodeflag, devflag;
 extern bool cflag, hflag, siflag, duflag, noindent;
+extern bool wcflag; // Word count flag
 
 extern const mode_t ifmt[];
 extern const char *ftype[];
@@ -94,8 +95,10 @@ void json_fillinfo(struct _info *ent)
       fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
   }
   if (Dflag) fprintf(outfile, ",\"time\":\"%s\"", do_date(cflag? ent->ctime : ent->mtime));
+  if (wcflag) {
+    fprintf(outfile, ",\"word_count\":%lld", (long long int)ent->word_count);
+  }
 }
-
 
 void json_intro(void)
 {
@@ -188,5 +191,8 @@ void json_report(struct totals tot)
   if (duflag) fprintf(outfile,",\"size\":%lld", (long long int)tot.size);
   fprintf(outfile,",\"directories\":%ld", tot.dirs);
   if (!dflag) fprintf(outfile,",\"files\":%ld", tot.files);
+  if (wcflag) {
+    fprintf(outfile,",\"total_word_count\":%lld", (long long int)tot.total_word_count);
+  }
   fprintf(outfile, "}");
 }

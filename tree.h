@@ -96,6 +96,7 @@ struct _info {
   uid_t uid;
   gid_t gid;
   off_t size;
+  off_t word_count; // Field to store word count for files/dirs
   time_t atime, ctime, mtime;
   dev_t dev, ldev;
   ino_t inode, linode;
@@ -112,6 +113,7 @@ struct _info {
 struct totals {
   size_t files, dirs;
   off_t size;
+  off_t total_word_count; // Added for word count summary
 };
 
 struct listingcalls {
@@ -266,6 +268,16 @@ int json_error(char *error);
 void json_newline(struct _info *file, int level, int postdir, int needcomma);
 void json_close(struct _info *file, int level, int needcomma);
 void json_report(struct totals tot);
+
+/* markdown.c */
+void markdown_intro(void);
+void markdown_outtro(void);
+int markdown_printinfo(char *dirname, struct _info *file, int level);
+int markdown_printfile(char *dirname, char *filename, struct _info *file, int descend);
+int markdown_error(char *error_msg);
+void markdown_newline(struct _info *file, int level, int postdir, int needcomma);
+// markdown_close will use null_close from list.c
+void markdown_report(struct totals tot);
 
 /* color.c */
 void parse_dir_colors(void);

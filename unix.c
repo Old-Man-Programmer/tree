@@ -19,6 +19,7 @@
 
 extern FILE *outfile;
 extern bool dflag, Fflag, duflag, metafirst, hflag, siflag, noindent;
+extern bool wcflag; // Word count flag
 extern bool colorize, linktargetcolor, hyperflag;
 extern const struct linedraw *linedraw;
 extern int *dirs;
@@ -139,5 +140,10 @@ void unix_report(struct totals tot)
   if (dflag)
     fprintf(outfile,"%ld director%s\n",tot.dirs,(tot.dirs==1? "y":"ies"));
   else
-    fprintf(outfile,"%ld director%s, %ld file%s\n",tot.dirs,(tot.dirs==1? "y":"ies"),tot.files,(tot.files==1? "":"s"));
+	fprintf(outfile,"%ld director%s, %ld file%s",tot.dirs,(tot.dirs==1? "y":"ies"),tot.files,(tot.files==1? "":"s"));
+
+	if (wcflag) {
+	fprintf(outfile,", %lld total word%s", (long long int)tot.total_word_count, (tot.total_word_count==1?"":"s"));
+	}
+	fprintf(outfile, "\n");
 }
