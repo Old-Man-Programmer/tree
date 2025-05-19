@@ -1,367 +1,212 @@
-  Please read the INSTALL file for installation instructions, particularly if
-you are installing on a non-Linux machine.
-
-  This is a handy little utility to display a tree view of directories that
-I wrote some time ago and just added color support to.  I've decided that
-since no one else has done something similar I would go ahead and release
-it, even though it's barely a 1st year CS student hack.  I've found it damn
-handy to peruse a directory tree though, especially when someone is trying to
-hide something from you.
-
-  The main distribution site for tree is here:
-  http://oldmanprogrammer.net/source.php?dir=projects/tree
-
-  Backup GIT sites are:
-  https://gitlab.com/OldManProgrammer/unix-tree
-  https://github.com/Old-Man-Programmer/tree
-
-  Current e-mail address to reach me at: steve.baker.llc@gmail.com
-
-  If you don't like the way it looks let me know how you think it should be
-formatted. Feel free to suggest modifications and additions.
-
-  Thanks go out so the following people who have helped bring tree to the
-pinnacle of perfection that it is: ;)
-
-Francesc Rocher
-  - Added HTML output (-H).
-  - Added options -o, -L and -R.
-
-Gerald Scheidl
-  - Added -S option to print ASCII graphics lines for use under linux
-    console when an alternate console font has been selected (might also
-    work under DOS telnet).
-
-Guido Socher (and others)
-  - Made tree more portable.  Should compile under solaris.
-
-Mitja Lacen
-  - Discovered bug where tree will segmentation fault on long pathnames.
-  - Discovered in -L argument processing.
-
-Nathaniel Delage
-  - Discovered problem with recursive symlink detection
-
-A. Karthik
-  - Suggested option to remove file and directory report at end of tree
-    listing.
-
-Roger Luethi
-  - Spotted memory over-allocation bug in read_dir().
-  - Submitted several patches to fix various memory leaks.
-
-Daniel Lee
-  - Reported that Tru64 defines TRUE/FALSE in sys/types.h (OSF1 standard?)
-
-Paolo Violini
-  - Found bug in tree that caused it to seg-fault if 50 file arguments where
-    given and directory coloring was turned on.
-
-Mitsuaki Masuhara
-  - Discovered tree crashed on missing arguments.
-  - Discovered that tree did not properly encode characters in filenames
-    when used as URLs when using the -H option.
-  - Fixed issue with --charset option processing.
-
-Johan Fredrik
-  - Pointed out that tree did not list large files.
-
-Ted Tiberio
-  - Submitted patch which fixed a compiler issue and cleaned up HTML and CSS
-    code, applied CSS to all output, and fixed up HTML to 4.01 strict
-    standards.
-
-David MacMahon
-  - Added '|' support to the pattern matching routines.
-
-Dan Jacobson
-  - Pointed out that -t did not sort properly for files with the same
-    timestamp.
-  - Suggested option to change HTML title and H1 string.
-  - Suggested -r option for reversed alphanumeric sort ala 'ls -r'.
-
-Kyosuke Tokoro
-  - Provided patch to support OS/2, fix HTML encoding, provide charset
-    support. Added to authors list.
-
-Florian Ernst
-  - Debian maintainer who pointed out problems and applied fire to feet to fix
-    stuff.
-
-Jack Cuyler
-  - Suggested -h option for human readable output for -s, ala ls -lh.
-
-Jonathon Cranford
-  - Supplied patch to make tree under cygwin.
-
-Richard Houser
-  - Provided patch to fix a colorization bug when dealing with special
-    files and directories that seem to have an extension.
-
-Zurd (?)
-  - Suggested removing trailing slash on user supplied directory names if -f
-    option is used.
-
-John Nintendud
-  - Pointed out broken HTML output in 1.5.1.
-
-Mark Braker
-  - Suggested --filelimit option.
-
-Michael Vogt
-  - Suggested -v option (version sort).
-
-Wang Quanhong
-  - Provided build options for Solaris.
-
-Craig McDaniel
-  - Provided build options and source mods for HP NonStop support.
-
-Christian Grigis
-  - Noted that setlocale() should come before MB_CUR_MAX check.
-
-Kamaraju Kusumanchi
-  - Submitted patch to remove compiler warnings for Solaris.
-
-Martin Nagy
-  - Provided patch which fixes issue where indent may output more than it
-    should when dirs[*] is not properly cleared before use.
-
-William C. Lathan III
-  - Showed that tree was not properly quoting arguments to recursively called
-    tree instances when using -R.
-
-Ulrich Eckhardt
-  - Submitted patch for --si option.
-
-Tim Waugh (redhat)
-  - Pointed out a potential memory leak in listdir().
-
-Markus Schnalke
-  - Tracked down bug where tree would print "argetm" before the filename of a
-    symbolic link when the "target" option was specified for LINK in dircolors.
-
-Ujjwal Kumar
-  - Suggested that tree backslash spaces like ls does for script use.  Made
-    output more like ls.
-
-Ivan Shmakov
-  - Pointed out multiple CLI defenciencies (via Debian)
-
-Mantas Mikulnas
-  - Provided patch to make tree more reliably detect the UTF-8 locale.
-
-Tim Mooney
-  - Noticed S_ISDOOR/S_IFDOOR spelling mistake for under Solaris.
-
-Han Hui
-  - Pointed out possible memory overflow in read_dir (path/lbuf not equal in size
-    to pathsize/lbufsize.)
-
-Ryan Hollis
-  - Pointed out problems with the Makefile w/ respect to OSX.
-
-Philipp M?ller
-  - Provided patch for filesize sorting.
-
-Sascha Zorn
-  - Pointed out that the HTML output was broken when -L 1 option was used.
-
-Alexandre Wendling
-  - Pointed out that modern systems may use 32 bit uid/gids which could lead
-    to a potential buffer overflow in the uid/gid to name mapping functions.
-
-Florian Sesser
-  - Provided patch to add JSON support.
-
-Brian Mattern & Jason A. Donenfeld
-  - Provided patch to add --matchdirs functionality.
-
-Jason A. Donenfeld
-  - Added --caseinsentive, renamed --ignore-case option.
-  - Bugged me a lot.
-
-Stephan Gabert
-  - Found a bug where the wrong inode (and device) information would be printed
-    for symbolic links.
-
-Nick Craig-Wood
-  - Fixed issue where mbstowcs() fails to null terminate the string due to
-    improper UTF-8 encoding leading to garbage being printed.
-
-Mantas Mikulėnas
-  - Fixed issue with malformed multibyte string handling.
-
-Wagner Camarao
-  - Pointed out that JSON size output ignored -h/--si flags
-
-John Lane, Tad, others
-  - Fixed JSON output hanging commas
-
-Jacob Wahlgren
-  - Improved command line switch error reporting.
-  - Symbolic links not displayed if a -P pattern is active
-  - Missing argument error reporting fixes on long format switches.
-
-Shawn Mehan
-  - Update BINDIR in Makefile for MacOS X -- It is not allowed to install
-    programs to /usr/bin on MacOS X any longer due to System Integrity
-    Protection (SIP)
-
-Kirill Kolyshkin
-  - Some man page fixes and cleanups
-
-Alyssa Ross
-  - Suggested adding support for BSD's CLICOLOR and CLICOLOR_FORCE environment
-    variables.
-
-Tomáš Beránek
-  - Make sure we always use xmalloc / xrealloc
-
-Sergei Maximov
-  - Make XML/HTML/JSON output mutually exclusive.
-
-Jonas Stein
-  - Deprecate using local -DLINUX / -DCYGWIN and use the OS provided defines
-
-John A. Fedoruk
-  - Suggested --filesfirst option.
-
-Michael Osipov
- - Optimized makefile, HP/UX support.
-
-Richard Mitchell
-  - Suggested --metafirst option
-
-Paul Seyfert
-  - Honor -n (no color) even if the CLICOLOR_FORCE environment variable is set
-
-Filips Romāns via Debian
-  - Make tree colorization use reset (rs code in dir_colors,) not normal color
-    when resetting attributes.
-
-Chentao Credungtao via Debian
-  - Properly sort --fromfile input
-
-Jake Zimmerman (and others)
-  - Suggest support for .gitignore files (--gitignore option)
-
-Eric Pruitt
-  - Always HTML escape filenames in HTML output even when -C is used.
-
-Michiel Beijen (and others)
-  - Suggest Support multiple -I and -P instances.
-  - Suggest that / match directories in patterns (also Taylor Faubion)
-  - Suggested to update MANPATH for OS X
-
-Michal Vasilek
-  - Various Makefile fixes
-
-Josey Smith
-  - Reported an error with * in the patchmatch code where *foo*bar would match
-    *foo alone.
-
-Maxim Cournoyer
- - Reported HTML url output issue w/ 2.0.0-2.0.1
-
-Ben Brown
- - Updates to the Makefile
- - Reported use after free error
-
-Erik Skultety
- - Reported same use after error
-
-Saniya Maheshwari / Mig-hub ? / Carlos Pinto
- - Reported various issues with --gitignore
-
-Piotr Andruszkow
- - Suggested adding support for --info and --gitignore for the --fromfile
-   option.
-
-Sebastian Rose
- - Another attempt at fixing extraneous /'s in HTML URLs/output.
-
-Dave Rice
- - Fixed XML output
-
-Timm Fitschen
- - Suggest adding support for the NO_COLOR environment variable.
-
-Chentao Credungtao
- - Suggested supporting symbolic links in --fromfile (--fflinks option)
-
-Sith Wijesinghe and Matthew Sessions
- - Remove many C90 isms to make compiling with C90 compilers easier.
-
-simonpmind (gitlab)
- - Reported issue where following links while doing JSON output would lead to
-   incorrect JSON output.
- - Suggested suppressing 'recursive, not followed' when using -L, fixing JSON
-   error.
-
-German Lashevich
- - Reported an issue where .info patterns relative to the .info file that did
-   not use a wildcard for matching the prefix were not matching files properly.
-
-Javier Jaramago Fernández
- - Reported a buffer overflow in listdir() when file names are allowed to be
-   longer than 256 characters (like when using fromfile.)
-
-6ramr (gitlab)
- - Reported issue with following symbolic links when a full tree was gathered.
-
-Clinton
- - Reported issue where --gitignore does not think a pattern with a singular
-   terminal '/' (indicating it matches only directories,) is a relative path.
-
-jack6th (gitlab)
- - Don't prematurely sort files/directories with --from*file.
-
-Hanqin Guan (The OSLab of Peking University):
- - Fuzzing testing that identified several problems in --fromfile and
-   --fromtabfile processing.
- - -U should disable --dirsfirst / --filesfirst sorting.
- - Make sure gittrim() function can handle a null string.
-
-Trevor Gross
- - Suggested adding support for immediate values to -L with no spacing.
-
-Christoph Anton Mitterer
- - Suggested option negation, which led to --opt-toggle.
-
-Nicolai Dagestad
- - Suggested --hyperlink option.
-
-Alchemyst (github)
- - Reported JSON error when using the --du option and unable to open a
-   directory.
- - Reported that the reported total was incorrect when using the --du option.
-
-Ivan Ivanovich
- - Reported small rounding error in human readable size output.
-
-Kenta Arai
- - Reported Segfault with --filelimit option
- - Add NULL guard for json_printinfo() and xml_printinfo() (and fix ftype
-   printing for XML)
- - Fix getcharset() to not return a getenv() pointer.
- - Suggest adding .gitignore file to the distribution.
- - Clean up some warnings issued by -Wextra
-
-freemedom (github)
- - Provided Makefile information for cross compiling for Android.
-
-David Seifert
- - Provided updates for Makefile
- - Suggested move to stdbool.h to avoid problems with newer compilers.
-
-Daniel Li / Landon Bourma
- - Reported segfault from incorrect free.
- 
-And many others whom I've failed to keep track of.  I should have started
-this list years ago.
-
-					- Steve Baker
-					  Steve.Baker.llc@gmail.com
-					  or
-					  oldmanprogrammer.llc@gmail.com
+# Tree - Directory Listing Utility
+
+## Overview
+
+`tree` is a recursive directory listing program that produces a depth-indented listing of files. With no arguments, `tree` lists the files in the current directory. When directory arguments are given, `tree` lists all the files and/or directories found in the given directories each in turn. `tree` then returns the total number of files and/or directories listed.
+
+There are options to change the characters used in the output, and to use color output. Graphical options are also provided to change the type of indentation lines. Various other options exist to modify the output, including filtering, sorting, and output formats like XML, JSON, HTML, and Markdown.
+
+## Version
+
+**Version:** v2.2.1 (1996 - 2024)
+
+## Authors
+
+- Steve Baker (steve.baker.llc@gmail.com)
+- Thomas Moore
+- Francesc Rocher (HTML output)
+- Florian Sesser (JSON output)
+- Kyosuke Tokoro (Charsets / OS/2 support)
+
+## License
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+## Features
+
+- **Recursive Directory Listing:** Displays directory contents in a tree-like format.
+- **Flexible Output:**
+  - Supports plain text, XML, JSON, HTML, and Markdown output.
+  - Customizable character sets and indentation graphics.
+  - Colorized output based on file type.
+- **Filtering:**
+  - Include or exclude files based on patterns.
+  - Support for `.gitignore` files.
+  - Limit recursion depth and number of files per directory.
+- **File Information:**
+  - Display file permissions, owner, group, size, inode, device ID, and modification/status change times.
+  - Human-readable file sizes (including SI units).
+  - Compute directory sizes based on their contents.
+- **Sorting:**
+  - Sort by name, version, size, modification time, or status change time.
+  - Reverse sort order.
+  - Option to list directories before or after files.
+- **Symlink Handling:**
+  - Option to follow symbolic links.
+- **Input Options:**
+  - Read paths from files instead of command-line arguments.
+- **Hyperlinks:**
+  - Generate OSC 8 terminal hyperlinks.
+
+## Building from Source
+
+To build `tree` from source, you typically need a C compiler (like GCC) and the `make` utility. Navigate to the source directory and run:
+
+```bash
+make
+```
+
+This will usually compile the source files and produce an executable named `tree`. You can then move this executable to a directory in your system's `PATH` (e.g., `/usr/local/bin`).
+
+## Usage
+
+```bash
+tree [OPTIONS] [directory ...]
+```
+
+If no directory is specified, `tree` will list the contents of the current directory.
+
+## Options
+
+Below is a comprehensive list of command-line options available for `tree`:
+
+### Listing options
+
+- `-a` All files are listed.
+- `-d` List directories only.
+- `-l` Follow symbolic links like directories.
+- `-f` Print the full path prefix for each file.
+- `-x` Stay on current filesystem only.
+- `-L level` Descend only `level` directories deep.
+- `-R` Rerun tree when max dir level reached.
+- `-P pattern` List only those files that match the pattern given.
+- `-I pattern` Do not list files that match the given pattern.
+- `--gitignore` Filter by using `.gitignore` files.
+- `--gitfile X` Explicitly read a gitignore file `X`.
+- `--ignore-case` Ignore case when pattern matching.
+- `--matchdirs` Include directory names in `-P` pattern matching.
+- `--metafirst` Print meta-data at the beginning of each line.
+- `--prune` Prune empty directories from the output.
+- `--info` Print information about files found in `.info` files.
+- `--infofile X` Explicitly read info file `X`.
+- `--noreport` Turn off file/directory count at end of tree listing.
+- `--charset X` Use charset `X` for terminal/HTML and indentation line output.
+- `--filelimit #` Do not descend dirs with more than `#` files in them.
+- `-o filename` Output to file instead of stdout.
+
+### File options
+
+- `-q` Print non-printable characters as `?`.
+- `-N` Print non-printable characters as is.
+- `-Q` Quote filenames with double quotes.
+- `-p` Print the protections for each file.
+- `-u` Displays file owner or UID number.
+- `-g` Displays file group owner or GID number.
+- `-s` Print the size in bytes of each file.
+- `-h` Print the size in a more human readable way.
+- `--si` Like `-h`, but use in SI units (powers of 1000).
+- `--du` Compute size of directories by their contents.
+- `-w` Print the word count for files and directories. (Note: This option appeared in your help output but might not be a standard `tree` option or might be specific to your version.)
+- `-D` Print the date of last modification or (`-c`) status change.
+- `--timefmt fmt` Print and format time according to the format `fmt`.
+- `-F` Appends `/`, `=`, `*`, `@`, `|` or `>` as per `ls -F`.
+- `--inodes` Print inode number of each file.
+- `--device` Print device ID number to which each file belongs.
+
+### Sorting options
+
+- `-v` Sort files alphanumerically by version.
+- `-t` Sort files by last modification time.
+- `-c` Sort files by last status change time.
+- `-U` Leave files unsorted.
+- `-r` Reverse the order of the sort.
+- `--dirsfirst` List directories before files (`-U` disables).
+- `--filesfirst` List files before directories (`-U` disables).
+- `--sort X` Select sort: `name`, `version`, `size`, `mtime`, `ctime`, `none`.
+
+### Graphics options
+
+- `-i` Don't print indentation lines.
+- `-A` Print ANSI lines graphic indentation lines.
+- `-S` Print with CP437 (console) graphics indentation lines.
+- `-n` Turn colorization off always (`-C` overrides).
+- `-C` Turn colorization on always.
+
+### XML/HTML/JSON/Markdown/Hyperlink options
+
+- `-X` Prints out an XML representation of the tree.
+- `-J` Prints out an JSON representation of the tree.
+- `-M` Prints out a Markdown bullet list representation of the tree. (Note: This option appeared in your help output but might not be a standard `tree` option or might be specific to your version.)
+- `-H baseHREF` Prints out HTML format with `baseHREF` as top directory.
+  - If `baseHREF` is `-`, the HTML output will use relative paths.
+- `-T string` Replace the default HTML title and H1 header with `string`.
+- `--nolinks` Turn off hyperlinks in HTML output.
+- `--hintro X` Use file `X` as the HTML intro.
+- `--houtro X` Use file `X` as the HTML outro.
+- `--hyperlink` Turn on OSC 8 terminal hyperlinks.
+- `--scheme X` Set OSC 8 hyperlink scheme, default `file://`.
+- `--authority X` Set OSC 8 hyperlink authority/hostname.
+
+### Input options
+
+- `--fromfile` Reads paths from files (`.`=stdin).
+- `--fromtabfile` Reads trees from tab indented files (`.`=stdin).
+- `--fflinks` Process link information when using `--fromfile`.
+
+### Miscellaneous options
+
+- `--opt-toggle` Enable option toggling (allows re-specifying an option to toggle its boolean value).
+- `--version` Print version and exit.
+- `--help` Print usage and this help message and exit.
+- `--` Options processing terminator. Any arguments following `--` are treated as directory names, even if they start with a dash.
+
+## Examples
+
+1.  **List current directory:**
+
+    ```bash
+    tree
+    ```
+
+2.  **List a specific directory up to 2 levels deep:**
+
+    ```bash
+    tree -L 2 /path/to/directory
+    ```
+
+3.  **List directories only, showing permissions and sizes:**
+
+    ```bash
+    tree -dps /path/to/directory
+    ```
+
+4.  **List all files, including hidden ones, and output to HTML:**
+
+    ```bash
+    tree -a -H . -o tree_report.html /path/to/directory
+    ```
+
+    (This creates `tree_report.html` with `.` as the base HREFs for links.)
+
+5.  **List files matching a pattern, ignoring case, and sort by modification time:**
+
+    ```bash
+    tree -P "*.txt" --ignore-case -t /path/to/directory
+    ```
+
+6.  **Output as JSON:**
+
+    ```bash
+    tree -J -o output.json /path/to/directory
+    ```
+
+7.  **Use gitignore rules for filtering:**
+    ```bash
+    tree --gitignore /path/to/git-repository
+    ```
+
+## Reporting Bugs / Contributing
+
+If you find any bugs or have suggestions for improvements, please refer to the project's repository or contact the maintainers. Contributions are welcome! (You might want to add a link to your project's issue tracker or contribution guidelines here.)
