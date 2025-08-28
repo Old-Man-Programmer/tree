@@ -66,7 +66,7 @@ int unix_printfile(char *dirname, char *filename, struct _info *file, int descen
   bool colored = false;
   int c;
 
-  if (hyperflag) open_hyperlink(dirname, file->name);
+  if (file && hyperflag) open_hyperlink(dirname, file->name);
 
   if (file && colorize) {
     if (file->lnk && linktargetcolor) colored = color(file->lnkmode, file->name, file->orphan, false);
