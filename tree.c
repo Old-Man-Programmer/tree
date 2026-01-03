@@ -18,11 +18,11 @@
 
 #include "tree.h"
 
-char *version = "$Version: $ tree v2.2.1 %s 1996 - 2024 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion= "\t\t tree v2.2.1 %s 1996 - 2024 by Steve Baker and Thomas Moore <br>\n"
+char *version = "$Version: $ tree v2.3.0 %s 1996 - 2025 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion= "\t\t tree v2.3.0 %s 1996 - 2025 by Steve Baker and Thomas Moore <br>\n"
 		"\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		"\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
-		"\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
+		"\t\t Charset support %s 2001 by Kyosuke Tokoro\n";
 
 /* Globals */
 bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
@@ -60,18 +60,14 @@ char xpattern[PATH_MAX];
 
 int mb_cur_max;
 
-#ifdef __EMX__
-const u_short ifmt[]={ FILE_ARCHIVED, FILE_DIRECTORY, FILE_SYSTEM, FILE_HIDDEN, FILE_READONLY, 0};
+#ifdef S_IFPORT
+const mode_t ifmt[] = {S_IFREG, S_IFDIR, S_IFLNK, S_IFCHR, S_IFBLK, S_IFSOCK, S_IFIFO, S_IFDOOR, S_IFPORT, 0};
+const char fmt[] = "-dlcbspDP?";
+const char *ftype[] = {"file", "directory", "link", "char", "block", "socket", "fifo", "door", "port", "unknown", NULL};
 #else
-  #ifdef S_IFPORT
-  const mode_t ifmt[] = {S_IFREG, S_IFDIR, S_IFLNK, S_IFCHR, S_IFBLK, S_IFSOCK, S_IFIFO, S_IFDOOR, S_IFPORT, 0};
-  const char fmt[] = "-dlcbspDP?";
-  const char *ftype[] = {"file", "directory", "link", "char", "block", "socket", "fifo", "door", "port", "unknown", NULL};
-  #else
-  const mode_t ifmt[] = {S_IFREG, S_IFDIR, S_IFLNK, S_IFCHR, S_IFBLK, S_IFSOCK, S_IFIFO, 0};
-  const char fmt[] = "-dlcbsp?";
-  const char *ftype[] = {"file", "directory", "link", "char", "block", "socket", "fifo", "unknown", NULL};
-  #endif
+const mode_t ifmt[] = {S_IFREG, S_IFDIR, S_IFLNK, S_IFCHR, S_IFBLK, S_IFSOCK, S_IFIFO, 0};
+const char fmt[] = "-dlcbsp?";
+const char *ftype[] = {"file", "directory", "link", "char", "block", "socket", "fifo", "unknown", NULL};
 #endif
 
 struct sorts {
@@ -126,7 +122,7 @@ char *long_arg(char *argv[], size_t i, size_t *j, size_t *n, char *prefix) {
   return ret;
 }
 
-int main(int argc, char **argv)
+int tree_main(int argc, char **argv)
 {
   struct ignorefile *ig;
   struct infofile *inf;
@@ -636,17 +632,9 @@ void print_version(int nl)
 void setoutput(const char *filename)
 {
   if (filename == NULL) {
-#ifdef __EMX__
-    _fsetmode(outfile=stdout,Hflag?"b":"t");
-#else
     if (outfile == NULL) outfile = stdout;
-#endif
   } else {
-#ifdef __EMX__
-    outfile = fopen(filename, Hflag? "wb":"wt");
-#else
     outfile = fopen(filename, "w");
-#endif
     if (outfile == NULL) {
       fprintf(stderr,"tree: invalid filename '%s'\n", filename);
       exit(1);
@@ -804,20 +792,16 @@ struct _info *getinfo(const char *name, char *path)
 
   isdir = (st.st_mode & S_IFMT) == S_IFDIR;
 
-#ifndef __EMX__
   if (gitignore && filtercheck(path, name, isdir)) return NULL;
 
   if ((lst.st_mode & S_IFMT) != S_IFDIR && !(lflag && ((st.st_mode & S_IFMT) == S_IFDIR))) {
     if (pattern && !patinclude(name, isdir)) return NULL;
   }
   if (ipattern && patignore(name, isdir)) return NULL;
-#endif
 
   if (dflag && ((st.st_mode & S_IFMT) != S_IFDIR)) return NULL;
 
-#ifndef __EMX__
 /*    if (pattern && ((lst.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue; */
-#endif
 
   ent = (struct _info *)xmalloc(sizeof(struct _info));
   memset(ent, 0, sizeof(struct _info));
@@ -843,9 +827,6 @@ struct _info *getinfo(const char *name, char *path)
   ent->ctime  = lst.st_ctime;
   ent->mtime  = lst.st_mtime;
 
-#ifdef __EMX__
-  ent->attr   = lst.st_attr;
-#else
 
   /* These should be eliminated, as they're barely used: */
   ent->isdir  = isdir;
@@ -866,7 +847,6 @@ struct _info *getinfo(const char *name, char *path)
       ent->lnkmode = st.st_mode;
     }
   }
-#endif
 
   ent->comment = NULL;
 
@@ -1320,21 +1300,8 @@ void indent(int maxlevel)
 }
 
 
-#ifdef __EMX__
-char *prot(long m)
-#else
 char *prot(mode_t m)
-#endif
 {
-#ifdef __EMX__
-  const u_short *p;
-  static char buf[6];
-  char*cp;
-
-  for(p=ifmt,cp=strcpy(buf,"adshr");*cp;++p,++cp)
-    if(!(m&*p))
-      *cp='-';
-#else
   static char buf[11], perms[] = "rwxrwxrwx";
   int i;
   mode_t b;
@@ -1353,7 +1320,6 @@ char *prot(mode_t m)
   if (m & S_ISVTX) buf[9] = (buf[9]=='-')? 'T' : 't';
 
   buf[10] = 0;
-#endif
   return buf;
 }
 
@@ -1414,13 +1380,6 @@ void printit(const char *s)
   if (Qflag) putc('"',outfile);
   for(;*s;s++) {
     c = (unsigned char)*s;
-#ifdef __EMX__
-    if(_nls_is_dbcs_lead(*(unsigned char*)s)){
-      putc(*s,outfile);
-      putc(*++s,outfile);
-      continue;
-    }
-#endif
     if((c >= 7 && c <= 13) || c == '\\' || (c == '"' && Qflag) || (c == ' ' && !Qflag)) {
       putc('\\',outfile);
       if (c > 13) putc(c, outfile);
@@ -1469,9 +1428,6 @@ struct _info *stat2info(const struct stat *st)
 
   info.linode = st->st_ino;
   info.ldev = st->st_dev;
-#ifdef __EMX__
-  info.attr = st->st_attr
-#endif
   info.mode = st->st_mode;
   info.uid = st->st_uid;
   info.gid = st->st_gid;
@@ -1498,11 +1454,7 @@ char *fillinfo(char *buf, const struct _info *ent)
   if (inodeflag) n += sprintf(buf," %7ld",(long int)ent->linode);
   #endif
   if (devflag) n += sprintf(buf+n, " %3d", (int)ent->ldev);
-  #ifdef __EMX__
-  if (pflag) n += sprintf(buf+n, " %s",prot(ent->attr));
-  #else
   if (pflag) n += sprintf(buf+n, " %s", prot(ent->mode));
-  #endif
   if (uflag) n += sprintf(buf+n, " %-8.32s", uidtoname(ent->uid));
   if (gflag) n += sprintf(buf+n, " %-8.32s", gidtoname(ent->gid));
   if (sflag) n += psize(buf+n,ent->size);

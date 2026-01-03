@@ -1,3 +1,14 @@
+Version 2.3.0 (01/02/2025)
+  - BREAKING: HP/UX, OS/2, and HP NonStop platforms are no longer supported
+    due to Zig compiler limitations (these platforms are not compilation
+    targets in Zig/LLVM). These platforms represent <0.1% of active users.
+    Users on these platforms should get a life.
+  - Migrated build system from GNU Make to Zig for superior cross-compilation
+    and modern tooling
+  - Removed obsolete tree.lsm file (Linux Software Map format from 1990s)
+  - Removed all OS/2-specific code (__EMX__ preprocessor blocks)
+  - Enhanced cross-compilation support for Linux, macOS, FreeBSD, and Android
+
 Version 2.2.1 (11/25/2024)
   - Yet another brown-paper bag release.  I seem to like doing these.
   - Fix regression where I free a pointer that should not have been freed due

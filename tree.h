@@ -32,23 +32,6 @@
 #include <limits.h>
 #include <pwd.h>
 #include <grp.h>
-#ifdef __EMX__  /* for OS/2 systems */
-#  define INCL_DOSFILEMGR
-#  define INCL_DOSNLS
-#  include <os2.h>
-#  include <sys/nls.h>
-#  include <io.h>
-  /* On many systems stat() function is identical to lstat() function.
-   * But the OS/2 does not support symbolic links and doesn't have lstat() function.
-   */
-#  define         lstat          stat
-#  define         strcasecmp     stricmp
-  /* Following two functions, getcwd() and chdir() don't support for drive letters.
-   * To implement support them, use _getcwd2() and _chdir2().
-   */
-#  define getcwd _getcwd2
-#  define chdir _chdir2
-#endif
 
 #include <locale.h>
 #include <langinfo.h>
@@ -99,9 +82,6 @@ struct _info {
   time_t atime, ctime, mtime;
   dev_t dev, ldev;
   ino_t inode, linode;
-  #ifdef __EMX__
-  long attr;
-  #endif
   char *err;
   const char *tag;
   char **comment;
@@ -207,11 +187,7 @@ char *gnu_getcwd(void);
 int patmatch(const char *buf, const char *pat, bool isdir);
 void indent(int maxlevel);
 void free_dir(struct _info **);
-#ifdef __EMX__
-char *prot(long);
-#else
 char *prot(mode_t);
-#endif
 char *do_date(time_t);
 void printit(const char *);
 int psize(char *buf, off_t size);
