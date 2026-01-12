@@ -18,6 +18,11 @@
 #include "tree.h"
 
 extern bool fflag, duflag, lflag, Rflag, Jflag, xdev, noreport, hyperflag, Hflag;
+extern bool focusflag, focuscounts;
+extern int focuscollapse;  /* 0=none, 1=files, 2=folders, 3=all */
+extern int focuscollapselimit;  /* 0=no limit, >0=collapse after N consecutive */
+extern char **focuspaths;
+extern int nfocuspaths;
 
 extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern int (*topsort)(struct _info **, struct _info **);
@@ -37,6 +42,101 @@ size_t dirpathoffset = 0;
  */
 
 extern struct listingcalls lc;
+extern const struct linedraw *linedraw;
+extern int *dirs;
+
+/**
+ * Print an anonymous collapse summary line: "... (N directories, M files)"
+ * Used when focuscollapse is 'folders' or 'all'
+ */
+void print_focus_collapse(int level, int ndirs, int nfiles, int notlast)
+{
+  /* Set dirs[level] to indicate whether this is the last entry */
+  dirs[level] = notlast ? 1 : 2;
+
+  /* indent() prints tree structure including the connector (vert_left or corner) */
+  indent(level);
+
+  fprintf(outfile, "...");
+  if (focuscounts) {
+    fprintf(outfile, " (");
+    if (ndirs > 0) {
+      fprintf(outfile, "%d director%s", ndirs, ndirs == 1 ? "y" : "ies");
+      if (nfiles > 0) fprintf(outfile, ", ");
+    }
+    if (nfiles > 0) {
+      fprintf(outfile, "%d file%s", nfiles, nfiles == 1 ? "" : "s");
+    }
+    fprintf(outfile, ")");
+  }
+  fprintf(outfile, "\n");
+}
+
+/**
+ * Print a named folder collapse: "dirname/... (N subdirs, M files)"
+ * Used when focuscollapse is 'none' or 'files'
+ */
+void print_named_folder_collapse(int level, const char *name, int subdirs, int files, int notlast)
+{
+  /* Set dirs[level] to indicate whether this is the last entry */
+  dirs[level] = notlast ? 1 : 2;
+
+  indent(level);
+  fprintf(outfile, "%s/...", name);
+  if (focuscounts && (subdirs > 0 || files > 0)) {
+    fprintf(outfile, " (");
+    if (subdirs > 0) {
+      fprintf(outfile, "%d subdirector%s", subdirs, subdirs == 1 ? "y" : "ies");
+      if (files > 0) fprintf(outfile, ", ");
+    }
+    if (files > 0) {
+      fprintf(outfile, "%d file%s", files, files == 1 ? "" : "s");
+    }
+    fprintf(outfile, ")");
+  }
+  fprintf(outfile, "\n");
+}
+
+/**
+ * Count subdirectories and files in a directory.
+ * If hasfulltree is true and child is available, count from children.
+ * Otherwise, do a quick directory scan.
+ */
+void count_dir_contents(const char *path, struct _info *info, bool hasfulltree, int *subdirs, int *files)
+{
+  struct _info **child;
+  DIR *d;
+  struct dirent *ent;
+  struct stat st;
+  char fullpath[PATH_MAX];
+
+  *subdirs = 0;
+  *files = 0;
+
+  if (hasfulltree && info && info->child) {
+    /* Count from already-loaded children */
+    for (child = info->child; *child; child++) {
+      if ((*child)->isdir) (*subdirs)++;
+      else (*files)++;
+    }
+  } else {
+    /* Quick directory scan */
+    d = opendir(path);
+    if (d) {
+      while ((ent = readdir(d)) != NULL) {
+        if (ent->d_name[0] == '.' && (ent->d_name[1] == '\0' ||
+            (ent->d_name[1] == '.' && ent->d_name[2] == '\0')))
+          continue;
+        snprintf(fullpath, PATH_MAX, "%s/%s", path, ent->d_name);
+        if (lstat(fullpath, &st) == 0) {
+          if (S_ISDIR(st.st_mode)) (*subdirs)++;
+          else (*files)++;
+        }
+      }
+      closedir(d);
+    }
+  }
+}
 
 void null_intro(void)
 {
@@ -152,6 +252,12 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
   bool found;
   char *path, *newpath, *filename, *err = NULL;
 
+  /* Focus mode variables */
+  int collapsed_dirs = 0, collapsed_files = 0;
+  int run_total = 0;       /* Total consecutive collapsed items in current run */
+  int run_printed = 0;     /* How many we've printed in current run */
+  bool on_focus;
+
   int es = (dirname[strlen(dirname) - 1] == '/');
 
   // Sanity check on dir, may or may not be necessary when using --fromfile:
@@ -165,6 +271,69 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
   path = xmalloc(sizeof(char) * pathlen);
 
   for (;*dir != NULL; dir++) {
+    /* Check if entry is on focus path */
+    on_focus = !focusflag || is_on_focus_path(dirname, (*dir)->name);
+
+    /* If not on focus path, decide whether to collapse */
+    if (!on_focus) {
+      if ((*dir)->isdir) {
+        /* Collapse directories not on focus path */
+        tot.dirs++;
+
+        if (focuscollapse <= 1) {
+          /* Named collapse mode (none/files) */
+          /* At start of a new run, count ahead to determine total */
+          if (run_total == 0 && focuscollapselimit > 0) {
+            struct _info **scan = dir;
+            while (*scan && !is_on_focus_path(dirname, (*scan)->name)) {
+              if ((*scan)->isdir) run_total++;
+              scan++;
+            }
+          }
+
+          /* Decide based on total run size vs limit */
+          if (focuscollapselimit > 0 && run_total > focuscollapselimit) {
+            /* Run exceeds limit: accumulate all into anonymous summary */
+            collapsed_dirs++;
+          } else {
+            /* Run within limit: print named collapse for each dir */
+            int sub_dirs = 0, sub_files = 0;
+            namelen = strlen((*dir)->name) + 1;
+            if (namemax < namelen)
+              path = xrealloc(path, dirlen + (namemax = namelen));
+            if (es) sprintf(path, "%s%s", dirname, (*dir)->name);
+            else sprintf(path, "%s/%s", dirname, (*dir)->name);
+
+            count_dir_contents(path, *dir, hasfulltree, &sub_dirs, &sub_files);
+            print_named_folder_collapse(lev, (*dir)->name, sub_dirs, sub_files, *(dir+1) != NULL);
+            run_printed++;
+          }
+        } else {
+          /* Anonymous collapse (folders/all): accumulate count */
+          collapsed_dirs++;
+        }
+        /* Update dirs[] for proper tree drawing at end of siblings */
+        if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
+        continue;
+      } else if (focuscollapse == 1 || focuscollapse == 3) {
+        /* Collapse files when mode is 'files' or 'all' */
+        collapsed_files++;
+        tot.files++;
+        /* Update dirs[] for proper tree drawing at end of siblings */
+        if (*(dir+1) && !*(dir+2)) dirs[lev] = 2;
+        continue;
+      }
+      /* Otherwise, show the file (fall through to normal processing) */
+    }
+
+    /* Print anonymous collapse summary for accumulated entries (limit exceeded or folders/all modes) */
+    if (collapsed_dirs > 0 || collapsed_files > 0) {
+      print_focus_collapse(lev, collapsed_dirs, collapsed_files, *(dir+1) != NULL);
+      collapsed_dirs = collapsed_files = 0;
+    }
+    /* Reset run counters when hitting a focus entry */
+    run_total = run_printed = 0;
+
     lc.printinfo(dirname, *dir, lev);
 
     namelen = strlen((*dir)->name) + 1;
@@ -271,6 +440,11 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 
     if (ig != NULL) ig = pop_filterstack();
     if (inf != NULL) inf = pop_infostack();
+  }
+
+  /* Print any remaining collapsed entries at end of directory */
+  if (collapsed_dirs > 0 || collapsed_files > 0) {
+    print_focus_collapse(lev, collapsed_dirs, collapsed_files, 0);
   }
 
   dirs[lev] = 0;

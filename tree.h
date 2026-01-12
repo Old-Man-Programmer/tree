@@ -191,6 +191,7 @@ int patignore(const char *name, bool isdir);
 int patinclude(const char *name, bool isdir);
 struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 struct _info **read_dir(char *dir, ssize_t *n, int infotop);
+int is_on_focus_path(const char *dirname, const char *name);
 
 int filesfirst(struct _info **, struct _info **);
 int dirsfirst(struct _info **, struct _info **);
