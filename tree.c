@@ -31,7 +31,13 @@ bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag, hyperflag;
 bool noindent, force_color, nocolor, xdev, noreport, nolinks;
 bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
 bool reverse, fflinks, htmloffset;
+bool focusflag, focuscounts;
 int flimit;
+int focuscollapse = 0;  /* 0=none, 1=files, 2=folders, 3=all */
+int focuscollapselimit = 0;  /* 0=no limit, >0=collapse after N consecutive */
+char *focusroot = NULL;
+char **focuspaths = NULL;
+int nfocuspaths = 0;
 
 struct listingcalls lc;
 
@@ -142,6 +148,9 @@ int main(int argc, char **argv)
   noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = false;
   ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = false;
   duflag = pruneflag = metafirst = gitignore = hyperflag = htmloffset = false;
+  focusflag = false;
+  focuscounts = true;
+  focuscollapse = 0;  /* none */
 
   flimit = 0;
   dirs = xmalloc(sizeof(int) * (size_t)(maxdirs=PATH_MAX));
@@ -437,6 +446,32 @@ int main(int argc, char **argv)
 	      pruneflag = (opt_toggle? !pruneflag : true);
 	      break;
 	    }
+	    if ((arg = long_arg(argv, i, &j, &n, "--focus-root")) != NULL) {
+	      focusflag = true;
+	      focusroot = arg;
+	      break;
+	    }
+	    if (!strcmp("--no-focus-counts",argv[i])) {
+	      j = strlen(argv[i])-1;
+	      focuscounts = false;
+	      break;
+	    }
+	    if ((arg = long_arg(argv, i, &j, &n, "--focus-collapse-limit")) != NULL) {
+	      focuscollapselimit = atoi(arg);
+	      if (focuscollapselimit < 0) focuscollapselimit = 0;
+	      break;
+	    }
+	    if ((arg = long_arg(argv, i, &j, &n, "--focus-collapse")) != NULL) {
+	      if (strcasecmp(arg, "none") == 0) focuscollapse = 0;
+	      else if (strcasecmp(arg, "files") == 0) focuscollapse = 1;
+	      else if (strcasecmp(arg, "folders") == 0) focuscollapse = 2;
+	      else if (strcasecmp(arg, "all") == 0) focuscollapse = 3;
+	      else {
+	        fprintf(stderr, "tree: Invalid --focus-collapse value '%s', should be: none, files, folders, all\n", arg);
+	        exit(1);
+	      }
+	      break;
+	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--timefmt")) != NULL) {
 	      timefmt = scopy(arg);
 	      Dflag = true;
@@ -595,7 +630,26 @@ int main(int argc, char **argv)
   if (timefmt) setlocale(LC_TIME,"");
   if (dflag) pruneflag = false;  /* You'll just get nothing otherwise. */
   if (Rflag && (Level == -1)) Rflag = false;
-  
+
+  /* Handle --focus-root: directory args become focus paths, focusroot becomes the tree root */
+  if (focusflag) {
+    if (focusroot == NULL) {
+      fprintf(stderr,"tree: --focus-root requires a root directory argument.\n");
+      exit(1);
+    }
+    /* Count and save the directory arguments as focus paths */
+    for (nfocuspaths = 0; dirname[nfocuspaths]; nfocuspaths++);
+    if (nfocuspaths == 0) {
+      fprintf(stderr,"tree: --focus-root requires at least one focus path argument.\n");
+      exit(1);
+    }
+    focuspaths = dirname;
+    /* Replace dirname with just the focus root */
+    dirname = xmalloc(sizeof(char *) * 2);
+    dirname[0] = scopy(focusroot);
+    dirname[1] = NULL;
+  }
+
   if (hyperflag && authority == NULL) {
     // If the hostname is longer than PATH_MAX, maybe it's just as well we don't
     // try to use it.
@@ -667,7 +721,9 @@ void usage(int n)
 	"\t[\b--gitfile\r[\b=\r]\ffile\r] [\b--matchdirs\r] [\b--metafirst\r] [\b--ignore-case\r]\n"
 	"\t[\b--nolinks\r] [\b--hintro\r[\b=\r]\ffile\r] [\b--houtro\r[\b=\r]\ffile\r] [\b--inodes\r] [\b--device\r]\n"
 	"\t[\b--sort\r[\b=\r]\fname\r] [\b--dirsfirst\r] [\b--filesfirst\r] [\b--filelimit\r[\b=\r]\f#\r] [\b--si\r]\n"
-	"\t[\b--du\r] [\b--prune\r] [\b--charset\r[\b=\r]\fX\r] [\b--timefmt\r[\b=\r]\fformat\r] [\b--fromfile\r]\n"
+	"\t[\b--du\r] [\b--prune\r] [\b--focus-root\r[\b=\r]\fX\r] [\b--no-focus-counts\r]\n"
+	"\t[\b--focus-collapse\r[\b=\r]\fX\r] [\b--focus-collapse-limit\r[\b=\r]\f#\r]\n"
+	"\t[\b--charset\r[\b=\r]\fX\r] [\b--timefmt\r[\b=\r]\fformat\r] [\b--fromfile\r]\n"
 	"\t[\b--fromtabfile\r] [\b--fflinks\r] [\b--info\r] [\b--infofile\r[\b=\r]\ffile\r] [\b--noreport\r]\n"
 	"\t[\b--hyperlink\r] [\b--scheme\r[\b=\r]\fschema\r] [\b--authority\r[\b=\r]\fhost\r] [\b--opt-toggle\r]\n"
 	"\t[\b--version\r] [\b--help\r] [\b--\r] [\fdirectory\r \b...\r]\n");
@@ -690,6 +746,10 @@ void usage(int n)
 	"  \b--matchdirs\r   Include directory names in \b-P\r pattern matching.\n"
 	"  \b--metafirst\r   Print meta-data at the beginning of each line.\n"
 	"  \b--prune\r       Prune empty directories from the output.\n"
+	"  \b--focus-root\r \fX\r Show tree from \fX\r, focus on dir args, collapse rest.\n"
+	"  \b--no-focus-counts\r Hide counts in collapsed summaries.\n"
+	"  \b--focus-collapse\r \fX\r Collapse mode: \b\fnone\r (default), \b\ffiles\r, \b\ffolders\r, \b\fall\r.\n"
+	"  \b--focus-collapse-limit\r \f#\r Collapse all if more than \f#\r consecutive items.\n"
 	"  \b--info\r        Print information about files found in \b.info\r files.\n"
 	"  \b--infofile\r \fX\r  Explicitly read info file.\n"
 	"  \b--noreport\r    Turn off file/directory count at end of tree listing.\n"
@@ -771,6 +831,65 @@ int patinclude(const char *name, bool isdir)
   for(i=0; i < pattern; i++) {
     if (patmatch(name, patterns[i], isdir)) {
       return 1;
+    }
+  }
+  return 0;
+}
+
+/**
+ * Check if a directory entry is on any focus path or inside a target directory.
+ * dirname: current directory path (relative to focusroot)
+ * name: entry name to check
+ * Returns: 1 if on focus path or inside target, 0 otherwise
+ */
+int is_on_focus_path(const char *dirname, const char *name)
+{
+  int i;
+  size_t dirlen, namelen, fplen;
+  const char *focuspath, *remainder;
+
+  if (!focusflag || nfocuspaths == 0) return 0;
+
+  /* Calculate path prefix length (skip leading ./ from dirname if present) */
+  if (dirname[0] == '.' && (dirname[1] == '/' || dirname[1] == '\0')) {
+    dirname = dirname[1] == '/' ? dirname + 2 : dirname + 1;
+  }
+  dirlen = strlen(dirname);
+  namelen = strlen(name);
+
+  for (i = 0; i < nfocuspaths; i++) {
+    focuspath = focuspaths[i];
+
+    /* Skip leading ./ from focus path if present */
+    if (focuspath[0] == '.' && focuspath[1] == '/') {
+      focuspath += 2;
+    }
+    fplen = strlen(focuspath);
+
+    /* If dirname is empty, we're at the root - check if name is the first component */
+    if (dirlen == 0 || (dirlen == 1 && dirname[0] == '.')) {
+      /* Check if focuspath starts with name */
+      if (strncmp(focuspath, name, namelen) == 0 &&
+          (focuspath[namelen] == '/' || focuspath[namelen] == '\0')) {
+        return 1;
+      }
+    } else {
+      /* Check if we're INSIDE a target directory (dirname matches or extends focuspath) */
+      if (dirlen >= fplen && strncmp(dirname, focuspath, fplen) == 0 &&
+          (dirname[fplen] == '/' || dirname[fplen] == '\0')) {
+        /* We're inside the target directory - show all entries */
+        return 1;
+      }
+
+      /* Check if focuspath starts with dirname/ */
+      if (strncmp(focuspath, dirname, dirlen) == 0 && focuspath[dirlen] == '/') {
+        remainder = focuspath + dirlen + 1;
+        /* Check if name is the next component */
+        if (strncmp(remainder, name, namelen) == 0 &&
+            (remainder[namelen] == '/' || remainder[namelen] == '\0')) {
+          return 1;
+        }
+      }
     }
   }
   return 0;
