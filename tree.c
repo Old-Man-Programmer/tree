@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
+ * Copyright (c) 1996 - 2026 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,21 +18,14 @@
 
 #include "tree.h"
 
-char *version = "$Version: $ tree v2.2.1 %s 1996 - 2024 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion= "\t\t tree v2.2.1 %s 1996 - 2024 by Steve Baker and Thomas Moore <br>\n"
+char *version = "$Version: $ tree v2.3.0 %s 1996 - 2026 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion= "\t\t tree v2.3.0 %s 1996 - 2026 by Steve Baker and Thomas Moore <br>\n"
 		"\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		"\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		"\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
 
 /* Globals */
-bool dflag, lflag, pflag, sflag, Fflag, aflag, fflag, uflag, gflag;
-bool qflag, Nflag, Qflag, Dflag, inodeflag, devflag, hflag, Rflag;
-bool Hflag, siflag, cflag, Xflag, Jflag, duflag, pruneflag, hyperflag;
-bool noindent, force_color, nocolor, xdev, noreport, nolinks;
-bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
-bool reverse, fflinks, htmloffset;
-int flimit;
-
+struct Flags flag;
 struct listingcalls lc;
 
 int pattern = 0, maxpattern = 0, ipattern = 0, maxipattern = 0;
@@ -45,7 +38,6 @@ char *timefmt = NULL;
 const char *charset = NULL;
 
 struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err) = unix_getfulltree;
-/* off_t (*listdir)(char *, int *, int *, u_long, dev_t) = unix_listdir; */
 int (*basesort)(struct _info **, struct _info **) = alnumsort;
 int (*topsort)(struct _info **, struct _info **) = NULL;
 
@@ -88,12 +80,7 @@ struct sorts {
 };
 
 /* Externs */
-/* hash.c */
-extern struct xtable *gtable[256], *utable[256];
-extern struct inotable *itable[256];
-
 /* color.c */
-extern bool colorize, ansilines, linktargetcolor;
 extern char *leftcode, *rightcode, *endcode;
 extern const struct linedraw *linedraw;
 
@@ -133,17 +120,12 @@ int main(int argc, char **argv)
   char **dirname = NULL;
   size_t i, j=0, k, n, p = 0, q = 0;
   bool optf = true;
-  char *stmp, *outfilename = NULL, *arg;
+  char *outfilename = NULL, *arg;
   char *stddata_fd;
   bool needfulltree, showversion = false, opt_toggle = false;
 
-  aflag = dflag = fflag = lflag = pflag = sflag = Fflag = uflag = gflag = false;
-  Dflag = qflag = Nflag = Qflag = Rflag = hflag = Hflag = siflag = cflag = false;
-  noindent = force_color = nocolor = xdev = noreport = nolinks = reverse = false;
-  ignorecase = matchdirs = inodeflag = devflag = Xflag = Jflag = fflinks = false;
-  duflag = pruneflag = metafirst = gitignore = hyperflag = htmloffset = false;
+  memset(&flag, 0, sizeof(flag));
 
-  flimit = 0;
   dirs = xmalloc(sizeof(int) * (size_t)(maxdirs=PATH_MAX));
   memset(dirs, 0, sizeof(int) * (size_t)maxdirs);
   dirs[0] = 0;
@@ -178,7 +160,7 @@ int main(int argc, char **argv)
     int std_fd = atoi(stddata_fd);
     if (std_fd <= 0) std_fd = STDDATA_FILENO;
     if (fcntl(std_fd, F_GETFD) >= 0) {
-      Jflag = noindent = true;
+      flag.J = flag.noindent = true;
       _nl = "";
       lc = (struct listingcalls){
 	json_intro, json_outtro, json_printinfo, json_printfile, json_error, json_newline,
@@ -188,10 +170,7 @@ int main(int argc, char **argv)
     }
   }
 #endif
-
-  memset(utable,0,sizeof(utable));
-  memset(gtable,0,sizeof(gtable));
-  memset(itable,0,sizeof(itable));
+  init_hashes();
 
   for(n=i=1;i<(size_t)argc;i=n) {
     n++;
@@ -199,57 +178,57 @@ int main(int argc, char **argv)
       for(j=1;argv[i][j];j++) {
 	switch(argv[i][j]) {
 	case 'N':
-	  Nflag = (opt_toggle? !Nflag : true);
+	  flag.N = (opt_toggle? !flag.N : true);
 	  break;
 	case 'q':
-	  qflag = (opt_toggle? !qflag : true);
+	  flag.q = (opt_toggle? !flag.q : true);
 	  break;
 	case 'Q':
-	  Qflag = (opt_toggle? !Qflag : true);
+	  flag.Q = (opt_toggle? !flag.Q : true);
 	  break;
 	case 'd':
-	  dflag = (opt_toggle? !dflag : true);
+	  flag.d = (opt_toggle? !flag.d : true);
 	  break;
 	case 'l':
-	  lflag = (opt_toggle? !lflag : true);
+	  flag.l = (opt_toggle? !flag.l : true);
 	  break;
 	case 's':
-	  sflag = (opt_toggle? !sflag : true);
+	  flag.s = (opt_toggle? !flag.s : true);
 	  break;
 	case 'h':
 	  /* Assume they also want -s */
-	  sflag = (hflag = (opt_toggle? !hflag : true));
+	  flag.s = (flag.h = (opt_toggle? !flag.h : true));
 	  break;
 	case 'u':
-	  uflag = (opt_toggle? !uflag : true);
+	  flag.u = (opt_toggle? !flag.u : true);
 	  break;
 	case 'g':
-	  gflag = (opt_toggle? !gflag : true);
+	  flag.g = (opt_toggle? !flag.g : true);
 	  break;
 	case 'f':
-	  fflag = (opt_toggle? !fflag : true);
+	  flag.f = (opt_toggle? !flag.f : true);
 	  break;
 	case 'F':
-	  Fflag = (opt_toggle? !Fflag : true);
+	  flag.F = (opt_toggle? !flag.F : true);
 	  break;
 	case 'a':
-	  aflag = (opt_toggle? !aflag : true);
+	  flag.a = (opt_toggle? !flag.a : true);
 	  break;
 	case 'p':
-	  pflag = (opt_toggle? !pflag : true);
+	  flag.p = (opt_toggle? !flag.p : true);
 	  break;
 	case 'i':
-	  noindent = (opt_toggle? !noindent : true);
+	  flag.noindent = (opt_toggle? !flag.noindent : true);
 	  _nl = "";
 	  break;
 	case 'C':
-	  force_color = (opt_toggle? !force_color : true);
+	  flag.force_color = (opt_toggle? !flag.force_color : true);
 	  break;
 	case 'n':
-	  nocolor = (opt_toggle? !nocolor : true);
+	  flag.nocolor = (opt_toggle? !flag.nocolor : true);
 	  break;
 	case 'x':
-	  xdev = (opt_toggle? !xdev : true);
+	  flag.xdev = (opt_toggle? !flag.xdev : true);
 	  break;
 	case 'P':
 	  if (argv[n] == NULL) {
@@ -270,23 +249,23 @@ int main(int argc, char **argv)
 	  ipatterns[ipattern] = NULL;
 	  break;
 	case 'A':
-	  ansilines = (opt_toggle? !ansilines : true);
+	  flag.ansilines = (opt_toggle? !flag.ansilines : true);
 	  break;
 	case 'S':
 	  charset = "IBM437";
 	  break;
 	case 'D':
-	  Dflag = (opt_toggle? !Dflag : true);
+	  flag.D = (opt_toggle? !flag.D : true);
 	  break;
 	case 't':
 	  basesort = mtimesort;
 	  break;
 	case 'c':
 	  basesort = ctimesort;
-	  cflag = true;
+	  flag.c = true;
 	  break;
 	case 'r':
-	  reverse = (opt_toggle? !reverse : true);
+	  flag.reverse = (opt_toggle? !flag.reverse : true);
 	  break;
 	case 'v':
 	  basesort = versort;
@@ -295,24 +274,24 @@ int main(int argc, char **argv)
 	  basesort = NULL;
 	  break;
 	case 'X':
-	  Xflag = true;
-	  Hflag = Jflag = false;
+	  flag.X = true;
+	  flag.H = flag.J = false;
 	  lc = (struct listingcalls){
 	    xml_intro, xml_outtro, xml_printinfo, xml_printfile, xml_error, xml_newline,
 	    xml_close, xml_report
 	  };
 	  break;
 	case 'J':
-	  Jflag = true;
-	  Xflag = Hflag = false;
+	  flag.J = true;
+	  flag.X = flag.H = false;
 	  lc = (struct listingcalls){
 	    json_intro, json_outtro, json_printinfo, json_printfile, json_error, json_newline,
 	    json_close, json_report
 	  };
 	  break;
 	case 'H':
-	  Hflag = true;
-	  Xflag = Jflag = false;
+	  flag.H = true;
+	  flag.X = flag.J = false;
 	  lc = (struct listingcalls){
 	    html_intro, html_outtro, html_printinfo, html_printfile, html_error, html_newline,
 	    html_close, html_report
@@ -324,7 +303,7 @@ int main(int argc, char **argv)
 	  host = argv[n++];
 	  k = strlen(host)-1;
 	  if (host[0] == '-') {
-	    htmloffset = true;
+	    flag.htmloffset = true;
 	    host++;
 	  }
 	  /* Allows a / if that is the only character as the 'host': */
@@ -339,7 +318,7 @@ int main(int argc, char **argv)
 	  title = argv[n++];
 	  break;
 	case 'R':
-	  Rflag = (opt_toggle? !Rflag : true);
+	  flag.R = (opt_toggle? !flag.R : true);
 	  break;
 	case 'L':
 	  if (isdigit(argv[i][j+1])) {
@@ -386,22 +365,22 @@ int main(int argc, char **argv)
 	    }
 	    if (!strcmp("--inodes",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      inodeflag = (opt_toggle? !inodeflag : true);
+	      flag.inode = (opt_toggle? !flag.inode : true);
 	      break;
 	    }
 	    if (!strcmp("--device",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      devflag = (opt_toggle? !devflag : true);
+	      flag.dev = (opt_toggle? !flag.dev : true);
 	      break;
 	    }
 	    if (!strcmp("--noreport",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      noreport = (opt_toggle? !noreport : true);
+	      flag.noreport = (opt_toggle? !flag.noreport : true);
 	      break;
 	    }
 	    if (!strcmp("--nolinks",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      nolinks = (opt_toggle? !nolinks : true);
+	      flag.nolinks = (opt_toggle? !flag.nolinks : true);
 	      break;
 	    }
 	    if (!strcmp("--dirsfirst",argv[i])) {
@@ -415,7 +394,7 @@ int main(int argc, char **argv)
 	      break;
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--filelimit")) != NULL) {
-	      flimit = atoi(arg);
+	      flag.flimit = atoi(arg);
 	      break;
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--charset")) != NULL) {
@@ -424,32 +403,32 @@ int main(int argc, char **argv)
 	    }
 	    if (!strcmp("--si", argv[i])) {
 	      j = strlen(argv[i])-1;
-	      sflag = hflag = siflag = (opt_toggle? !siflag : true);
+	      flag.s = flag.h = flag.si = (opt_toggle? !flag.si : true);
 	      break;
 	    }
 	    if (!strcmp("--du",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      sflag = duflag = (opt_toggle? !duflag : true);
+	      flag.s = flag.du = (opt_toggle? !flag.du : true);
 	      break;
 	    }
 	    if (!strcmp("--prune",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      pruneflag = (opt_toggle? !pruneflag : true);
+	      flag.prune = (opt_toggle? !flag.prune : true);
 	      break;
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--timefmt")) != NULL) {
 	      timefmt = scopy(arg);
-	      Dflag = true;
+	      flag.D = true;
 	      break;
 	    }
 	    if (!strcmp("--ignore-case",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      ignorecase = (opt_toggle? !ignorecase : true);
+	      flag.ignorecase = (opt_toggle? !flag.ignorecase : true);
 	      break;
 	    }
 	    if (!strcmp("--matchdirs",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      matchdirs = (opt_toggle? !matchdirs : true);
+	      flag.matchdirs = (opt_toggle? !flag.matchdirs : true);
 	      break;
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--sort")) != NULL) {
@@ -470,23 +449,23 @@ int main(int argc, char **argv)
 	    }
 	    if (!strcmp("--fromtabfile", argv[i])) {
 	      j = strlen(argv[i])-1;
-	      fromfile=true;
+	      flag.fromfile=true;
 	      getfulltree = tabedfile_getfulltree;
 	      break;
 	    }
 	    if (!strcmp("--fromfile",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      fromfile=true;
+	      flag.fromfile=true;
 	      getfulltree = file_getfulltree;
 	      break;
 	    }
 	    if (!strcmp("--metafirst",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      metafirst = (opt_toggle? !metafirst : true);
+	      flag.metafirst = (opt_toggle? !flag.metafirst : true);
 	      break;
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--gitfile")) != NULL) {
-	      gitignore=true;
+	      flag.gitignore=true;
 	      ig = new_ignorefile(arg, false);
 	      if (ig != NULL) push_filterstack(ig);
 	      else {
@@ -497,16 +476,16 @@ int main(int argc, char **argv)
 	    }
 	    if (!strcmp("--gitignore",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      gitignore = (opt_toggle? !gitignore : true);
+	      flag.gitignore = (opt_toggle? !flag.gitignore : true);
 	      break;
 	    }
 	    if (!strcmp("--info",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      showinfo = (opt_toggle? !showinfo : true);
+	      flag.showinfo = (opt_toggle? !flag.showinfo : true);
 	      break;
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--infofile")) != NULL) {
-	      showinfo = true;
+	      flag.showinfo = true;
 	      inf = new_infofile(arg, false);
 	      if (inf != NULL) push_infostack(inf);
 	      else {
@@ -525,12 +504,12 @@ int main(int argc, char **argv)
 	    }
 	    if (!strcmp("--fflinks",argv[i])) {
 	      j = strlen(argv[i])-1;
-	      fflinks = (opt_toggle? !fflinks : true);
+	      flag.fflinks = (opt_toggle? !flag.fflinks : true);
 	      break;
 	    }
 	    if (!strcmp("--hyperlink", argv[i])) {
 	      j = strlen(argv[i])-1;
-	      hyperflag = (opt_toggle? !hyperflag : true);
+	      flag.hyper = (opt_toggle? !flag.hyper : true);
 	      break;
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--scheme")) != NULL) {
@@ -552,7 +531,38 @@ int main(int argc, char **argv)
 	      opt_toggle = !opt_toggle;
 	      break;
 	    }
-
+	    if (!strcmp("--condense", argv[i])) {
+	      j = strlen(argv[i])-1;
+	      flag.condense_singletons = (opt_toggle? !flag.condense_singletons : true);
+	      break;
+	    }
+	    if ((arg = long_arg(argv, i, &j, &n, "--compress")) != NULL) {
+              flag.compress_indent = atoi(arg);
+              flag.remove_space = flag.compress_indent < 0;
+              if (flag.compress_indent < 0) {
+                flag.compress_indent = -flag.compress_indent;
+              }
+              if (flag.compress_indent > 3) {
+                flag.compress_indent = 0;
+                flag.noindent = true;
+                _nl = "";
+              }
+              if (flag.compress_indent > 0) flag.compress_indent--;
+              break;
+            }
+#ifdef __linux__
+	    if (!strcmp("--acl", argv[i])) {
+	      j = strlen(argv[i])-1;
+	      flag.acl = (opt_toggle? !flag.acl : true);
+	      flag.p = flag.acl? true : flag.p;
+              break;
+	    }
+	    if (!strcmp("--selinux", argv[i])) {
+	      j = strlen(argv[i])-1;
+	      flag.selinux = (opt_toggle? !flag.selinux : true);
+              break;
+	    }
+#endif
 	    fprintf(stderr,"tree: Invalid argument `%s'.\n",argv[i]);
 	    usage(1);
 	    exit(1);
@@ -568,7 +578,7 @@ int main(int argc, char **argv)
       }
     } else {
       if (!dirname) dirname = (char **)xmalloc(sizeof(char *) * (q=MINIT));
-      else if (p == (q-2)) dirname = (char **)xrealloc(dirname,sizeof(char *) * (q+=MINC));
+      else if (p == (q-1)) dirname = (char **)xrealloc(dirname,sizeof(char *) * (q+=MINC));
       dirname[p++] = scopy(argv[i]);
     }
   }
@@ -578,7 +588,7 @@ int main(int argc, char **argv)
 
   parse_dir_colors();
   initlinedraw(false);
-  
+
   if (showversion) {
     print_version(true);
     exit(0);
@@ -593,10 +603,10 @@ int main(int argc, char **argv)
   if (topsort == NULL) topsort = basesort;
   if (basesort == NULL) topsort = NULL;
   if (timefmt) setlocale(LC_TIME,"");
-  if (dflag) pruneflag = false;  /* You'll just get nothing otherwise. */
-  if (Rflag && (Level == -1)) Rflag = false;
-  
-  if (hyperflag && authority == NULL) {
+  if (flag.d) flag.prune = false;  /* You'll just get nothing otherwise. */
+  if (flag.R && (Level == -1)) flag.R = false;
+
+  if (flag.hyper && authority == NULL) {
     // If the hostname is longer than PATH_MAX, maybe it's just as well we don't
     // try to use it.
     if (gethostname(xpattern,PATH_MAX) < 0) {
@@ -605,18 +615,12 @@ int main(int argc, char **argv)
     } else authority = scopy(xpattern);
   }
 
-  /* Not going to implement git configs so no core.excludesFile support. */
-  if (gitignore && (stmp = getenv("GIT_DIR"))) {
-    char *path = xmalloc(PATH_MAX);
-    snprintf(path, PATH_MAX, "%s/info/exclude", stmp);
-    push_filterstack(new_ignorefile(path, false));
-    free(path);
-  }
-  if (showinfo) {
+
+  if (flag.showinfo) {
     push_infostack(new_infofile(INFO_PATH, false));
   }
 
-  needfulltree = duflag || pruneflag || matchdirs || fromfile;
+  needfulltree = flag.du || flag.prune || flag.matchdirs || flag.fromfile || flag.condense_singletons;
 
   emit_tree(dirname, needfulltree);
 
@@ -659,8 +663,8 @@ void usage(int n)
   parse_dir_colors();
   initlinedraw(false);
 
-  /*     123456789!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
-  /*     \t9!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
+  /*  \t9!123456789!123456789!123456789!123456789!123456789!123456789!123456789! */
+
   fancy(n < 2? stderr: stdout,
 	"usage: \btree\r [\b-acdfghilnpqrstuvxACDFJQNSUX\r] [\b-L\r \flevel\r [\b-R\r]] [\b-H\r [-]\fbaseHREF\r]\n"
 	"\t[\b-T\r \ftitle\r] [\b-o\r \ffilename\r] [\b-P\r \fpattern\r] [\b-I\r \fpattern\r] [\b--gitignore\r]\n"
@@ -670,7 +674,13 @@ void usage(int n)
 	"\t[\b--du\r] [\b--prune\r] [\b--charset\r[\b=\r]\fX\r] [\b--timefmt\r[\b=\r]\fformat\r] [\b--fromfile\r]\n"
 	"\t[\b--fromtabfile\r] [\b--fflinks\r] [\b--info\r] [\b--infofile\r[\b=\r]\ffile\r] [\b--noreport\r]\n"
 	"\t[\b--hyperlink\r] [\b--scheme\r[\b=\r]\fschema\r] [\b--authority\r[\b=\r]\fhost\r] [\b--opt-toggle\r]\n"
-	"\t[\b--version\r] [\b--help\r] [\b--\r] [\fdirectory\r \b...\r]\n");
+        "\t[\b--compress\r[\b=\r]\f#\r] [\b--condense\r] [\b--version\r] [\b--help\r]"
+#ifdef __linux__
+        " [\b--acl\r] [\b--selinux\r]\n"
+#else
+        "\n"
+#endif
+        "\t[\b--\r] [\fdirectory\r \b...\r]\n");
 
   if (n < 2) return;
   fancy(stdout,
@@ -695,6 +705,7 @@ void usage(int n)
 	"  \b--noreport\r    Turn off file/directory count at end of tree listing.\n"
 	"  \b--charset\r \fX\r   Use charset \fX\r for terminal/HTML and indentation line output.\n"
 	"  \b--filelimit\r \f#\r Do not descend dirs with more than \f#\r files in them.\n"
+        "  \b--condense\r    Condense directory singletons to a single line of output.\n"
 	"  \b-o\r \ffilename\r   Output to file instead of stdout.\n"
 	"  \b------- File options -------\r\n"
 	"  \b-q\r            Print non-printable characters as '\b?\r'.\n"
@@ -711,7 +722,13 @@ void usage(int n)
 	"  \b--timefmt\r \ffmt\r Print and format time according to the format \ffmt\r.\n"
 	"  \b-F\r            Appends '\b/\r', '\b=\r', '\b*\r', '\b@\r', '\b|\r' or '\b>\r' as per \bls -F\r.\n"
 	"  \b--inodes\r      Print inode number of each file.\n"
-	"  \b--device\r      Print device ID number to which each file belongs.\n");
+	"  \b--device\r      Print device ID number to which each file belongs.\n"
+#ifdef __linux__
+        "  \b--acl\r         Print permissions with a + if an ACL is present.\n"
+        "  \b--selinux\r     Print the selinux security label if present.\n"
+#endif
+        );
+
   fancy(stdout,
 	"  \b------- Sorting options -------\r\n"
 	"  \b-v\r            Sort files alphanumerically by version.\n"
@@ -728,6 +745,7 @@ void usage(int n)
 	"  \b-S\r            Print with CP437 (console) graphics indentation lines.\n"
 	"  \b-n\r            Turn colorization off always (\b-C\r overrides).\n"
 	"  \b-C\r            Turn colorization on always.\n"
+        "  \b--compress\r \f#\r  Compress indentation lines.\n"
 	"  \b------- XML/HTML/JSON/HYPERLINK options -------\r\n"
 	"  \b-X\r            Prints out an XML representation of the tree.\n"
 	"  \b-J\r            Prints out an JSON representation of the tree.\n"
@@ -754,27 +772,73 @@ void usage(int n)
 /**
  * True if file matches an -I pattern
  */
-int patignore(const char *name, bool isdir)
+int patignore(const char *name, bool isdir, bool checkpaths)
 {
   int i;
-  for(i=0; i < ipattern; i++)
+  char *pc;
+  for(i=0; i < ipattern; i++) {
     if (patmatch(name, ipatterns[i], isdir)) return 1;
+    else if (checkpaths) {
+      pc = strchr(name, file_pathsep[0]);
+      while (pc != NULL && *pc != '\0') {
+        if (patmatch(pc+1, ipatterns[i], isdir)) return 1;
+        pc = strchr(pc+1, file_pathsep[0]);
+      }
+    }
+  }
   return 0;
 }
 
 /**
  * True if name matches a -P pattern
  */
-int patinclude(const char *name, bool isdir)
+int patinclude(const char *name, bool isdir, bool checkpaths)
 {
   int i;
+  char *pc;
   for(i=0; i < pattern; i++) {
-    if (patmatch(name, patterns[i], isdir)) {
-      return 1;
+    if (patmatch(name, patterns[i], isdir)) return 1;
+    else if (checkpaths) {
+      pc = strchr(name, file_pathsep[0]);
+      while (pc != NULL && *pc != '\0') {
+        if (patmatch(pc+1, patterns[i], isdir)) return 1;
+        pc = strchr(pc+1, file_pathsep[0]);
+      }
     }
   }
   return 0;
 }
+
+#ifdef __linux__
+bool has_acl(const char *path)
+{
+  char *key, buf[PATH_MAX];
+  ssize_t n = listxattr(path, buf, PATH_MAX);
+  if (n <= 0) return false;
+
+  size_t i, len;
+  for(key=buf, i=0; i < (size_t)n; i+=len+1) {
+    len = strlen(key);
+    if (strcmp(key, "system.posix_acl_access") == 0) return true;
+  }
+  return false;
+}
+
+/**
+ * selinux contexts can be up to 4096 bytes, probably not more than 257 though.
+ * We'll store the strings in a hash table though as there will likely only be
+ * a handful of actual contexts. It would be more efficient still to compress
+ * the context by hashing each string between :'s, but that would likely vastly
+ * increase CPU time, for perhaps not much space savings.
+ */
+char *selinux_context(const char *path)
+{
+
+  ssize_t len = getxattr(path, "security.selinux", xpattern, PATH_MAX-1);
+  xpattern[len < 0? 0 : len] = '\0';
+  return strhash(xpattern);
+}
+#endif
 
 /**
  * Split out stat portion from read_dir as prelude to just using stat structure directly.
@@ -805,15 +869,15 @@ struct _info *getinfo(const char *name, char *path)
   isdir = (st.st_mode & S_IFMT) == S_IFDIR;
 
 #ifndef __EMX__
-  if (gitignore && filtercheck(path, name, isdir)) return NULL;
+  if (flag.gitignore && filtercheck(path, name, isdir)) return NULL;
 
-  if ((lst.st_mode & S_IFMT) != S_IFDIR && !(lflag && ((st.st_mode & S_IFMT) == S_IFDIR))) {
-    if (pattern && !patinclude(name, isdir)) return NULL;
+  if ((lst.st_mode & S_IFMT) != S_IFDIR && !(flag.l && ((st.st_mode & S_IFMT) == S_IFDIR))) {
+    if (pattern && !patinclude(name, isdir, false) && !patinclude(path, isdir, true)) return NULL;
   }
-  if (ipattern && patignore(name, isdir)) return NULL;
+  if (ipattern && (patignore(name, isdir, false) || patignore(path, isdir, true))) return NULL;
 #endif
 
-  if (dflag && ((st.st_mode & S_IFMT) != S_IFDIR)) return NULL;
+  if (flag.d && ((st.st_mode & S_IFMT) != S_IFDIR)) return NULL;
 
 #ifndef __EMX__
 /*    if (pattern && ((lst.st_mode & S_IFMT) == S_IFLNK) && !lflag) continue; */
@@ -847,8 +911,15 @@ struct _info *getinfo(const char *name, char *path)
   ent->attr   = lst.st_attr;
 #else
 
-  /* These should be eliminated, as they're barely used: */
+#ifdef __linux__
+  if (flag.acl) ent->hasacl = has_acl(path);
+  if (flag.selinux) ent->secontext = selinux_context(path);
+  else ent->secontext = NULL;
+#endif
+
   ent->isdir  = isdir;
+
+  /* These should perhaps be eliminated, as they're barely used: */
   ent->issok  = ((st.st_mode & S_IFMT) == S_IFSOCK);
   ent->isfifo = ((st.st_mode & S_IFMT) == S_IFIFO);
   ent->isexe  = (st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) ? 1 : 0;
@@ -873,6 +944,24 @@ struct _info *getinfo(const char *name, char *path)
   return ent;
 }
 
+void free_dir(struct _info **d)
+{
+  int i;
+
+  for(i=0;d[i];i++) {
+    free(d[i]->name);
+    if (d[i]->lnk) free(d[i]->lnk);
+    if (d[i]->comment) {
+      for(int j=0; d[i]->comment[j] != NULL; j++) free(d[i]->comment[j]);
+    }
+    if (d[i]->err) free(d[i]->err);
+    // d[i]->selinux is a hashed string -- do not free.
+    // d[i]->tag is a pointer to a string constant -- do not free.
+    free(d[i]);
+  }
+  free(d);
+}
+
 struct _info **read_dir(char *dir, ssize_t *n, int infotop)
 {
   struct comment *com;
@@ -895,8 +984,8 @@ struct _info **read_dir(char *dir, ssize_t *n, int infotop)
 
   while((ent = (struct dirent *)readdir(d))) {
     if (!strcmp("..",ent->d_name) || !strcmp(".",ent->d_name)) continue;
-    if (Hflag && !strcmp(ent->d_name,"00Tree.html")) continue;
-    if (!aflag && ent->d_name[0] == '.') continue;
+    if (flag.H && !strcmp(ent->d_name,"00Tree.html")) continue;
+    if (!flag.a && ent->d_name[0] == '.') continue;
 
     if (strlen(dir)+strlen(ent->d_name)+2 > pathsize) path = xrealloc(path,pathsize=(strlen(dir)+strlen(ent->d_name)+PATH_MAX));
     if (es) sprintf(path, "%s%s", dir, ent->d_name);
@@ -904,7 +993,7 @@ struct _info **read_dir(char *dir, ssize_t *n, int infotop)
 
     info = getinfo(ent->d_name, path);
     if (info) {
-      if (showinfo && (com = infocheck(path, ent->d_name, infotop, info->isdir))) {
+      if (flag.showinfo && (com = infocheck(path, ent->d_name, infotop, info->isdir))) {
 	for(i = 0; com->desc[i] != NULL; i++);
 	info->comment = xmalloc(sizeof(char *) * (i+1));
 	for(i = 0; com->desc[i] != NULL; i++) info->comment[i] = scopy(com->desc[i]);
@@ -927,13 +1016,20 @@ struct _info **read_dir(char *dir, ssize_t *n, int infotop)
 
 void push_files(const char *dir, struct ignorefile **ig, struct infofile **inf, bool top)
 {
-  if (gitignore) {
-    *ig = new_ignorefile(dir, top);
-    if (*ig != NULL) push_filterstack(*ig);
+  char *stmp;
+
+  if (flag.gitignore) {
+    struct ignorefile *tig = NULL;
+    /* Not going to implement git configs so no core.excludesFile support. */
+    if (top && (stmp = getenv("GIT_DIR"))) {
+      push_filterstack(tig = new_ignorefile(pathconcat(stmp, "info/exclude", NULL), false));
+    }
+    if (top) *ig = gitignore_search(dir, 0);
+    else push_filterstack(*ig = new_ignorefile(dir, top));
+    if (*ig == NULL) *ig = tig;
   }
-  if (showinfo) {
-    *inf = new_infofile(dir, top);
-    if (*inf != NULL) push_infostack(*inf);
+  if (flag.showinfo) {
+    push_infostack(*inf = new_infofile(dir, top));
   }
 }
 
@@ -941,6 +1037,11 @@ void push_files(const char *dir, struct ignorefile **ig, struct infofile **inf, 
  * This can and will use a large amount of memory for large directory trees
  * and also take some time.
  */
+// struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err)
+// {
+// }
+
+
 struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err)
 {
   char *path;
@@ -950,57 +1051,45 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
   struct _info **dir, **sav, **p, *xp;
   struct stat sb;
   ssize_t n;
-  u_long lev_tmp;
   int tmp_pattern = 0;
-  char *start_rel_path;
+  char *last_name;
 
   *err = NULL;
   if (Level >= 0 && lev > (u_long)Level) return NULL;
-  if (xdev && lev == 0) {
+  if (flag.xdev && lev == 0) {
     stat(d,&sb);
     dev = sb.st_dev;
   }
   /* if the directory name matches, turn off pattern matching for contents */
-  if (matchdirs && pattern) {
-    lev_tmp = lev;
-    start_rel_path = d + strlen(d);
-    for (start_rel_path = d + strlen(d); start_rel_path != d; --start_rel_path) {
-      if (*start_rel_path == '/')
-        --lev_tmp;
-      if (lev_tmp <= 0) {
-        if (*start_rel_path)
-          ++start_rel_path;
-        break;
-      }
-    }
-    if (*start_rel_path && patinclude(start_rel_path, 1)) {
-      tmp_pattern = pattern;
-      pattern = 0;
-    }
+  last_name = strrchr(d, file_pathsep[0]);
+  if (pattern && (patinclude(d, true, true) || (last_name && patinclude(last_name+1, true, false)))) {
+    tmp_pattern = pattern;
+    pattern = 0;
   }
 
   push_files(d, &ig, &inf, lev==0);
 
   sav = dir = read_dir(d, &n, inf != NULL);
-  if (tmp_pattern) {
-    pattern = tmp_pattern;
-    tmp_pattern = 0;
-  }
+  // We used to restore pattern from tmp_pattern here:
+
   if (dir == NULL && n) {
     *err = scopy("error opening dir");
+    if (tmp_pattern) pattern = tmp_pattern;
     return NULL;
   }
   if (n == 0) {
     if (sav != NULL) free_dir(sav);
+    if (tmp_pattern) pattern = tmp_pattern;
     return NULL;
   }
   path = xmalloc(pathsize=PATH_MAX);
-  
-  if (flimit > 0 && n > flimit) {
+
+  if (flag.flimit > 0 && n > flag.flimit) {
     sprintf(path,"%ld entries exceeds filelimit, not opening dir",n);
     *err = scopy(path);
     free_dir(sav);
     free(path);
+    if (tmp_pattern) pattern = tmp_pattern;
     return NULL;
   }
 
@@ -1009,9 +1098,9 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
   }
 
   while (*dir) {
-    if ((*dir)->isdir && !(xdev && dev != (*dir)->dev)) {
+    if ((*dir)->isdir && !(flag.xdev && dev != (*dir)->dev)) {
       if ((*dir)->lnk) {
-	if (lflag) {
+	if (flag.l) {
 	  if (findino((*dir)->inode,(*dir)->dev)) {
 	    (*dir)->err = scopy("recursive, not followed");
 	  } else {
@@ -1020,7 +1109,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 	      (*dir)->child = unix_getfulltree((*dir)->lnk,lev+1,dev,&((*dir)->size),&((*dir)->err));
 	    else {
 	      if (strlen(d)+strlen((*dir)->lnk)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	      if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
+	      if (flag.f && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->lnk);
 	      else sprintf(path,"%s/%s",d,(*dir)->lnk);
 	      (*dir)->child = unix_getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
 	    }
@@ -1028,14 +1117,28 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 	}
       } else {
 	if (strlen(d)+strlen((*dir)->name)+2 > pathsize) path=xrealloc(path,pathsize=(strlen(d)+strlen((*dir)->name)+1024));
-	if (fflag && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
+
+	if (flag.f && !strcmp(d,"/")) sprintf(path,"%s%s",d,(*dir)->name);
 	else sprintf(path,"%s/%s",d,(*dir)->name);
-	saveino((*dir)->inode, (*dir)->dev);
+
+        saveino((*dir)->inode, (*dir)->dev);
 	(*dir)->child = unix_getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
+
+        if (flag.condense_singletons) {
+          while (is_singleton(*dir)) {
+            struct _info **child = (*dir)->child;
+            char *name = pathconcat((*dir)->name, child[0]->name, NULL);
+            free((*dir)->name);
+            (*dir)->name = scopy(name);
+            (*dir)->child = child[0]->child;
+            (*dir)->condensed = (*dir)->condensed + 1 + child[0]->condensed;
+            free_dir(child);
+          }
+        }
       }
       /* prune empty folders, unless they match the requested pattern */
-      if (pruneflag && (*dir)->child == NULL &&
-	  !(matchdirs && pattern && patinclude((*dir)->name, (*dir)->isdir))) {
+      if (flag.prune && (*dir)->child == NULL &&
+	  !(flag.matchdirs && pattern && patinclude((*dir)->name, (*dir)->isdir, false))) {
 	xp = *dir;
 	for(p=dir;*p;p++) *p = *(p+1);
 	n--;
@@ -1045,8 +1148,13 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 	continue;
       }
     }
-    if (duflag) *size += (*dir)->size;
+    if (flag.du) *size += (*dir)->size;
     dir++;
+  }
+
+  if (tmp_pattern) {
+    pattern = tmp_pattern;
+    tmp_pattern = 0;
   }
 
   /* sorting needs to be deferred for --du: */
@@ -1085,13 +1193,13 @@ int dirsfirst(struct _info **a, struct _info **b)
 int alnumsort(struct _info **a, struct _info **b)
 {
   int v = strcoll((*a)->name,(*b)->name);
-  return reverse? -v : v;
+  return flag.reverse? -v : v;
 }
 
 int versort(struct _info **a, struct _info **b)
 {
   int v = strverscmp((*a)->name,(*b)->name);
-  return reverse? -v : v;
+  return flag.reverse? -v : v;
 }
 
 int mtimesort(struct _info **a, struct _info **b)
@@ -1100,10 +1208,10 @@ int mtimesort(struct _info **a, struct _info **b)
 
   if ((*a)->mtime == (*b)->mtime) {
     v = strcoll((*a)->name,(*b)->name);
-    return reverse? -v : v;
+    return flag.reverse? -v : v;
   }
   v =  (*a)->mtime == (*b)->mtime? 0 : ((*a)->mtime < (*b)->mtime ? -1 : 1);
-  return reverse? -v : v;
+  return flag.reverse? -v : v;
 }
 
 int ctimesort(struct _info **a, struct _info **b)
@@ -1112,10 +1220,10 @@ int ctimesort(struct _info **a, struct _info **b)
 
   if ((*a)->ctime == (*b)->ctime) {
     v = strcoll((*a)->name,(*b)->name);
-    return reverse? -v : v;
+    return flag.reverse? -v : v;
   }
   v = (*a)->ctime == (*b)->ctime? 0 : ((*a)->ctime < (*b)->ctime? -1 : 1);
-  return reverse? -v : v;
+  return flag.reverse? -v : v;
 }
 
 int sizecmp(off_t a, off_t b)
@@ -1127,58 +1235,12 @@ int fsizesort(struct _info **a, struct _info **b)
 {
   int v = sizecmp((*a)->size, (*b)->size);
   if (v == 0) v = strcoll((*a)->name,(*b)->name);
-  return reverse? -v : v;
-}
-
-void *xmalloc (size_t size)
-{
-  register void *value = malloc (size);
-  if (value == NULL) {
-    fprintf(stderr,"tree: virtual memory exhausted.\n");
-    exit(1);
-  }
-  return value;
-}
-
-void *xrealloc (void *ptr, size_t size)
-{
-  register void *value = realloc (ptr,size);
-  if (value == NULL) {
-    fprintf(stderr,"tree: virtual memory exhausted.\n");
-    exit(1);
-  }
-  return value;
-}
-
-void free_dir(struct _info **d)
-{
-  int i;
-
-  for(i=0;d[i];i++) {
-    free(d[i]->name);
-    if (d[i]->lnk) free(d[i]->lnk);
-    free(d[i]);
-  }
-  free(d);
-}
-
-char *gnu_getcwd(void)
-{
-  size_t size = 100;
-  char *buffer = (char *) xmalloc (size);
-
-  while (1) {
-    char *value = getcwd (buffer, size);
-    if (value != 0) return buffer;
-    size *= 2;
-    free (buffer);
-    buffer = (char *) xmalloc (size);
-  }
+  return flag.reverse? -v : v;
 }
 
 static char cond_lower(char c)
 {
-  return ignorecase ? (char)tolower(c) : c;
+  return flag.ignorecase ? (char)tolower(c) : c;
 }
 
 /*
@@ -1295,30 +1357,19 @@ int patmatch(const char *buf, const char *pat, bool isdir)
  */
 void indent(int maxlevel)
 {
-  int i;
+  static const char *spaces[3]     = {"   ", "  ", " "};
+  static const char *htmlspaces[3] = {"&nbsp;&nbsp;&nbsp;", "&nbsp;&nbsp;", "&nbsp;"};
+  char *space = (flag.H? "&nbsp;" : " ");
+  int i, clvl = flag.compress_indent;
 
-  if (ansilines) {
-    if (dirs[1]) fprintf(outfile,"\033(0");
-    for(i=1; (i <= maxlevel) && dirs[i]; i++) {
-      if (dirs[i+1]) {
-	if (dirs[i] == 1) fprintf(outfile,"\170   ");
-	else printf("    ");
-      } else {
-	if (dirs[i] == 1) fprintf(outfile,"\164\161\161 ");
-	else fprintf(outfile,"\155\161\161 ");
-      }
-    }
-    if (dirs[1]) fprintf(outfile,"\033(B");
-  } else {
-    if (Hflag) fprintf(outfile,"\t");
-    for(i=1; (i <= maxlevel) && dirs[i]; i++) {
-      fprintf(outfile,"%s ",
-	      dirs[i+1] ? (dirs[i]==1 ? linedraw->vert     : (Hflag? "&nbsp;&nbsp;&nbsp;" : "   ") )
-			: (dirs[i]==1 ? linedraw->vert_left:linedraw->corner));
-    }
+  if (flag.H) fprintf(outfile,"\t");
+  for(i=1; (i <= maxlevel) && dirs[i]; i++) {
+    fprintf(outfile, "%s",
+            dirs[i+1] ? (dirs[i]==1 ? linedraw->vert[clvl]      : (flag.H? htmlspaces[clvl] : spaces[clvl]))
+                      : (dirs[i]==1 ? linedraw->vert_left[clvl] : linedraw->corner[clvl]));
+    if (flag.remove_space != true) fprintf(outfile, "%s", space);
   }
 }
-
 
 #ifdef __EMX__
 char *prot(long m)
@@ -1388,8 +1439,8 @@ void printit(const char *s)
   int c;
   size_t cs;
 
-  if (Nflag) {
-    if (Qflag) fprintf(outfile, "\"%s\"",s);
+  if (flag.N) {
+    if (flag.Q) fprintf(outfile, "\"%s\"",s);
     else fprintf(outfile,"%s",s);
     return;
   }
@@ -1397,21 +1448,21 @@ void printit(const char *s)
     wchar_t *ws, *tp;
     ws = xmalloc(sizeof(wchar_t)* (cs=(strlen(s)+1)));
     if (mbstowcs(ws,s,cs) != (size_t)-1) {
-      if (Qflag) putc('"',outfile);
+      if (flag.Q) putc('"',outfile);
       for(tp=ws;*tp && cs > 1;tp++, cs--) {
 	if (iswprint((wint_t)*tp)) fprintf(outfile,"%lc",(wint_t)*tp);
 	else {
-	  if (qflag) putc('?',outfile);
+	  if (flag.q) putc('?',outfile);
 	  else fprintf(outfile,"\\%03o",(unsigned int)*tp);
 	}
       }
-      if (Qflag) putc('"',outfile);
+      if (flag.Q) putc('"',outfile);
       free(ws);
       return;
     }
     free(ws);
   }
-  if (Qflag) putc('"',outfile);
+  if (flag.Q) putc('"',outfile);
   for(;*s;s++) {
     c = (unsigned char)*s;
 #ifdef __EMX__
@@ -1421,28 +1472,28 @@ void printit(const char *s)
       continue;
     }
 #endif
-    if((c >= 7 && c <= 13) || c == '\\' || (c == '"' && Qflag) || (c == ' ' && !Qflag)) {
+    if((c >= 7 && c <= 13) || c == '\\' || (c == '"' && flag.Q) || (c == ' ' && !flag.Q)) {
       putc('\\',outfile);
       if (c > 13) putc(c, outfile);
       else putc("abtnvfr"[c-7], outfile);
     } else if (isprint(c)) putc(c,outfile);
     else {
-      if (qflag) {
+      if (flag.q) {
 	if (mb_cur_max > 1 && c > 127) putc(c,outfile);
 	else putc('?',outfile);
       } else fprintf(outfile,"\\%03o",c);
     }
   }
-  if (Qflag) putc('"',outfile);
+  if (flag.Q) putc('"',outfile);
 }
 
 int psize(char *buf, off_t size)
 {
   static char *iec_unit="BKMGTPEZY", *si_unit = "dkMGTPEZY";
-  char *unit = siflag ? si_unit : iec_unit;
-  int idx, usize = siflag ? 1000 : 1024;
+  char *unit = flag.si ? si_unit : iec_unit;
+  int idx, usize = flag.si ? 1000 : 1024;
 
-  if (hflag || siflag) {
+  if (flag.h || flag.si) {
     for (idx=size<usize?0:1; size >= (usize*usize); idx++,size/=usize);
     if (!idx) return sprintf(buf, " %4d", (int)size);
     else return sprintf(buf, (((size+52)/usize) >= 10)? " %3.0f%c" : " %3.1f%c" , (float)size/(float)usize,unit[idx]);
@@ -1452,7 +1503,7 @@ int psize(char *buf, off_t size)
 char Ftype(mode_t mode)
 {
   int m = mode & S_IFMT;
-  if (!dflag && m == S_IFDIR) return '/';
+  if (!flag.d && m == S_IFDIR) return '/';
   else if (m == S_IFSOCK) return '=';
   else if (m == S_IFIFO) return '|';
   else if (m == S_IFLNK) return '@'; /* Here, but never actually used though. */
@@ -1492,21 +1543,28 @@ char *fillinfo(char *buf, const struct _info *ent)
 {
   int n;
   buf[n=0] = 0;
+  // Not sure why this should happen, but just in case:
+  if (!ent) return buf;
+
   #ifdef __USE_FILE_OFFSET64
-  if (inodeflag) n += sprintf(buf," %7lld",(long long)ent->linode);
+  if (flag.inode) n += sprintf(buf," %7lld",(long long)ent->linode);
   #else
-  if (inodeflag) n += sprintf(buf," %7ld",(long int)ent->linode);
+  if (flag.inode) n += sprintf(buf," %7ld",(long int)ent->linode);
   #endif
-  if (devflag) n += sprintf(buf+n, " %3d", (int)ent->ldev);
+  if (flag.dev) n += sprintf(buf+n, " %3d", (int)ent->ldev);
   #ifdef __EMX__
-  if (pflag) n += sprintf(buf+n, " %s",prot(ent->attr));
+  if (flag.p) n += sprintf(buf+n, " %s",prot(ent->attr));
   #else
-  if (pflag) n += sprintf(buf+n, " %s", prot(ent->mode));
+  if (flag.p) n += sprintf(buf+n, " %s", prot(ent->mode));
   #endif
-  if (uflag) n += sprintf(buf+n, " %-8.32s", uidtoname(ent->uid));
-  if (gflag) n += sprintf(buf+n, " %-8.32s", gidtoname(ent->gid));
-  if (sflag) n += psize(buf+n,ent->size);
-  if (Dflag) n += sprintf(buf+n, " %s", do_date(cflag? ent->ctime : ent->mtime));
+  #ifdef __linux__
+  if (flag.acl) n += sprintf(buf+n, "%c", ent->hasacl? '+' : ' ');
+  #endif
+  if (flag.u) n += sprintf(buf+n, " %-8.32s", uidtoname(ent->uid));
+  if (flag.g) n += sprintf(buf+n, " %-8.32s", gidtoname(ent->gid));
+  if (flag.s) n += psize(buf+n,ent->size);
+  if (flag.D) n += sprintf(buf+n, " %s", do_date(flag.c? ent->ctime : ent->mtime));
+  if (flag.selinux) n += sprintf(buf+n, " %s", ent->secontext);
 
   if (buf[0] == ' ') {
       buf[0] = '[';

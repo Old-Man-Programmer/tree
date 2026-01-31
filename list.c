@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
+ * Copyright (c) 1996 - 2026 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,11 @@
  */
 #include "tree.h"
 
-extern bool fflag, duflag, lflag, Rflag, Jflag, xdev, noreport, hyperflag, Hflag;
-
+extern struct Flags flag;
 extern struct _info **(*getfulltree)(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 extern int (*topsort)(struct _info **, struct _info **);
 extern FILE *outfile;
-extern int flimit, *dirs, errors;
+extern int *dirs, errors;
 extern ssize_t Level;
 extern size_t htmldirlen;
 
@@ -68,18 +67,18 @@ void emit_tree(char **dirname, bool needfulltree)
   lc.intro();
 
   for(i=0; dirname[i]; i++) {
-    if (hyperflag) {
+    if (flag.hyper) {
       if (realpath(dirname[i], realbasepath) == NULL) { realbasepath[0] = '\0'; dirpathoffset = 0; }
       else dirpathoffset = strlen(dirname[i]);
     }
 
-    if (fflag) {
+    if (flag.f) {
       j=strlen(dirname[i]);
       do {
 	if (j > 1 && dirname[i][j-1] == '/') dirname[i][--j] = 0;
       } while (j > 1 && dirname[i][j-1] == '/');
     }
-    if (Hflag) htmldirlen = strlen(dirname[i]);
+    if (flag.H) htmldirlen = strlen(dirname[i]);
 
     if ((n = lstat(dirname[i],&st)) >= 0) {
       saveino(st.st_ino, st.st_dev);
@@ -93,9 +92,8 @@ void emit_tree(char **dirname, bool needfulltree)
 	push_files(dirname[i], &ig, &inf, true);
 	dir = read_dir(dirname[i], &n, inf != NULL);
       }
-
-      lc.printinfo(dirname[i], info, 0);
     } else info = NULL;
+    lc.printinfo(dirname[i], info, 0);
 
     needsclosed = lc.printfile(dirname[i], dirname[i], info, (dir != NULL) || (!dir && n));
     subtotal = (struct totals){0, 0, 0};
@@ -105,7 +103,7 @@ void emit_tree(char **dirname, bool needfulltree)
       lc.newline(info, 0, 0, dirname[i+1] != NULL);
       if (!info) errors++;
       else subtotal.files++;
-    } else if (flimit > 0 && n > flimit) {
+    } else if (flag.flimit > 0 && n > flag.flimit) {
       sprintf(errbuf,"%ld entries exceeds filelimit, not opening dir", n);
       lc.error(errbuf);
       lc.newline(info, 0, 0, dirname[i+1] != NULL);
@@ -127,13 +125,13 @@ void emit_tree(char **dirname, bool needfulltree)
     tot.dirs += subtotal.dirs;
     // Do not bother to accumulate tot.size in listdir.
     // This is already done in getfulltree()
-    if (duflag) tot.size += info? info->size : 0;
+    if (flag.du) tot.size += info? info->size : 0;
 
-    if (ig != NULL) ig = pop_filterstack();
+    if (ig != NULL) ig = flush_filterstack();
     if (inf != NULL) inf = pop_infostack();
   }
 
-  if (!noreport) lc.report(tot);
+  if (!flag.noreport) lc.report(tot);
 
   lc.outtro();
 }
@@ -172,7 +170,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
       path = xrealloc(path, dirlen + (namemax = namelen));
     if (es) sprintf(path,"%s%s",dirname,(*dir)->name);
     else sprintf(path,"%s/%s",dirname,(*dir)->name);
-    if (fflag) filename = path;
+    if (flag.f) filename = path;
     else filename = (*dir)->name;
 
     descend = 0;
@@ -181,6 +179,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 
     if ((*dir)->isdir) {
       tot.dirs++;
+      if (flag.condense_singletons) tot.dirs += (*dir)->condensed;
 
       if (!hasfulltree) {
 	found = findino((*dir)->inode,(*dir)->dev);
@@ -189,13 +188,13 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	}
       } else found = false;
 
-      if (!(xdev && dev != (*dir)->dev) && (!(*dir)->lnk || ((*dir)->lnk && lflag))) {
+      if (!(flag.xdev && dev != (*dir)->dev) && (!(*dir)->lnk || ((*dir)->lnk && flag.l))) {
 	descend = 1;
 
 	if ((*dir)->lnk) {
 	  if (*(*dir)->lnk == '/') newpath = (*dir)->lnk;
 	  else {
-	    if (fflag && !strcmp(dirname,"/")) sprintf(path,"%s%s",dirname,(*dir)->lnk);
+	    if (flag.f && !strcmp(dirname,"/")) sprintf(path,"%s%s",dirname,(*dir)->lnk);
 	    else sprintf(path,"%s/%s",dirname,(*dir)->lnk);
 	  }
 	  if (found) {
@@ -207,7 +206,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	}
 
 	if ((Level >= 0) && (lev > Level)) {
-	  if (Rflag) {
+	  if (flag.R) {
 	    FILE *outsave = outfile;
 	    char *paths[2] = {newpath, NULL}, *output = xmalloc(strlen(newpath) + 13);
 	    int *dirsave = xmalloc(sizeof(int) * (size_t)(lev + 2));
@@ -238,7 +237,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	    if (!subdir && n) {
 	      err = "error opening dir";
 	      errors++;
-	    } if (flimit > 0 && n > flimit) {
+	    } if (flag.flimit > 0 && n > flag.flimit) {
 	      sprintf(err = errbuf,"%ld entries exceeds filelimit, not opening dir", n);
 	      errors++;
 	      free_dir(subdir);
@@ -250,7 +249,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
       }
     } else tot.files++;
 
-    needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (Jflag && errors));
+    needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (flag.J && errors));
     if (err) lc.error(err);
 
     if (descend > 0) {

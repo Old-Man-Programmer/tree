@@ -1,7 +1,53 @@
+Version 2.3.0 (1/30/2026)
+  - Add ACL detection (--acl) and selinux (--selinux) (not tested, no way for
+    me to easily test this, please report problems with it) options for Linux
+    only. This should lead to adding support for other xattr attributes in the
+    future, though I will likely re-work the mechanism to be more generic.
+    Support for extended attributes could be added for other operating systems
+    if patches for them are provided.
+  - Adds --condense option to condense directory "singletons" (i.e. directories
+    that contain exactly a single directory) into a single line of output. This
+    should be useful for project directories displayed with -d and such. Note
+    that the meta-data displayed will only be valid for the first directory
+    component of the path that is displayed. (PowerPlop@github / others)
+  - Adds --compress=# option to compress the indentation lines. Positive values
+    between 1-3, 1 being normal, and 3 being lines fully compressed. Negative
+    values from -1 to -3 being the same as positive values, except the space
+    after each indentation level is not printed.  Values < -3 or > 3 switch to
+    noindent mode.  This also modifies the JSON and XML indentation output
+    instead of being a fixed 2 space indent.
+    There is a possibility that I could modify this function to go in the other
+    direction and allow for even larger indents, so the meaning of # may change.
+  - The above work also resulted in fixing the line drawing for a number of
+    Asian character sets.  Also ANSI-lines (-A) now is essentially
+    --charset=ANSI and uses it's linedraw.
+  - Reworked --gitignore code to properly search up the directory tree for
+    a git root, searching for additional .gitignore files and the git root's
+    .git/info/exclude file.
+  - Fixed --matchdirs to not exclude sub-directories of matched directories.
+    (FloppyDisco@github).  I reworked the -P and -I code considerably while
+    working on this and now -I will match directories (even w/o --matchdirs.)
+    This behavior changes established behavior quite a bit and may have to be
+    modified again.
+  - Handle '.' in --fromfile input properly.  This should have been in there
+    from day one TBH.  It will likely change the expected output, but it should
+    now be correct in my opinion.
+  - Modify gittrim to trim carriage returns for Window borkness.
+  - Fix segmentation fault when attempting to tree a non-existent file with
+    hyperlinks enabled. (Nicolai Dagestad)
+  - Fix broken hyperlink paths where an optional hanging / is present on the
+    directory name given to tree. (Nicolai Dagestad)
+  - Fix possible NULL de-reference in xml.c, exit fillinfo() early if a NULL
+    pointer is past to it. (Ubuntu? - not sure)
+  - Move all flags into a central struct to cut down on namespace pollution,
+    work should continue on this. Remove unused gnu_getcwd() function, moved and
+    added some functionality into a new util.c file and some additional misc
+    code cleanup.
+
 Version 2.2.1 (11/25/2024)
   - Yet another brown-paper bag release.  I seem to like doing these.
   - Fix regression where I free a pointer that should not have been freed due
-    to a variable renaming that wasn't completed. (Daniel Li / Landon Bourma)
+    to a variable renaming that wasn't completed. (Daniel Li / Landon Bouma)
   - Put back, in a modified form, HTML href directory path fixing that was
     removed in 2.1.2. If the "baseHREF" part after the -H begins with a dash
     (-), the dash is removed and the lead directory name is removed from the

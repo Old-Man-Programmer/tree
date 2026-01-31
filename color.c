@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
+ * Copyright (c) 1996 - 2026 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,9 @@ enum {
   MCOL_INDENTLINES
 };
 
-bool colorize = false, ansilines = false, linktargetcolor = false;
+extern struct Flags flag;
+extern FILE *outfile;
+extern const char *charset;
 
 char *color_code[DOT_EXTENSION+1] = {NULL};
 
@@ -68,103 +70,6 @@ struct colortable {
 
 struct extensions *ext = NULL;
 const struct linedraw *linedraw;
-
-char **split(char *str, const char *delim, size_t *nwrds);
-int cmd(char *s);
-
-extern FILE *outfile;
-extern bool Hflag, force_color, nocolor;
-extern const char *charset;
-
-void parse_dir_colors(void)
-{
-  char **arg, **c, *colors, *s;
-  int i, col, cc;
-  size_t n;
-  struct extensions *e;
-
-  if (Hflag) return;
-
-  s = getenv("NO_COLOR");
-  if (s && s[0]) nocolor = true;
-
-  if (getenv("TERM") == NULL) {
-    colorize = false;
-    return;
-  }
-
-  cc = getenv("CLICOLOR") != NULL;
-  if (getenv("CLICOLOR_FORCE") != NULL && !nocolor) force_color=true;
-  s = getenv("TREE_COLORS");
-  if (s == NULL) s = getenv("LS_COLORS");
-  if ((s == NULL || strlen(s) == 0) && (force_color || cc)) s = ":no=00:rs=0:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
-
-  if (s == NULL || (!force_color && (nocolor || !isatty(1)))) {
-    colorize = false;
-    return;
-  }
-
-  colorize = true;
-
-  for(i=0; i < DOT_EXTENSION; i++) color_code[i] = NULL;
-
-  colors = scopy(s);
-
-  arg = split(colors,":",&n);
-
-  for(i=0;arg[i];i++) {
-    c = split(arg[i],"=",&n);
-
-    switch(col = cmd(c[0])) {
-      case ERROR:
-	break;
-      case DOT_EXTENSION:
-	if (c[1]) {
-	  e = xmalloc(sizeof(struct extensions));
-	  e->ext = scopy(c[0]+1);
-	  e->term_flg = scopy(c[1]);
-	  e->nxt = ext;
-	  ext = e;
-	}
-	break;
-      case COL_LINK:
-	if (c[1] && (strcasecmp("target",c[1]) == 0)) {
-	  linktargetcolor = true;
-	  color_code[COL_LINK] = "01;36"; /* Should never actually be used */
-	  break;
-	}
-	/* Falls through */
-      default:
-	if (c[1]) color_code[col] = scopy(c[1]);
-	break;
-    }
-
-    free(c);
-  }
-  free(arg);
-
-  /**
-   * Make sure at least reset (not normal) is defined.  We're going to assume
-   * ANSI/vt100 support:
-   */
-  if (!color_code[COL_LEFTCODE]) color_code[COL_LEFTCODE] = scopy("\033[");
-  if (!color_code[COL_RIGHTCODE]) color_code[COL_RIGHTCODE] = scopy("m");
-  if (!color_code[COL_RESET]) color_code[COL_RESET] = scopy("0");
-  if (!color_code[COL_BOLD]) {
-    color_code[COL_BOLD] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RIGHTCODE])+2);
-    sprintf(color_code[COL_BOLD],"%s1%s",color_code[COL_LEFTCODE],color_code[COL_RIGHTCODE]);
-  }
-  if (!color_code[COL_ITALIC]) {
-    color_code[COL_ITALIC] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RIGHTCODE])+2);
-    sprintf(color_code[COL_ITALIC],"%s3%s",color_code[COL_LEFTCODE],color_code[COL_RIGHTCODE]);
-  }
-  if (!color_code[COL_ENDCODE]) {
-    color_code[COL_ENDCODE] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RESET])+strlen(color_code[COL_RIGHTCODE])+1);
-    sprintf(color_code[COL_ENDCODE],"%s%s%s",color_code[COL_LEFTCODE],color_code[COL_RESET],color_code[COL_RIGHTCODE]);
-  }
-
-  free(colors);
-}
 
 /*
  * You must free the pointer that is allocated by split() after you
@@ -211,6 +116,96 @@ int cmd(char *s)
   return ERROR;
 }
 
+void parse_dir_colors(void)
+{
+  char **arg, **c, *colors, *s;
+  int i, col, cc;
+  size_t n;
+  struct extensions *e;
+
+  if (flag.H) return;
+
+  s = getenv("NO_COLOR");
+  if (s && s[0]) flag.nocolor = true;
+
+  if (getenv("TERM") == NULL) {
+    flag.colorize = false;
+    return;
+  }
+
+  cc = getenv("CLICOLOR") != NULL;
+  if (getenv("CLICOLOR_FORCE") != NULL && !flag.nocolor) flag.force_color=true;
+  s = getenv("TREE_COLORS");
+  if (s == NULL) s = getenv("LS_COLORS");
+  if ((s == NULL || strlen(s) == 0) && (flag.force_color || cc)) s = ":no=00:rs=0:fi=00:di=01;34:ln=01;36:pi=40;33:so=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.bat=01;32:*.BAT=01;32:*.btm=01;32:*.BTM=01;32:*.cmd=01;32:*.CMD=01;32:*.com=01;32:*.COM=01;32:*.dll=01;32:*.DLL=01;32:*.exe=01;32:*.EXE=01;32:*.arj=01;31:*.bz2=01;31:*.deb=01;31:*.gz=01;31:*.lzh=01;31:*.rpm=01;31:*.tar=01;31:*.taz=01;31:*.tb2=01;31:*.tbz2=01;31:*.tbz=01;31:*.tgz=01;31:*.tz2=01;31:*.z=01;31:*.Z=01;31:*.zip=01;31:*.ZIP=01;31:*.zoo=01;31:*.asf=01;35:*.ASF=01;35:*.avi=01;35:*.AVI=01;35:*.bmp=01;35:*.BMP=01;35:*.flac=01;35:*.FLAC=01;35:*.gif=01;35:*.GIF=01;35:*.jpg=01;35:*.JPG=01;35:*.jpeg=01;35:*.JPEG=01;35:*.m2a=01;35:*.M2a=01;35:*.m2v=01;35:*.M2V=01;35:*.mov=01;35:*.MOV=01;35:*.mp3=01;35:*.MP3=01;35:*.mpeg=01;35:*.MPEG=01;35:*.mpg=01;35:*.MPG=01;35:*.ogg=01;35:*.OGG=01;35:*.ppm=01;35:*.rm=01;35:*.RM=01;35:*.tga=01;35:*.TGA=01;35:*.tif=01;35:*.TIF=01;35:*.wav=01;35:*.WAV=01;35:*.wmv=01;35:*.WMV=01;35:*.xbm=01;35:*.xpm=01;35:";
+
+  if (s == NULL || (!flag.force_color && (flag.nocolor || !isatty(1)))) {
+    flag.colorize = false;
+    return;
+  }
+
+  flag.colorize = true;
+
+  for(i=0; i < DOT_EXTENSION; i++) color_code[i] = NULL;
+
+  colors = scopy(s);
+
+  arg = split(colors,":",&n);
+
+  for(i=0;arg[i];i++) {
+    c = split(arg[i],"=",&n);
+
+    switch(col = cmd(c[0])) {
+      case ERROR:
+	break;
+      case DOT_EXTENSION:
+	if (c[1]) {
+	  e = xmalloc(sizeof(struct extensions));
+	  e->ext = scopy(c[0]+1);
+	  e->term_flg = scopy(c[1]);
+	  e->nxt = ext;
+	  ext = e;
+	}
+	break;
+      case COL_LINK:
+	if (c[1] && (strcasecmp("target",c[1]) == 0)) {
+	  flag.linktargetcolor = true;
+	  color_code[COL_LINK] = "01;36"; /* Should never actually be used */
+	  break;
+	}
+	/* Falls through */
+      default:
+	if (c[1]) color_code[col] = scopy(c[1]);
+	break;
+    }
+
+    free(c);
+  }
+  free(arg);
+
+  /**
+   * Make sure at least reset (not normal) is defined.  We're going to assume
+   * ANSI/vt100 support:
+   */
+  if (!color_code[COL_LEFTCODE]) color_code[COL_LEFTCODE] = scopy("\033[");
+  if (!color_code[COL_RIGHTCODE]) color_code[COL_RIGHTCODE] = scopy("m");
+  if (!color_code[COL_RESET]) color_code[COL_RESET] = scopy("0");
+  if (!color_code[COL_BOLD]) {
+    color_code[COL_BOLD] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RIGHTCODE])+2);
+    sprintf(color_code[COL_BOLD],"%s1%s",color_code[COL_LEFTCODE],color_code[COL_RIGHTCODE]);
+  }
+  if (!color_code[COL_ITALIC]) {
+    color_code[COL_ITALIC] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RIGHTCODE])+2);
+    sprintf(color_code[COL_ITALIC],"%s3%s",color_code[COL_LEFTCODE],color_code[COL_RIGHTCODE]);
+  }
+  if (!color_code[COL_ENDCODE]) {
+    color_code[COL_ENDCODE] = xmalloc(strlen(color_code[COL_LEFTCODE])+strlen(color_code[COL_RESET])+strlen(color_code[COL_RIGHTCODE])+1);
+    sprintf(color_code[COL_ENDCODE],"%s%s%s",color_code[COL_LEFTCODE],color_code[COL_RESET],color_code[COL_RIGHTCODE]);
+  }
+
+  free(colors);
+}
+
 bool print_color(int color)
 {
   if (!color_code[color]) return false;
@@ -227,14 +222,13 @@ void endcolor(void)
     fputs(color_code[COL_ENDCODE],outfile);
 }
 
-
 void fancy(FILE *out, char *s)
 {
   for (; *s; s++) {
     switch(*s) {
-      case '\b': if (colorize && color_code[COL_BOLD])    fputs(color_code[COL_BOLD]   , out); break;
-      case '\f': if (colorize && color_code[COL_ITALIC])  fputs(color_code[COL_ITALIC] , out); break;
-      case '\r': if (colorize && color_code[COL_ENDCODE]) fputs(color_code[COL_ENDCODE], out); break;
+      case '\b': if (flag.colorize && color_code[COL_BOLD])    fputs(color_code[COL_BOLD]   , out); break;
+      case '\f': if (flag.colorize && color_code[COL_ITALIC])  fputs(color_code[COL_ITALIC] , out); break;
+      case '\r': if (flag.colorize && color_code[COL_ENDCODE]) fputs(color_code[COL_ENDCODE], out); break;
       default:
 	fputc(*s,out);
     }
@@ -380,21 +374,24 @@ const char *getcharset(void)
 #endif
 }
 
-void initlinedraw(bool flag)
+void initlinedraw(bool help)
 {
-  static const char*latin1_3[]={
+  static const char *ansi[] = {
+    "ANSI", NULL
+  };
+  static const char *latin1_3[]={
     "ISO-8859-1", "ISO-8859-1:1987", "ISO_8859-1", "latin1", "l1", "IBM819",
     "CP819", "csISOLatin1", "ISO-8859-3", "ISO_8859-3:1988", "ISO_8859-3",
     "latin3", "ls", "csISOLatin3", NULL
   };
-  static const char*iso8859_789[]={
+  static const char *iso8859_789[]={
     "ISO-8859-7", "ISO_8859-7:1987", "ISO_8859-7", "ELOT_928", "ECMA-118",
     "greek", "greek8", "csISOLatinGreek", "ISO-8859-8", "ISO_8859-8:1988",
     "iso-ir-138", "ISO_8859-8", "hebrew", "csISOLatinHebrew", "ISO-8859-9",
     "ISO_8859-9:1989", "iso-ir-148", "ISO_8859-9", "latin5", "l5",
     "csISOLatin5", NULL
   };
-  static const char*shift_jis[]={
+  static const char *shift_jis[]={
     "Shift_JIS", "MS_Kanji", "csShiftJIS", NULL
   };
   static const char*euc_jp[]={
@@ -441,51 +438,108 @@ void initlinedraw(bool flag)
     "windows-1251", "windows-1253", "windows-1254", "windows-1255",
     "windows-1256", "windows-1256", "windows-1257", NULL
   };
-  
+
   static const struct linedraw cstable[]={
-    { latin1_3,    "|  ",              "|--",            "&middot;--",     "&copy;",
-      " [",        " [",               " [",             " [",             " ["       },
-    { iso8859_789, "|  ",              "|--",            "&middot;--",     "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
-    { shift_jis,   "\204\240 ",        "\204\245",       "\204\244",       "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
-    { euc_jp,      "\250\242 ",        "\250\247",       "\250\246",       "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
-    { euc_kr,      "\246\242 ",        "\246\247",       "\246\246",       "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
-    { iso2022jp,   "\033$B(\"\033(B ", "\033$B('\033(B", "\033$B(&\033(B", "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
-    { ibm_pc,      "\263  ",           "\303\304\304",   "\300\304\304",   "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
-    { ibm_ps2,     "\263  ",           "\303\304\304",   "\300\304\304",   "\227",
-      " [",        " [",               " [",             " [",             " ["       },
-    { ibm_gr,      "\263  ",           "\303\304\304",   "\300\304\304",   "\270",
-      " [",        " [",               " [",             " [",             " ["       },
-    { gb,          "\251\246 ",        "\251\300",       "\251\270",       "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
-    { utf8,        "\342\224\202\302\240\302\240", "\342\224\234\342\224\200\342\224\200",
-      "\342\224\224\342\224\200\342\224\200", "\302\251",
-      " \342\216\247", " \342\216\251", " \342\216\250", " \342\216\252",  " {"       },
-    { big5,        "\242x ",           "\242u",          "\242|",          "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
-    { viscii,      "|  ",              "|--",            "`--",            "\371",
-      " [",        " [",               " [",             " [",             " ["       },
-    { koi8ru,      "\201  ",           "\206\200\200",   "\204\200\200",   "\277",
-      " [",        " [",               " [",             " [",             " ["       },
-    { windows,     "|  ",              "|--",            "`--",            "\251",
-      " [",        " [",               " [",             " [",             " ["       },
-    { NULL,        "|  ",              "|--",            "`--",            "(c)",
-      " [",        " [",               " [",             " [",             " ["       },
+    { ansi, "\033(0\251\033(B",
+      {"\033(0\170  \033(B",       "\033(0\170 \033(B",    "\033(0\170\033(B"},
+      {"\033(0\164\161\161\033(B", "\033(0\164\161\033(B", "\033(0\164\033(B"},
+      {"\033(0\155\161\161\033(B", "\033(0\155\161\033(B", "\033(0\155\033(B"},
+      " [", " [", " [", " [", " ["},
+    { latin1_3, "&copy;",
+      {"|  ",        "| ",        "|"},
+      {"|--",        "|-",        "+"},
+      {"&middot;--", "&middot;-", "&middot;"},
+      " [", " [", " [", " [", " ["},
+    { iso8859_789, "(c)",
+      {"|  ",        "| ",        "|"},
+      {"|--",        "|-",        "+"},
+      {"&middot;--", "&middot;-", "&middot;"},
+      " [", " [", " [", " [", " ["},
+    { shift_jis, "(c)",
+      {"\204\240  ",               "\204\240 ",        "\204\240"},
+      {"\204\245\204\237\204\237", "\204\245\204\237", "\204\245"},
+      {"\204\244\204\237\204\237", "\204\244\204\237", "\204\244"},
+      " [", " [", " [", " [", " ["},
+    { euc_jp, "(c)",
+      {"\250\242  ",               "\250\242 ",        "\250\242"},
+      {"\250\247\250\241\250\241", "\250\247\250\241", "\250\247"},
+      {"\250\246\250\241\250\241", "\250\246\250\241", "\250\246"},
+      " [", " [", " [", " [", " ["},
+    { euc_kr, "(c)",
+      {"\246\242  ",               "\246\242 ",        "\246\242"},
+      {"\246\247\246\241\246\241", "\246\247\246\241", "\246\247"},
+      {"\246\246\246\241\246\241", "\246\246\246\241", "\246\246"},
+      " [", " [", " [", " [", " ["},
+    { iso2022jp, "(c)",
+      {"\033$B(\"\033(B  ",              "\033$B(\"\033(B ",       "\033$B(\"\033(B"},
+      {"\033$B('\033$B(!\033$B(!\033(B", "\033$B('\033$B(!\033(B", "\033$B('\033(B"},
+      {"\033$B(&\033$B(!\033$B(!\033(B", "\033$B(&\033$B(!\033(B", "\033$B(&\033(B"},
+      " [", " [", " [", " [", " ["},
+    { ibm_pc, "(c)",
+      {"\263  ",       "\263 ",    "\263"},
+      {"\303\304\304", "\303\304", "\303"},
+      {"\300\304\304", "\300\304", "\300"},
+      " [", " [", " [", " [", " ["},
+    { ibm_ps2, "\227",
+      {"\263  ",       "\263 ",    "\263"},
+      {"\303\304\304", "\303\304", "\303"},
+      {"\300\304\304", "\300\304", "\300"},
+      " [", " [", " [", " [", " ["},
+    { ibm_gr, "\270",
+      {"\263  ",       "\263 ",    "\263"},
+      {"\303\304\304", "\303\304", "\303"},
+      {"\300\304\304", "\300\304", "\300"},
+      " [", " [", " [", " [", " ["},
+    { gb, "(c)",
+      {"\251\246  ",               "\251\246 ",        "\251\246"},
+      {"\251\300\251\244\251\244", "\251\300\251\244", "\251\300"},
+      {"\251\270\251\244\251\244", "\251\270\251\244", "\251\270"},
+      " [", " [", " [", " [", " ["},
+    { utf8, "\302\251",
+      {"\342\224\202\302\240\302\240",         "\342\224\202\302\240",     "\342\224\202"},
+      {"\342\224\234\342\224\200\342\224\200", "\342\224\234\342\224\200", "\342\224\234"},
+      {"\342\224\224\342\224\200\342\224\200", "\342\224\224\342\224\200", "\342\224\224"},
+      " \342\216\247", " \342\216\251", " \342\216\250", " \342\216\252",  " {" },
+    { big5, "(c)",
+      {"\242x  ",               "\242x ",        "\242x"},
+      {"\242u\242\167\242\167", "\242u\242\167", "\242u"},
+      {"\242|\242\167\242\167", "\242|\242\167", "\242|"},
+      " [",  " [", " [", " [", " [" },
+    { viscii, "\371",
+      {"|  ", "| ", "|"},
+      {"|--", "|-", "+"},
+      {"`--", "`-", "`"},
+      " [", " [", " [", " [", " ["},
+    { koi8ru, "\277",
+      {"\201  ",       "\201 ",    "\201"},
+      {"\206\200\200", "\206\200", "\206"},
+      {"\204\200\200", "\204\200", "\204"},
+      " [", " [", " [", " [", " ["},
+    { windows, "\251",
+      {"|  ", "| ", "|"},
+      {"|--", "|-", "+"},
+      {"`--", "`-", "`"},
+      " [", " [", " [", " [", " ["},
+    { NULL, "(c)",
+      {"|  ", "| ", "|"},
+      {"|--", "|-", "+"},
+      {"`--", "`-", "`"},
+      " [", " [", " [", " [", " ["},
   };
   const char**s;
 
-  if (flag) {
+  if (help) {
     fprintf(stderr,"Valid charsets include:\n");
     for(linedraw=cstable;linedraw->name;++linedraw) {
       for(s=linedraw->name;*s;++s) {
 	fprintf(stderr,"  %s\n",*s);
       }
     }
+    return;
+  }
+  // Assume if they need ansilines, then they're probably stuck with a vt100:
+  if (flag.ansilines) {
+    linedraw = cstable;
     return;
   }
   if (charset) {

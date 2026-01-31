@@ -18,6 +18,9 @@ Should do:
 
 - Move as many globals into a struct or structs to reduce namespace pollution.
 
+- Add support for more xattr attributes, such as user.xdg.*, trusted.mimetype,
+  etc.
+
 Maybe do:
 
 - With the addition of TREE_COLORS, add some custom options to perhaps colorize

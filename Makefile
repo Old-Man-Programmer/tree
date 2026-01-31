@@ -1,5 +1,5 @@
 # $Copyright: $
-# Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
+# Copyright (c) 1996 - 2026 by Steve Baker (steve.baker.llc@gmail.com)
 # All Rights reserved
 #
 # This program is free software; you can redistribute it and/or modify
@@ -22,13 +22,14 @@ PREFIX=/usr/local
 CC ?= gcc
 INSTALL ?= install
 
-VERSION=2.2.1
+VERSION=2.3.0
 TREE_DEST=tree
 DESTDIR=${PREFIX}/bin
 MAN=tree.1
 # Probably needs to be ${PREFIX}/share/man for most systems now
 MANDIR=${PREFIX}/man
-OBJS=tree.o list.o hash.o color.o file.o filter.o info.o unix.o xml.o json.o html.o strverscmp.o
+OBJS=color.o file.o filter.o hash.o html.o info.o json.o list.o tree.o unix.o \
+     util.o xml.o strverscmp.o
 
 # Uncomment options below for your particular OS:
 

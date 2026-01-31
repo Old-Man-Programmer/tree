@@ -331,6 +331,10 @@ Christoph Anton Mitterer
 
 Nicolai Dagestad
  - Suggested --hyperlink option.
+ - Noted segmentation fault when attempting to tree a non-existent file with
+   hyperlinks enabled
+ - Fix broken hyperlink paths where an optional hanging / is present on the
+   directory name given to tree
 
 Alchemyst (github)
  - Reported JSON error when using the --du option and unable to open a
@@ -355,9 +359,15 @@ David Seifert
  - Provided updates for Makefile
  - Suggested move to stdbool.h to avoid problems with newer compilers.
 
-Daniel Li / Landon Bourma
+Daniel Li / Landon Bouma
  - Reported segfault from incorrect free.
- 
+
+PowerPlop@github
+ - Suggested --condense option
+
+FloppyDisco@github
+ - Noted issue with --matchdirs and -P
+
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
 

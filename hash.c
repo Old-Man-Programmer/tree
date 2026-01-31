@@ -1,5 +1,5 @@
 /* $Copyright: $
- * Copyright (c) 1996 - 2024 by Steve Baker (steve.baker.llc@gmail.com)
+ * Copyright (c) 1996 - 2026 by Steve Baker (steve.baker.llc@gmail.com)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,10 +19,65 @@
 
 /* Faster uid/gid -> name lookup with hash(tm)(r)(c) tables! */
 #define HASH(x)		((x)&255)
-struct xtable *gtable[256], *utable[256];
-
 #define inohash(x)	((x)&255)
-struct inotable *itable[256];
+
+struct xtable {
+  unsigned int xid;
+  char *name;
+  struct xtable *nxt;
+} *gtable[256], *utable[256];
+
+struct inotable {
+  ino_t inode;
+  dev_t device;
+  struct inotable *nxt;
+} *itable[256];
+
+#ifdef __linux__
+struct strtable {
+  char *string;
+  struct strtable *nxt;
+} *strtable[256];
+
+char *strhash(char *str)
+{
+// DJB2
+  unsigned int hash = 5381;
+  char *t = str;
+  while ( *t ) {
+    hash = ((hash << 5) + hash) + (unsigned int)*(t++);
+  }
+  hash &= 255;
+
+  struct strtable *s, *p, *n;
+
+  int c;
+  for(p = s = strtable[hash]; s; s=s->nxt) {
+    c = strcmp(s->string, str);
+    if (c == 0) return s->string;
+    if (c > 0) break;
+    p = s;
+  }
+
+  n = xmalloc(sizeof(struct strtable));
+  n->string = scopy(str);
+  n->nxt = s;
+  if (p == strtable[hash]) strtable[hash] = n;
+  else p->nxt = n;
+
+  return n->string;
+}
+#endif
+
+void init_hashes(void)
+{
+  memset(utable, 0, sizeof(utable));
+  memset(gtable, 0, sizeof(gtable));
+  memset(itable, 0, sizeof(itable));
+#ifdef __linux__
+  memset(strtable, 0, sizeof(strtable));
+#endif
+}
 
 char *uidtoname(uid_t uid)
 {
@@ -30,7 +85,7 @@ char *uidtoname(uid_t uid)
   struct passwd *ent;
   char ubuf[32];
   int uent = HASH(uid);
-  
+
   for(o = p = utable[uent]; p ; p=p->nxt) {
     if (uid == p->xid) return p->name;
     else if (uid < p->xid) break;
@@ -57,7 +112,7 @@ char *gidtoname(gid_t gid)
   struct group *ent;
   char gbuf[32];
   int gent = HASH(gid);
-  
+
   for(o = p = gtable[gent]; p ; p=p->nxt) {
     if (gid == p->xid) return p->name;
     else if (gid < p->xid) break;

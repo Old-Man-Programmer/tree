@@ -1,5 +1,5 @@
 .\" $Copyright: $
-.\" Copyright (c) 1996 - 2024 by Steve Baker
+.\" Copyright (c) 1996 - 2026 by Steve Baker
 .\" All Rights reserved
 .\"
 .\" This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
 .\" Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 .\"
 ...
-.TH TREE 1 "" "Tree 2.2.1"
+.TH TREE 1 "" "Tree 2.3.0"
 .SH NAME
 tree \- list contents of directories in a tree-like format.
 .SH SYNOPSIS
@@ -58,6 +58,10 @@ tree \- list contents of directories in a tree-like format.
 [\fB--scheme\fP[\fB=\fP]\fIschema\fP]
 [\fB--authority\fP[\fB=\fP]\fIhostname\fP]
 [\fB--opt-toggle\fP]
+[\fB--acl\fP]
+[\fB--selinux\fP]
+[\fB--condense\fP]
+[\fB--compress\fP[\fB=\fP]\fI#\fP]
 [\fB--version\fP]
 [\fB--help\fP]
 [\fB--\fP] [\fIdirectory\fP ...]
@@ -138,13 +142,18 @@ end of the pattern matches directories, but not files.
 .PP
 .TP
 .B -I \fIpattern\fP
-Do not list those files that match the wild-card \fIpattern\fP.  You may have
-multiple -I options.  See \fI-P\fP above for information on wildcard patterns.
+Do not list those files or directories that match the wild-card \fIpattern\fP.
+You may have multiple -I options.  See \fI-P\fP above for information on
+wildcard patterns.
 .PP
 .TP
 .B --gitignore
-Uses git \fB.gitignore\fP files for filtering files and directories.  Also
-uses \fB$GIT_DIR/info/exclude\fP if present.
+Uses git \fB.gitignore\fP files for filtering files and directories. Also
+attempts to walk up the directory tree from the given path(s) searching for
+\fB.gitignore\fP files as it goes, stopping at \fB/\fP or a directory containing
+a \fB.git\fP directory. If a \fB.git\fP directory is found it will add the
+\fB.git/info/exclude\fP file as well. Also uses \fB$GIT_DIR/info/exclude\fP if
+present.
 .PP
 .TP
 .B --gitfile\fR[\fB=\fR]\fIfile\fP
@@ -197,10 +206,10 @@ Set the character set to use when outputting HTML and for line drawing.
 Do not descend directories that contain more than \fI#\fP entries.
 .PP
 .TP
-.B --timefmt\fR[\fB=\fR]\fIformat\fP
-Prints (implies -D) and formats the date according to the format string
-which uses the \fBstrftime\fP(3) syntax.
-.PP
+.B --condense
+Condenses the output of directory 'singletons' -- directories that themselves
+only contain a single directory, onto a single line and does so recursively.
+Note that any meta-information printed will be for the first directory shown.
 .TP
 .B -o \fIfilename\fP
 Send output to \fIfilename\fP.
@@ -261,6 +270,11 @@ Print the date of the last modification time or if \fB-c\fP is used, the last
 status change time for the file listed.
 .PP
 .TP
+.B --timefmt\fR[\fB=\fR]\fIformat\fP
+Prints (implies -D) and formats the date according to the format string
+which uses the \fBstrftime\fP(3) syntax.
+.PP
+.TP
 .B -F
 Append a `/' for directories, a `=' for socket files, a `*' for executable
 files, a `>' for doors (Solaris) and a `|' for FIFO's, as per ls -F
@@ -272,6 +286,15 @@ Prints the inode number of the file or directory
 .TP
 .B --device
 Prints the device number to which the file or directory belongs
+.PP
+.TP
+.B --acl (Linux only)
+Prints the permissions, and if an ACL is present on the file appends + to the
+list of permissions.  Implies the \fB-p\fP option.
+.PP
+.TP
+.B --selinux (Linux only)
+Prints the SELinux label for a file if one is present for it.
 .PP
 
 .SH SORTING OPTIONS
@@ -326,7 +349,8 @@ with the \fB-J\fP or \fB-X\fP options.
 .PP
 .TP
 .B -A
-Turn on ANSI line graphics hack when printing the indentation lines.
+Turn on ANSI line graphics hack when printing the indentation lines. This option
+is now equivalent to `\fB--charset=ANSI\fP`.
 .PP
 .TP
 .B -S
@@ -343,6 +367,13 @@ overrides CLICOLOR_FORCE if present.
 Turn colorization on always, using built-in color defaults if the LS_COLORS or
 TREE_COLORS environment variables are not set.  Useful to colorize output to a
 pipe.
+.PP
+.TP
+.B --compress\fR[\fB=\fR]\fI#\fR
+Compresses the indentation lines. The argument may be a positive number from 1
+(normal) to 3 (a single character) or -1 to -3 which removes the additional
+space at each indentation level.  Greater compression levels turn off indentation
+lines (i.e. \fB-i\fR).
 .PP
 
 .SH XML/JSON/HTML/HYPERLINKS OPTIONS
