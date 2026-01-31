@@ -18,8 +18,8 @@
 
 #include "tree.h"
 
-char *version = "$Version: $ tree v2.3.0 %s 1996 - 2026 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
-char *hversion= "\t\t tree v2.3.0 %s 1996 - 2026 by Steve Baker and Thomas Moore <br>\n"
+char *version = "$Version: $ tree v2.3.1 %s 1996 - 2026 by Steve Baker, Thomas Moore, Francesc Rocher, Florian Sesser, Kyosuke Tokoro $";
+char *hversion= "\t\t tree v2.3.1 %s 1996 - 2026 by Steve Baker and Thomas Moore <br>\n"
 		"\t\t HTML output hacked and copyleft %s 1998 by Francesc Rocher <br>\n"
 		"\t\t JSON output hacked and copyleft %s 2014 by Florian Sesser <br>\n"
 		"\t\t Charsets / OS/2 support %s 2001 by Kyosuke Tokoro\n";
@@ -121,7 +121,6 @@ int main(int argc, char **argv)
   size_t i, j=0, k, n, p = 0, q = 0;
   bool optf = true;
   char *outfilename = NULL, *arg;
-  char *stddata_fd;
   bool needfulltree, showversion = false, opt_toggle = false;
 
   memset(&flag, 0, sizeof(flag));
@@ -155,7 +154,7 @@ int main(int argc, char **argv)
 
 #ifdef __linux__
   /* Output JSON automatically to "stddata" if present: */
-  stddata_fd = getenv(ENV_STDDATA_FD);
+  char *stddata_fd = getenv(ENV_STDDATA_FD);
   if (stddata_fd != NULL) {
     int std_fd = atoi(stddata_fd);
     if (std_fd <= 0) std_fd = STDDATA_FILENO;
@@ -1564,7 +1563,9 @@ char *fillinfo(char *buf, const struct _info *ent)
   if (flag.g) n += sprintf(buf+n, " %-8.32s", gidtoname(ent->gid));
   if (flag.s) n += psize(buf+n,ent->size);
   if (flag.D) n += sprintf(buf+n, " %s", do_date(flag.c? ent->ctime : ent->mtime));
+  #ifdef __linux__
   if (flag.selinux) n += sprintf(buf+n, " %s", ent->secontext);
+  #endif
 
   if (buf[0] == ' ') {
       buf[0] = '[';

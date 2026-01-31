@@ -1,3 +1,8 @@
+Version 2.3.1 (1/31/26)
+  - The "something always slips through" release.
+  - Completely #include guard selinux context output for non-Linux as well as
+    the stddata_fd variable declared outside of an include guard.
+
 Version 2.3.0 (1/30/2026)
   - Add ACL detection (--acl) and selinux (--selinux) (not tested, no way for
     me to easily test this, please report problems with it) options for Linux

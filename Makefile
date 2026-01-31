@@ -22,7 +22,7 @@ PREFIX=/usr/local
 CC ?= gcc
 INSTALL ?= install
 
-VERSION=2.3.0
+VERSION=2.3.1
 TREE_DEST=tree
 DESTDIR=${PREFIX}/bin
 MAN=tree.1
