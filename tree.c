@@ -774,7 +774,7 @@ void usage(int n)
 int patignore(const char *name, bool isdir, bool checkpaths)
 {
   int i;
-  char *pc;
+  const char *pc;
   for(i=0; i < ipattern; i++) {
     if (patmatch(name, ipatterns[i], isdir)) return 1;
     else if (checkpaths) {
@@ -794,7 +794,7 @@ int patignore(const char *name, bool isdir, bool checkpaths)
 int patinclude(const char *name, bool isdir, bool checkpaths)
 {
   int i;
-  char *pc;
+  const char *pc;
   for(i=0; i < pattern; i++) {
     if (patmatch(name, patterns[i], isdir)) return 1;
     else if (checkpaths) {
