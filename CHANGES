@@ -315,7 +315,7 @@ Version 2.0.0 (12/21/2021)
 
 Version 1.8.0 (11/16/2018)
   - Added an experimental --fromfile option (suggested by several people.)
-    This may eventually be replaced or supplimented by a --fromjson option.
+    This may eventually be replaced or supplemented by a --fromjson option.
   - Added support for BSD's CLICOLOR and CLICOLOR_FORCE environment variables.
     (Suggested by Alyssa Ross)
   - Use strftime() exclusively when formatting date/time to respect locale.
@@ -433,7 +433,7 @@ Version 1.5.2 (06/06/08)
 
 Version 1.5.1.2 (06/04/08)
   - Fixed compile issues related to MB_CUR_MAX on non-linux machines.
-  - Removed unecessary features.h
+  - Removed unnecessary features.h
 
 Version 1.5.1.1 (06/11/07)
   - Regression in HTML output, fixed formatting issues.
