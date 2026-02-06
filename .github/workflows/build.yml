@@ -1,0 +1,30 @@
+name: Build on supported OS
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, macos-14, macos-13]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Set up dependencies
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y build-essential
+          elif [[ "$RUNNER_OS" == "macOS" ]]; then
+            brew update
+            brew install make gcc || true  # 'true' allows the command to pass even if make is already installed
+          fi
+
+      - name: Build
+        run: make

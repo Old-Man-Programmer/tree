@@ -31,81 +31,85 @@ MANDIR=${PREFIX}/man
 OBJS=color.o file.o filter.o hash.o html.o info.o json.o list.o tree.o unix.o \
      util.o xml.o strverscmp.o
 
-# Uncomment options below for your particular OS:
+UNAME_OS = $(shell uname -s)
+ifeq ($(UNAME_OS), Linux)
+	# Linux
+	LDFLAGS?=-s
+	#CFLAGS?=-ggdb
+	CFLAGS?=-O3
+	CFLAGS+=-std=c11 -Wpedantic -Wall -Wextra -Wstrict-prototypes -Wshadow -Wconversion
+	# _LARGEFILE64_SOURCE may be considered obsolete
+	CPPFLAGS+=-DLARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+else ifeq ($(UNAME_OS), Darwin)
+	# MacOS:
+	# It is not allowed to install to /usr/bin on MacOS any longer (SIP):
+	CC = cc
+	CFLAGS?=-O2
+	CFLAGS+=-Wall -fomit-frame-pointer -no-cpp-precomp
+	LDFLAGS+=
+	MANDIR=${PREFIX}/share/man
+else
+	# Comment out if the clause is used
+	$(error Unsupported OS)
 
-# Linux defaults:
-LDFLAGS?=-s
-#CFLAGS?=-ggdb
-CFLAGS?=-O3
-CFLAGS+=-std=c11 -Wpedantic -Wall -Wextra -Wstrict-prototypes -Wshadow -Wconversion
-# _LARGEFILE64_SOURCE may be considered obsolete
-CPPFLAGS+=-DLARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+	# Uncomment for FreeBSD:
+	#CC=cc
+	#CFLAGS?=-O2
+	#CFLAGS+=-Wall -fomit-frame-pointer
+	#LDFLAGS+=-s
 
-# Uncomment for FreeBSD:
-#CC=cc
-#CFLAGS?=-O2
-#CFLAGS+=-Wall -fomit-frame-pointer
-#LDFLAGS+=-s
+	# Uncomment for OpenBSD:
+	#TREE_DEST=colortree
+	#MAN=colortree.1
+	#CFLAGS?=-O2
+	#CFLAGS+=-Wall -fomit-frame-pointer
+	#LDFLAGS+=-s
 
-# Uncomment for OpenBSD:
-#TREE_DEST=colortree
-#MAN=colortree.1
-#CFLAGS?=-O2
-#CFLAGS+=-Wall -fomit-frame-pointer
-#LDFLAGS+=-s
+	# Uncomment for Solaris:
+	#CC=cc
+	#CFLAGS+=-xO0 -v
+	#LDFLAGS+=
+	#MANDIR=${prefix}/share/man
 
-# Uncomment for Solaris:
-#CC=cc
-#CFLAGS+=-xO0 -v
-#LDFLAGS+=
-#MANDIR=${prefix}/share/man
+	# Uncomment for Cygwin:
+	#CFLAGS?=-O2
+	#CFLAGS+=-Wall -fomit-frame-pointer
+	#LDFLAGS+=-s
+	#TREE_DEST=tree.exe
 
-# Uncomment for Cygwin:
-#CFLAGS?=-O2
-#CFLAGS+=-Wall -fomit-frame-pointer
-#LDFLAGS+=-s
-#TREE_DEST=tree.exe
+	# Uncomment for HP/UX:
+	#prefix=/opt
+	#CC=cc
+	# manpage of mbsrtowcs() requires C99 and the two defines
+	#CFLAGS+=+w -AC99
+	#CPPFLAGS+=-D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112 
+	#LDFLAGS+=
+	#MANDIR=${PREFIX}/share/man
 
-# Uncomment for MacOS:
-# It is not allowed to install to /usr/bin on MacOS any longer (SIP):
-#CC = cc
-#CFLAGS?=-O2
-#CFLAGS+=-Wall -fomit-frame-pointer -no-cpp-precomp
-#LDFLAGS+=
-#MANDIR=${PREFIX}/share/man
+	# Uncomment for OS/2:
+	#CFLAGS?=-O2
+	#CFLAGS+=-Wall -fomit-frame-pointer -Zomf -Zsmall-conv
+	#LDFLAGS+=-s -Zomf -Zsmall-conv
 
-# Uncomment for HP/UX:
-#prefix=/opt
-#CC=cc
-# manpage of mbsrtowcs() requires C99 and the two defines
-#CFLAGS+=+w -AC99
-#CPPFLAGS+=-D_XOPEN_SOURCE=500 -D_POSIX_C_SOURCE=200112 
-#LDFLAGS+=
-#MANDIR=${PREFIX}/share/man
+	# Uncomment for HP NonStop:
+	#prefix = /opt
+	#CC=c89
+	#CFLAGS+=-Wextensions -WIEEE_float -g -Wnowarn=1506 -D_XOPEN_SOURCE_EXTENDED=1 \
+	#	 -Wallow_cplusplus_comments
+	#LDFLAGS+=
 
-# Uncomment for OS/2:
-#CFLAGS?=-O2
-#CFLAGS+=-Wall -fomit-frame-pointer -Zomf -Zsmall-conv
-#LDFLAGS+=-s -Zomf -Zsmall-conv
+	# AIX
+	#CC=cc_r -q64
+	#LD=ld -d64
+	#LDFLAGS+=-lc
 
-# Uncomment for HP NonStop:
-#prefix = /opt
-#CC=c89
-#CFLAGS+=-Wextensions -WIEEE_float -g -Wnowarn=1506 -D_XOPEN_SOURCE_EXTENDED=1 \
-#	 -Wallow_cplusplus_comments
-#LDFLAGS+=
-
-# AIX
-#CC=cc_r -q64
-#LD=ld -d64
-#LDFLAGS+=-lc
-
-# Android NDK
-#CC=aarch64-linux-android26-clang # Need >= 26
-#CFLAGS?=-O2    # Or:
-#CFLAGS?=-ggdb
-#CFLAGS+=-std=c89 -pedantic -Wall -Wno-error=int-conversion
-#CPPFLAGS+=-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+	# Android NDK
+	#CC=aarch64-linux-android26-clang # Need >= 26
+	#CFLAGS?=-O2    # Or:
+	#CFLAGS?=-ggdb
+	#CFLAGS+=-std=c89 -pedantic -Wall -Wno-error=int-conversion
+	#CPPFLAGS+=-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64
+endif
 
 #------------------------------------------------------------
 
