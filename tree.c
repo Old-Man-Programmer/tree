@@ -98,7 +98,7 @@ char *long_arg(char *argv[], size_t i, size_t *j, size_t *n, char *prefix) {
       } else {
 	fprintf(stderr,"tree: Missing argument to %s=\n", prefix);
 	if (strcmp(prefix, "--charset=") == 0) initlinedraw(true);
-	exit(1);
+	exit(EXIT_FAILURE);
       }
     } else if (argv[*n] != NULL) {
       ret = argv[*n];
@@ -107,7 +107,7 @@ char *long_arg(char *argv[], size_t i, size_t *j, size_t *n, char *prefix) {
     } else {
       fprintf(stderr,"tree: Missing argument to %s\n", prefix);
       if (strcmp(prefix, "--charset") == 0) initlinedraw(true);
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   }
   return ret;
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 	case 'P':
 	  if (argv[n] == NULL) {
 	    fprintf(stderr,"tree: Missing argument to -P option.\n");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	  }
 	  if (pattern >= maxpattern-1) patterns = xrealloc(patterns, sizeof(char *) * (size_t)(maxpattern += 10));
 	  patterns[pattern++] = argv[n++];
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 	case 'I':
 	  if (argv[n] == NULL) {
 	    fprintf(stderr,"tree: Missing argument to -I option.\n");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	  }
 	  if (ipattern >= maxipattern-1) ipatterns = xrealloc(ipatterns, sizeof(char *) * (size_t)(maxipattern += 10));
 	  ipatterns[ipattern++] = argv[n++];
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
 	  };
 	  if (argv[n] == NULL) {
 	    fprintf(stderr,"tree: Missing argument to -H option.\n");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	  }
 	  host = argv[n++];
 	  k = strlen(host)-1;
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
 	case 'T':
 	  if (argv[n] == NULL) {
 	    fprintf(stderr,"tree: Missing argument to -T option.\n");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	  }
 	  title = argv[n++];
 	  break;
@@ -330,19 +330,19 @@ int main(int argc, char **argv)
 	  } else {
 	    if ((sLevel = argv[n++]) == NULL) {
 	      fprintf(stderr,"tree: Missing argument to -L option.\n");
-	      exit(1);
+	      exit(EXIT_FAILURE);
 	    }
 	  }
 	  Level = (int)strtoul(sLevel,NULL,0)-1;
 	  if (Level < 0) {
 	    fprintf(stderr,"tree: Invalid level, must be greater than 0.\n");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	  }
 	  break;
 	case 'o':
 	  if (argv[n] == NULL) {
 	    fprintf(stderr,"tree: Missing argument to -o option.\n");
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	  }
 	  outfilename = argv[n++];
 	  break;
@@ -355,7 +355,7 @@ int main(int argc, char **argv)
 	    /* Long options that don't take parameters should just use strcmp: */
 	    if (!strcmp("--help",argv[i])) {
 	      usage(2);
-	      exit(0);
+	      exit(EXIT_SUCCESS);
 	    }
 	    if (!strcmp("--version",argv[i])) {
 	      j = strlen(argv[i])-1;
@@ -442,7 +442,7 @@ int main(int argc, char **argv)
 		fprintf(stderr,"tree: Sort type '%s' not valid, should be one of: ", arg);
 		for(k=0; sorts[k].name; k++)
 		  printf("%s%c", sorts[k].name, sorts[k+1].name? ',': '\n');
-		exit(1);
+		exit(EXIT_FAILURE);
 	      }
 	      break;
 	    }
@@ -469,7 +469,7 @@ int main(int argc, char **argv)
 	      if (ig != NULL) push_filterstack(ig);
 	      else {
 		fprintf(stderr,"tree: Could not load gitignore file\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	      }
 	      break;
 	    }
@@ -489,7 +489,7 @@ int main(int argc, char **argv)
 	      if (inf != NULL) push_infostack(inf);
 	      else {
 		fprintf(stderr,"tree: Could not load infofile\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	      }
 	      break;
 	    }
@@ -564,14 +564,14 @@ int main(int argc, char **argv)
 #endif
 	    fprintf(stderr,"tree: Invalid argument `%s'.\n",argv[i]);
 	    usage(1);
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	  }
 	  /* Falls through */
 	default:
 	  /* printf("here i = %d, n = %d\n", i, n); */
 	  fprintf(stderr,"tree: Invalid argument -`%c'.\n",argv[i][j]);
 	  usage(1);
-	  exit(1);
+	  exit(EXIT_FAILURE);
 	  break;
 	}
       }
@@ -590,7 +590,7 @@ int main(int argc, char **argv)
 
   if (showversion) {
     print_version(true);
-    exit(0);
+    exit(EXIT_SUCCESS);
   }
 
   /* Insure sensible defaults and sanity check options: */
@@ -652,7 +652,7 @@ void setoutput(const char *filename)
 #endif
     if (outfile == NULL) {
       fprintf(stderr,"tree: invalid filename '%s'\n", filename);
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   }
 }
@@ -765,7 +765,7 @@ void usage(int n)
 	"  \b--version\r     Print version and exit.\n"
 	"  \b--help\r        Print usage and this help message and exit.\n"
 	"  \b--\r            Options processing terminator.\n");
-  exit(0);
+  exit(EXIT_SUCCESS);
 }
 
 /**
