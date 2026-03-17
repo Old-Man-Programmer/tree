@@ -277,7 +277,7 @@ int ctimesort(struct _info **, struct _info **);
 int sizecmp(off_t a, off_t b);
 int fsizesort(struct _info **a, struct _info **b);
 
-int patmatch(const char *buf, const char *pat, bool isdir);
+int patmatch(const char *buf, char *pat, bool isdir);
 void indent(int maxlevel);
 void free_dir(struct _info **);
 #ifdef __EMX__

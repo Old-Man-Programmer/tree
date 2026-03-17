@@ -1247,7 +1247,7 @@ static char cond_lower(char c)
  *    0 on a mismatch
  *   -1 on a syntax error in the pattern
  */
-int patmatch(const char *buf, const char *pat, bool isdir)
+int patmatch(const char *buf, char *pat, bool isdir)
 {
   int match = 1, n;
   char *bar = strchr(pat, '|');
