@@ -951,7 +951,8 @@ void free_dir(struct _info **d)
     free(d[i]->name);
     if (d[i]->lnk) free(d[i]->lnk);
     if (d[i]->comment) {
-      for(int j=0; d[i]->comment[j] != NULL; j++) free(d[i]->comment[j]);
+      int j;
+      for(j=0; d[i]->comment[j] != NULL; j++) free(d[i]->comment[j]);
     }
     if (d[i]->err) free(d[i]->err);
     // d[i]->selinux is a hashed string -- do not free.
