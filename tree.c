@@ -377,8 +377,14 @@ int main(int argc, char **argv)
 	      flag.noreport = (opt_toggle? !flag.noreport : true);
 	      break;
 	    }
-	    if (!strcmp("--nolinks",argv[i])) {
+	    if (!strcmp("--stats",argv[i])) {
 	      j = strlen(argv[i])-1;
+	      flag.statsflag = true;
+	      flag.du = true;
+	      break;
+	    }
+            if (!strcmp("--nolinks",argv[i])) {
+              j = strlen(argv[i])-1;
 	      flag.nolinks = (opt_toggle? !flag.nolinks : true);
 	      break;
 	    }
