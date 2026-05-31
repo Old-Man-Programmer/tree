@@ -92,7 +92,7 @@ struct Flags {
   bool a, c, d, f, g, h, l, p, q, s, u;
   bool D, F, H, J, N, Q, R, X;
   bool inode, dev, si, du, prune, hyper;
-  bool noindent, force_color, nocolor, xdev, noreport, nolinks;
+  bool noindent, force_color, nocolor, xdev, noreport, nolinks, statsflag;
   bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
   bool reverse, fflinks, htmloffset, acl, selinux, condense_singletons;
   bool colorize, ansilines, linktargetcolor, remove_space;
@@ -115,6 +115,8 @@ struct _info {
   uid_t uid;
   gid_t gid;
   off_t size;
+  time_t newest_time, oldest_time;
+  char newest_name[256], oldest_name[256];
   time_t atime, ctime, mtime;
   dev_t dev, ldev;
   ino_t inode, linode;
@@ -171,8 +173,10 @@ struct infofile {
 
 /* list.c */
 struct totals {
-  size_t files, dirs;
+  size_t files, dirs, hidden;
   off_t size;
+  time_t newest_time, oldest_time;
+  char newest_name[256], oldest_name[256];
 };
 
 struct listingcalls {

@@ -96,7 +96,7 @@ void emit_tree(char **dirname, bool needfulltree)
     lc.printinfo(dirname[i], info, 0);
 
     needsclosed = lc.printfile(dirname[i], dirname[i], info, (dir != NULL) || (!dir && n));
-    subtotal = (struct totals){0, 0, 0};
+    subtotal = (struct totals){0};
 
     if (!dir && n) {
       lc.error("error opening dir");
@@ -123,15 +123,43 @@ void emit_tree(char **dirname, bool needfulltree)
 
     tot.files += subtotal.files;
     tot.dirs += subtotal.dirs;
+    tot.hidden += subtotal.hidden;
+    if (subtotal.newest_time > tot.newest_time) {
+      tot.newest_time = subtotal.newest_time;
+      strncpy(tot.newest_name, subtotal.newest_name, 255);
+    }
+    if (tot.oldest_time == 0 || (subtotal.oldest_time && subtotal.oldest_time < tot.oldest_time)) {
+      tot.oldest_time = subtotal.oldest_time;
+      strncpy(tot.oldest_name, subtotal.oldest_name, 255);
+    }
     // Do not bother to accumulate tot.size in listdir.
     // This is already done in getfulltree()
-    if (flag.du) tot.size += info? info->size : 0;
+    if (flag.du || flag.statsflag) tot.size += info? info->size : 0;
 
     if (ig != NULL) ig = flush_filterstack();
     if (inf != NULL) inf = pop_infostack();
   }
 
   if (!flag.noreport) lc.report(tot);
+  if (flag.statsflag) {
+    char newest[32], oldest[32];
+    struct tm *tm;
+    fprintf(outfile, "\n--- Stats ---\n");
+    fprintf(outfile, "Directories : %zu\n", tot.dirs);
+    fprintf(outfile, "Files       : %zu\n", tot.files);
+    fprintf(outfile, "Hidden      : %zu\n", tot.hidden);
+    fprintf(outfile, "Total size  : %lld bytes\n", (long long)tot.size);
+    if (tot.newest_time) {
+      tm = localtime(&tot.newest_time);
+      strftime(newest, sizeof(newest), "%Y-%m-%d", tm);
+      fprintf(outfile, "Newest file : %s (%s)\n", tot.newest_name, newest);
+    }
+    if (tot.oldest_time) {
+      tm = localtime(&tot.oldest_time);
+      strftime(oldest, sizeof(oldest), "%Y-%m-%d", tm);
+      fprintf(outfile, "Oldest file : %s (%s)\n", tot.oldest_name, oldest);
+    }
+  }
 
   lc.outtro();
 }
@@ -253,7 +281,19 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	  if (subdir == NULL) descend = 0;
 	}
       }
-    } else tot.files++;
+    } else {
+      tot.files++;
+      if ((*dir)->size) tot.size += (*dir)->size;
+      if ((*dir)->name[0] == '.') tot.hidden++;
+      if (tot.newest_time == 0 || (*dir)->mtime > tot.newest_time) {
+        tot.newest_time = (*dir)->mtime;
+        strncpy(tot.newest_name, (*dir)->name, 255);
+      }
+      if (tot.oldest_time == 0 || (*dir)->mtime < tot.oldest_time) {
+        tot.oldest_time = (*dir)->mtime;
+        strncpy(tot.oldest_name, (*dir)->name, 255);
+      }
+    }
 
     needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (flag.J && errors));
     if (err) lc.error(err);
