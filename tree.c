@@ -485,7 +485,7 @@ int main(int argc, char **argv)
 	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--infofile")) != NULL) {
 	      flag.showinfo = true;
-	      inf = new_infofile(arg, false);
+	      inf = new_infofile(arg, false, true);
 	      if (inf != NULL) push_infostack(inf);
 	      else {
 		fprintf(stderr,"tree: Could not load infofile\n");
@@ -616,7 +616,7 @@ int main(int argc, char **argv)
 
 
   if (flag.showinfo) {
-    push_infostack(new_infofile(INFO_PATH, false));
+    push_infostack(new_infofile(INFO_PATH, false, true));
   }
 
   needfulltree = flag.du || flag.prune || flag.matchdirs || flag.fromfile || flag.condense_singletons;
@@ -1029,7 +1029,7 @@ void push_files(const char *dir, struct ignorefile **ig, struct infofile **inf, 
     if (*ig == NULL) *ig = tig;
   }
   if (flag.showinfo) {
-    push_infostack(*inf = new_infofile(dir, top));
+    push_infostack(*inf = new_infofile(dir, top, false));
   }
 }
 

@@ -45,7 +45,7 @@ struct comment *new_comment(struct pattern *phead, char **line, int lines)
   return com;
 }
 
-struct infofile *new_infofile(const char *path, bool checkparents)
+struct infofile *new_infofile(const char *path, bool checkparents, bool is_global)
 {
   struct stat st;
   char buf[PATH_MAX], rpath[PATH_MAX];
@@ -112,7 +112,7 @@ struct infofile *new_infofile(const char *path, bool checkparents)
 
   inf = xmalloc(sizeof(struct infofile));
   inf->comments = chead;
-  inf->path = scopy(path);
+  inf->path = scopy(is_global ? "" : path);
   inf->next = NULL;
 
   return inf;
