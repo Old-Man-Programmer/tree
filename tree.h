@@ -232,7 +232,7 @@ void html_report(struct totals tot);
 void html_encode(FILE *fd, char *s);
 
 /* info.c */
-struct infofile *new_infofile(const char *path, bool checkparents);
+struct infofile *new_infofile(const char *path, bool checkparents, bool is_global);
 void push_infostack(struct infofile *inf);
 struct infofile *pop_infostack(void);
 struct comment *infocheck(const char *path, const char *name, int top, bool isdir);
