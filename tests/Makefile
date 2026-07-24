@@ -11,6 +11,7 @@ TEST_ENTRIES = \
 	gitignore-option \
 	ignore-case-option \
 	info-option \
+	infofile-option \
 	I-option \
 	L1-option \
 	L1-R-options \

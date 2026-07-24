@@ -1,0 +1,13 @@
+.
+├── binx
+│    { Binaries needed before a /usr is mounted (single user mode).
+├── bootx
+│    { Kernels / boot loader files
+│   ├── a
+│   ├── b
+│   │    { B file
+│   └── c
+│        { C file
+└── usrx
+
+4 directories, 3 files
