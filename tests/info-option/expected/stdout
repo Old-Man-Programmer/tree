@@ -1,0 +1,16 @@
+.
+├── a
+│    ⎧ sample file a
+│    ⎩ This is a sample file
+├── b
+│    ⎧ sample directory b
+│    ⎩ This is a sample directory
+│   └── c
+│        { sample file b/c
+└── h
+     { sample directory h
+    ├── i
+    └── j
+        └── k
+
+4 directories, 4 files
