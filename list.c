@@ -109,7 +109,7 @@ void emit_tree(char **dirname, bool needfulltree)
       lc.newline(info, 0, 0, dirname[i+1] != NULL);
       subtotal.dirs++;
     } else {
-      lc.newline(info, 0, 0, 0);
+      lc.newline(info, 0, 0, needsclosed? 0 : (dirname[i+1] != NULL));
       if (dir) {
 	subtotal = listdir(dirname[i], dir, 1, st.st_dev, needfulltree);
 	subtotal.dirs++;
