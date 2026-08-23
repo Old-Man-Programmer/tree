@@ -218,6 +218,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 	    int *dirsave = xmalloc(sizeof(int) * (size_t)(lev + 2));
 
 	    memcpy(dirsave, dirs, sizeof(int) * (size_t)(lev+1));
+	    memset(dirs, 0, sizeof(int) * (size_t)(lev+1));
 	    sprintf(output, "%s/00Tree.html", newpath);
 	    setoutput(output);
 	    emit_tree(paths, hasfulltree);
