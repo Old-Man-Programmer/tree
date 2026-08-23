@@ -100,13 +100,13 @@ void emit_tree(char **dirname, bool needfulltree)
 
     if (!dir && n) {
       lc.error("error opening dir");
-      lc.newline(info, 0, 0, dirname[i+1] != NULL);
+      lc.newline(info, 0, 0, 0);
       if (!info) errors++;
       else subtotal.files++;
     } else if (flag.flimit > 0 && n > flag.flimit) {
       sprintf(errbuf,"%ld entries exceeds filelimit, not opening dir", n);
       lc.error(errbuf);
-      lc.newline(info, 0, 0, dirname[i+1] != NULL);
+      lc.newline(info, 0, 0, 0);
       subtotal.dirs++;
     } else {
       lc.newline(info, 0, 0, 0);
