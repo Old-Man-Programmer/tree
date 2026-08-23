@@ -776,11 +776,11 @@ int patignore(const char *name, bool isdir, bool checkpaths)
   int i;
   const char *pc;
   for(i=0; i < ipattern; i++) {
-    if (patmatch(name, ipatterns[i], isdir)) return 1;
+    if (patmatch(name, ipatterns[i], isdir) == 1) return 1;
     else if (checkpaths) {
       pc = strchr(name, file_pathsep[0]);
       while (pc != NULL && *pc != '\0') {
-        if (patmatch(pc+1, ipatterns[i], isdir)) return 1;
+        if (patmatch(pc+1, ipatterns[i], isdir) == 1) return 1;
         pc = strchr(pc+1, file_pathsep[0]);
       }
     }
@@ -796,11 +796,11 @@ int patinclude(const char *name, bool isdir, bool checkpaths)
   int i;
   const char *pc;
   for(i=0; i < pattern; i++) {
-    if (patmatch(name, patterns[i], isdir)) return 1;
+    if (patmatch(name, patterns[i], isdir) == 1) return 1;
     else if (checkpaths) {
       pc = strchr(name, file_pathsep[0]);
       while (pc != NULL && *pc != '\0') {
-        if (patmatch(pc+1, patterns[i], isdir)) return 1;
+        if (patmatch(pc+1, patterns[i], isdir) == 1) return 1;
         pc = strchr(pc+1, file_pathsep[0]);
       }
     }
