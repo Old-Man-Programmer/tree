@@ -255,7 +255,7 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
       }
     } else tot.files++;
 
-    needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (flag.J && errors));
+    needsclosed = lc.printfile(dirname, filename, *dir, (descend != 0) + htmldescend + (flag.J && err != NULL));
     if (err) lc.error(err);
 
     if (descend > 0) {
