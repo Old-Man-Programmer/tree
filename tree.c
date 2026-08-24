@@ -1131,8 +1131,10 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
           }
         }
       }
-      /* prune empty folders, unless they match the requested pattern */
+      /* prune empty folders, unless they match the requested pattern
+       * or sit at the -L cutoff, where their contents were never read */
       if (flag.prune && (*dir)->child == NULL &&
+	  !(Level >= 0 && lev+1 > (u_long)Level) &&
 	  !(flag.matchdirs && pattern && patinclude((*dir)->name, (*dir)->isdir, false))) {
 	xp = *dir;
 	for(p=dir;*p;p++) *p = *(p+1);
