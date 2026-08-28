@@ -125,7 +125,7 @@ void unix_newline(struct _info *file, int level, int postdir, int needcomma)
       if (flag.metafirst) {
 	printf("%*s", (int)infosize, "");
       }
-      indent(level);
+      if (!flag.noindent) indent(level);
       printcomment(line, lines, file->comment[line]);
     }
     dirs[level+1] = 0;
