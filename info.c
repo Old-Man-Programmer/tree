@@ -48,7 +48,8 @@ struct comment *new_comment(struct pattern *phead, char **line, int lines)
 struct infofile *new_infofile(const char *path, bool checkparents)
 {
   struct stat st;
-  char buf[PATH_MAX], rpath[PATH_MAX];
+  char buf[PATH_MAX], rpath[PATH_MAX], rroot[PATH_MAX];
+  char *rel = NULL;
   struct infofile *inf;
   struct comment *chead = NULL, *cend = NULL, *com;
   struct pattern *phead = NULL, *pend = NULL, *p;
@@ -68,6 +69,10 @@ struct infofile *new_infofile(const char *path, bool checkparents)
 	if (realpath(buf, rpath) == NULL) break;
 	snprintf(buf, PATH_MAX, "%.*s/.info", PATH_MAX-7, rpath);
 	fp = fopen(buf, "r");
+      }
+      if (fp != NULL && realpath(path, rroot) != NULL) {
+	size_t len = strcmp(rpath, "/") == 0 ? 0 : strlen(rpath);
+	if (strncmp(rroot, rpath, len) == 0 && rroot[len] == '/') rel = scopy(rroot + len + 1);
       }
     }
   } else fp = fopen(path, "r");
@@ -113,6 +118,7 @@ struct infofile *new_infofile(const char *path, bool checkparents)
   inf = xmalloc(sizeof(struct infofile));
   inf->comments = chead;
   inf->path = scopy(path);
+  inf->rel = rel;
   inf->next = NULL;
 
   return inf;
@@ -148,6 +154,7 @@ struct infofile *pop_infostack(void)
     free(cc);
   }
   free(inf->path);
+  free(inf->rel);
   free(inf);
   return NULL;
 }
@@ -161,11 +168,23 @@ struct comment *infocheck(const char *path, const char *name, int top, bool isdi
   struct infofile *inf = infostack;
   struct comment *com;
   struct pattern *p;
+  char relpath[PATH_MAX];
+  const char *sub;
+  size_t len;
 
   if (inf == NULL) return NULL;
 
   for(inf = infostack; inf != NULL; inf = inf->next) {
     int fpos = sprintf(xpattern, "%s/", inf->path);
+
+    sub = NULL;
+    if (inf->rel != NULL) {
+      len = strlen(inf->path);
+      if (strncmp(path, inf->path, len) == 0) {
+	sub = path + len;
+	while (*sub == '/') sub++;
+      }
+    }
 
     for(com = inf->comments; com != NULL; com = com->next) {
       for(p = com->pattern; p != NULL; p = p->next) {
@@ -174,6 +193,11 @@ struct comment *infocheck(const char *path, const char *name, int top, bool isdi
 
 	sprintf(xpattern + fpos, "%s", p->pattern);
 	if (patmatch(path, xpattern, isdir) == 1) return com;
+
+	if (sub != NULL) {
+	  snprintf(relpath, PATH_MAX, "%s/%s", inf->rel, sub);
+	  if (patmatch(relpath, p->pattern, isdir) == 1) return com;
+	}
       }
     }
     top = 0;

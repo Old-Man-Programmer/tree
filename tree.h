@@ -165,6 +165,7 @@ struct comment {
 
 struct infofile {
   char *path;
+  char *rel;
   struct comment *comments;
   struct infofile *next;
 };
