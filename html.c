@@ -68,7 +68,7 @@ bool url_encode(FILE *fd, char *s)
   bool slash = false;
 
   for(;*s;s++) {
-    fprintf(fd, (isalnum(*s) || strchr(unreserved, *s))? "%c":"%%%02X", *s);
+    fprintf(fd, (isalnum((unsigned char)*s) || strchr(unreserved, *s))? "%c":"%%%02X", (unsigned char)*s);
     slash = (*s == '/');
   }
   return slash;
