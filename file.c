@@ -110,21 +110,33 @@ struct _info **fprune(struct _info *head, const char *path, bool matched, bool r
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
   char *cur, *fpath = xmalloc(sizeof(char) * MAXPATH);
-  size_t i, count = 0;
-  bool show, defmatched = matched;
+  size_t i, count = 0, baselen;
+  bool show, defmatched = matched, fits;
   int tmp_pattern = 0;
 
+  if (strlen(path) >= MAXPATH) {
+    free(fpath);
+    return NULL;
+  }
   strcpy(fpath, path);
   cur = fpath + strlen(fpath);
   *(cur++) = '/';
+  baselen = (size_t)(cur - fpath);
 
   push_files(path, &ig, &inf, root);
 
   for(ent = head; ent != NULL;) {
-    strcpy(cur, ent->name);
-    if (ent->tchild) ent->isdir = 1;
+    /* An entry name this long can only come from a crafted --fromfile
+       input, since real filesystem paths are bounded well under MAXPATH;
+       skip it instead of overflowing fpath's fixed-size buffer. */
+    fits = baselen + strlen(ent->name) < MAXPATH;
+    if (fits) {
+      strcpy(cur, ent->name);
+      if (ent->tchild) ent->isdir = 1;
+    }
 
-    show = true;
+    show = fits;
+    if (!fits) goto next_ent;
     if (flag.d && !ent->isdir) show = false;
     if (!flag.a && ent->name[0] == '.') show = false;
     if (show && !matched) {
@@ -174,6 +186,7 @@ struct _info **fprune(struct _info *head, const char *path, bool matched, bool r
     }
     matched = defmatched;
 
+next_ent:
     t = ent;
     ent = ent->next;
     if (show) {
