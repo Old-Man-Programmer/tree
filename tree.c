@@ -811,15 +811,8 @@ int patinclude(const char *name, bool isdir, bool checkpaths)
 #ifdef __linux__
 bool has_acl(const char *path)
 {
-  char *key, buf[PATH_MAX];
-  ssize_t n = listxattr(path, buf, PATH_MAX);
-  if (n <= 0) return false;
-
-  size_t i, len;
-  for(key=buf, i=0; i < (size_t)n; i+=len+1) {
-    len = strlen(key);
-    if (strcmp(key, "system.posix_acl_access") == 0) return true;
-  }
+  if (getxattr(path, "system.posix_acl_access", NULL, 0) >= 0) return true;
+  if (getxattr(path, "system.posix_acl_default", NULL, 0) >= 0) return true;
   return false;
 }
 
