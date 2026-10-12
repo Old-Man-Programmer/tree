@@ -96,7 +96,10 @@ struct Flags {
   bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
   bool reverse, fflinks, htmloffset, acl, selinux, condense_singletons;
   bool colorize, ansilines, linktargetcolor, remove_space;
+  bool focus, focuscounts;
   int flimit, compress_indent;
+  int focuscollapse;       /* 0=none, 1=files, 2=folders, 3=all */
+  int focuscollapselimit;  /* 0=no limit, >0=collapse after N consecutive */
 };
 
 struct _info {
@@ -266,6 +269,7 @@ int patignore(const char *name, bool isdir, bool checkpaths);
 int patinclude(const char *name, bool isdir, bool checkpaths);
 struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, char **err);
 struct _info **read_dir(char *dir, ssize_t *n, int infotop);
+int is_on_focus_path(const char *dirname, const char *name);
 
 int filesfirst(struct _info **, struct _info **);
 int dirsfirst(struct _info **, struct _info **);
