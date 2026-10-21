@@ -93,7 +93,11 @@ void json_fillinfo(struct _info *ent)
     } else
       fprintf(outfile, ",\"size\":%lld", (long long int)ent->size);
   }
-  if (flag.D) fprintf(outfile, ",\"time\":\"%s\"", do_date(flag.c? ent->ctime : ent->mtime));
+  if (flag.D) {
+    fprintf(outfile, ",\"time\":\"");
+    json_encode(outfile, do_date(flag.c? ent->ctime : ent->mtime));
+    fputc('"', outfile);
+  }
 }
 
 

@@ -76,7 +76,11 @@ void xml_fillinfo(struct _info *ent)
   if (flag.u) fprintf(outfile, " user=\"%s\"", uidtoname(ent->uid));
   if (flag.g) fprintf(outfile, " group=\"%s\"", gidtoname(ent->gid));
   if (flag.s) fprintf(outfile, " size=\"%lld\"", (long long int)(ent->size));
-  if (flag.D) fprintf(outfile, " time=\"%s\"", do_date(flag.c? ent->ctime : ent->mtime));
+  if (flag.D) {
+    fprintf(outfile, " time=\"");
+    html_encode(outfile, do_date(flag.c? ent->ctime : ent->mtime));
+    fputc('"', outfile);
+  }
 }
 
 void xml_intro(void)
