@@ -1048,9 +1048,18 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
   ssize_t n;
   int tmp_pattern = 0;
   char *last_name;
+  /* listdir() prints the entries we return at level lev + 1, and the entries
+   * returned by a recursive call at level lev + 2.  -L only limits what is
+   * printed, so when --du is in effect we still read past the level limit to
+   * get correct sizes; the lists read there exist only for that accounting and
+   * are neither kept (hidden_child_list frees them as soon as --prune has had
+   * a chance to look at them) nor sorted (hidden_list frees our own list.) */
+  bool hidden_list, hidden_child_list;
 
   *err = NULL;
-  if (Level >= 0 && lev > (u_long)Level) return NULL;
+  if (Level >= 0 && lev > (u_long)Level && !flag.du) return NULL;
+  hidden_list = flag.du && (Level >= 0) && (lev > (u_long)Level);
+  hidden_child_list = flag.du && (Level >= 0) && (lev + 1 > (u_long)Level);
   if (flag.xdev && lev == 0) {
     stat(d,&sb);
     dev = sb.st_dev;
@@ -1119,7 +1128,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
         saveino((*dir)->inode, (*dir)->dev);
 	(*dir)->child = unix_getfulltree(path,lev+1,dev,&((*dir)->size),&((*dir)->err));
 
-        if (flag.condense_singletons) {
+        if (flag.condense_singletons && !hidden_child_list) {
           while (is_singleton(*dir)) {
             struct _info **child = (*dir)->child;
             char *name = pathconcat((*dir)->name, child[0]->name, NULL);
@@ -1142,6 +1151,13 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
 	free(xp);
 	continue;
       }
+      /* The contents below the display limit were only needed to figure out
+       * the size of this directory, release them.  The --prune check above
+       * is done first as it needs to know whether the directory was empty. */
+      if (hidden_child_list && (*dir)->child != NULL) {
+	free_dir((*dir)->child);
+	(*dir)->child = NULL;
+      }
     }
     if (flag.du) *size += (*dir)->size;
     dir++;
@@ -1153,7 +1169,7 @@ struct _info **unix_getfulltree(char *d, u_long lev, dev_t dev, off_t *size, cha
   }
 
   /* sorting needs to be deferred for --du: */
-  if (topsort) qsort(sav,(size_t)n,sizeof(struct _info *), (int (*)(const void *, const void *))topsort);
+  if (topsort && !hidden_list) qsort(sav,(size_t)n,sizeof(struct _info *), (int (*)(const void *, const void *))topsort);
 
   free(path);
   if (n == 0) {
