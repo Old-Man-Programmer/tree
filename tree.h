@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <errno.h>
 #include <time.h>
 #include <string.h>
 #include <strings.h>
@@ -96,7 +97,7 @@ struct Flags {
   bool ignorecase, matchdirs, fromfile, metafirst, gitignore, showinfo;
   bool reverse, fflinks, htmloffset, acl, selinux, condense_singletons;
   bool colorize, ansilines, linktargetcolor, remove_space;
-  int flimit, compress_indent;
+  int flimit, climit, compress_indent;
 };
 
 struct _info {

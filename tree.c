@@ -396,6 +396,18 @@ int main(int argc, char **argv)
 	      flag.flimit = atoi(arg);
 	      break;
 	    }
+	    if ((arg = long_arg(argv, i, &j, &n, "--childlimit")) != NULL) {
+	      char *end;
+	      long v;
+	      errno = 0;
+	      v = strtol(arg, &end, 10);
+	      if (arg == end || *end != '\0' || errno == ERANGE || v <= 0 || v > INT_MAX) {
+		fprintf(stderr, "tree: Invalid childlimit value `%s', must be a positive integer no greater than 2147483647.\n", arg);
+		exit(EXIT_FAILURE);
+	      }
+	      flag.climit = (int)v;
+	      break;
+	    }
 	    if ((arg = long_arg(argv, i, &j, &n, "--charset")) != NULL) {
 	      charset = arg;
 	      break;
@@ -669,7 +681,7 @@ void usage(int n)
 	"\t[\b-T\r \ftitle\r] [\b-o\r \ffilename\r] [\b-P\r \fpattern\r] [\b-I\r \fpattern\r] [\b--gitignore\r]\n"
 	"\t[\b--gitfile\r[\b=\r]\ffile\r] [\b--matchdirs\r] [\b--metafirst\r] [\b--ignore-case\r]\n"
 	"\t[\b--nolinks\r] [\b--hintro\r[\b=\r]\ffile\r] [\b--houtro\r[\b=\r]\ffile\r] [\b--inodes\r] [\b--device\r]\n"
-	"\t[\b--sort\r[\b=\r]\fname\r] [\b--dirsfirst\r] [\b--filesfirst\r] [\b--filelimit\r[\b=\r]\f#\r] [\b--si\r]\n"
+	"\t[\b--sort\r[\b=\r]\fname\r] [\b--dirsfirst\r] [\b--filesfirst\r] [\b--filelimit\r[\b=\r]\f#\r] [\b--childlimit\r[\b=\r]\f#\r] [\b--si\r]\n"
 	"\t[\b--du\r] [\b--prune\r] [\b--charset\r[\b=\r]\fX\r] [\b--timefmt\r[\b=\r]\fformat\r] [\b--fromfile\r]\n"
 	"\t[\b--fromtabfile\r] [\b--fflinks\r] [\b--info\r] [\b--infofile\r[\b=\r]\ffile\r] [\b--noreport\r]\n"
 	"\t[\b--hyperlink\r] [\b--scheme\r[\b=\r]\fschema\r] [\b--authority\r[\b=\r]\fhost\r] [\b--opt-toggle\r]\n"
@@ -704,6 +716,7 @@ void usage(int n)
 	"  \b--noreport\r    Turn off file/directory count at end of tree listing.\n"
 	"  \b--charset\r \fX\r   Use charset \fX\r for terminal/HTML and indentation line output.\n"
 	"  \b--filelimit\r \f#\r Do not descend dirs with more than \f#\r files in them.\n"
+	"  \b--childlimit\r \f#\r Only show \f#\r entries per directory.\n"
         "  \b--condense\r    Condense directory singletons to a single line of output.\n"
 	"  \b-o\r \ffilename\r   Output to file instead of stdout.\n"
 	"  \b------- File options -------\r\n"

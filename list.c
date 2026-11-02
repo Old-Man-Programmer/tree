@@ -142,10 +142,12 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
   struct ignorefile *ig = NULL;
   struct infofile *inf = NULL;
   struct _info **subdir = NULL;
+  struct _info **base = NULL, *climit_saved = NULL;
   size_t namemax = 257, namelen;
   int descend, htmldescend = 0;
   int needsclosed;
   ssize_t n;
+  ssize_t hidden = 0;
   size_t dirlen = strlen(dirname)+2, pathlen = dirlen + 257;
   bool found;
   char *path, *newpath, *filename, *err = NULL;
@@ -157,6 +159,13 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
 
   for(n=0; dir[n]; n++);
   if (topsort) qsort(dir, (size_t)n, sizeof(struct _info *), (int (*)(const void *, const void *))topsort);
+
+  base = dir;
+  if (flag.climit > 0 && n > flag.climit) {
+    hidden = n - flag.climit;
+    climit_saved = dir[flag.climit];
+    dir[flag.climit] = NULL;
+  }
 
   dirs[lev] = *(dir+1)? 1 : 2;
 
@@ -256,6 +265,10 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
     } else tot.files++;
 
     needsclosed = lc.printfile(dirname, filename, *dir, descend + htmldescend + (flag.J && errors));
+    if (hidden && *(dir+1) == NULL && err == NULL && !flag.J && !flag.X) {
+      sprintf(errbuf, "%ld more entr%s not shown", (long)hidden, hidden == 1 ? "y" : "ies");
+      err = errbuf;
+    }
     if (err) lc.error(err);
 
     if (descend > 0) {
@@ -277,6 +290,8 @@ struct totals listdir(char *dirname, struct _info **dir, int lev, dev_t dev, boo
     if (ig != NULL) ig = pop_filterstack();
     if (inf != NULL) inf = pop_infostack();
   }
+
+  if (climit_saved) base[flag.climit] = climit_saved;
 
   dirs[lev] = 0;
   free(path);

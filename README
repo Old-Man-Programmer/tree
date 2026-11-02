@@ -381,6 +381,9 @@ polluks@github
 Merlin04@github
  - Noted regression with --gitignore and relative paths
 
+JeffreyCao
+ - Added --childlimit option
+
 And many others whom I've failed to keep track of.  I should have started
 this list years ago.
 

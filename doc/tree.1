@@ -43,6 +43,7 @@ tree \- list contents of directories in a tree-like format.
 [\fB--dirsfirst\fP]
 [\fB--filesfirst\fP]
 [\fB--filelimit\fP[\fB=\fP]\fI#\fP]
+[\fB--childlimit\fP[\fB=\fP]\fI#\fP]
 [\fB--si\fP]
 [\fB--du\fP]
 [\fB--prune\fP]
@@ -204,6 +205,14 @@ Set the character set to use when outputting HTML and for line drawing.
 .TP
 .B --filelimit\fR[\fB=\fR]\fI#\fP
 Do not descend directories that contain more than \fI#\fP entries.
+.PP
+.TP
+.B --childlimit\fR[\fB=\fR]\fI#\fP
+Only show the first \fI#\fP entries of each directory.  Hidden entries are
+not traversed or counted.  Applies to every directory, including the one
+given on the command line.  A note is appended to the last displayed entry
+of a truncated directory; JSON and XML output (\fB-J\fP, \fB-X\fP) are
+truncated silently so they stay well-formed.
 .PP
 .TP
 .B --condense
@@ -541,8 +550,8 @@ default. Use the --prune option.
 The -h and --si options round to the nearest whole number unlike the ls
 implementations which rounds up always.
 
-Pruning files and directories with the -I, -P and --filelimit options will
-lead to incorrect file/directory count reports.
+Pruning files and directories with the -I, -P, --filelimit and --childlimit
+options will lead to incorrect file/directory count reports.
 
 The --prune and --du options cause tree to accumulate the entire tree in memory
 before emitting it. For large directory trees this can cause a significant delay
