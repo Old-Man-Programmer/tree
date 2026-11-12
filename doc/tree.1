@@ -120,7 +120,9 @@ Stay on the current file-system only.  Ala \fBfind \fI-xdev\fP.
 .PP
 .TP
 .B -L \fIlevel\fP
-Max display depth of the directory tree.
+Max display depth of the directory tree.  Note that this only limits what is
+printed; when \fB--du\fP is used tree still reads the entire tree in order to
+report correct sizes.
 .PP
 .TP
 .B -R
@@ -263,6 +265,9 @@ and sub-directories (and their files, and so on).  The total amount of used
 space is also given in the final report (like the 'du -c' command.) This option
 requires tree to read the entire directory tree before emitting it, see
 \fBBUGS AND NOTES\fP below.  Implies \fB-s\fP.
+When used with \fB-L\fP, the whole tree is still read, so the sizes reported
+include the files and directories that the level limit keeps from being
+displayed.
 .PP
 .TP
 .B -D
@@ -546,7 +551,9 @@ lead to incorrect file/directory count reports.
 
 The --prune and --du options cause tree to accumulate the entire tree in memory
 before emitting it. For large directory trees this can cause a significant delay
-in output and the use of large amounts of memory.
+in output and the use of large amounts of memory.  Combining --du with -L reduces
+the memory used, as only the directories that are going to be displayed are kept
+around, but the whole tree is still read in order to compute the reported sizes.
 
 The timefmt expansion buffer is limited to a ridiculously large 255 characters.
 Output of time strings longer than this will be undefined, but are guaranteed

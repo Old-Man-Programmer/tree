@@ -3,9 +3,6 @@ Should do:
 - Use stdint.h and inttypes.h to standardize the int sizes and format strings.
   Not sure how cross-platform this would be.
 
-- Add --DU option to fully report disk usage, taking into account files that
-  are not displayed in the output.
-
 - Make wide character support less of a hack.
 
 - Fully support HTML colorization properly and allow for an external stylesheet.

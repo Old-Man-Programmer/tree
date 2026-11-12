@@ -118,6 +118,9 @@ tree:	$(OBJS)
 $(OBJS): %.o:	%.c tree.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
+check:	tree
+	sh tests/test_du.sh
+
 clean:
 	rm -f $(TREE_DEST) *.o *~
 
