@@ -149,6 +149,41 @@ check_depth() {
   fi
 }
 
+# Errors from size-only traversal must not add contents to cutoff directories.
+check_hidden_errors() {
+  if [ "$(id -u)" -eq 0 ]; then
+    echo "skip: unreadable-directory test requires a non-root user"
+    return
+  fi
+
+  mkdir -p "$WORK/permissions/ok" "$WORK/permissions/secret" || exit 1
+  dd if=/dev/zero of="$WORK/permissions/ok/f" bs=1024 count=5 2>/dev/null
+  # Restore access even if the test is interrupted; keep failed output as usual.
+  trap 'chmod 700 "$WORK/permissions/secret" 2>/dev/null || :' 0
+  trap 'exit 1' HUP INT TERM
+  chmod 000 "$WORK/permissions/secret" || exit 1
+
+  # Confirm that permissions really prevent traversal on this filesystem.
+  "$TREE" --du -J --noreport "$WORK/permissions" >"$WORK/unreadable.json" 2>&1
+  if ! grep -q 'error opening dir' "$WORK/unreadable.json"; then
+    fail "unreadable-directory fixture did not produce an opening error"
+  else
+    "$TREE" -L 1 -J --noreport "$WORK/permissions" >"$WORK/plain.json" 2>&1 ||
+      fail "-L 1 -J: listing failed"
+    "$TREE" --du -L 1 -J --noreport "$WORK/permissions" >"$WORK/du.json" 2>&1 ||
+      fail "--du -L 1 -J: listing failed"
+    # --du adds sizes, but must not otherwise change the depth-limited JSON.
+    sed 's/,"size":[0-9][0-9]*//g' "$WORK/du.json" >"$WORK/du-normalized.json"
+    if diff -q "$WORK/plain.json" "$WORK/du-normalized.json" >/dev/null 2>&1; then
+      pass "--du -L 1 -J: hidden opening errors do not change JSON contents"
+    else
+      fail "--du -L 1 -J: hidden opening errors changed JSON contents"
+      diff "$WORK/plain.json" "$WORK/du-normalized.json" | sed 's/^/    /'
+    fi
+  fi
+  chmod 700 "$WORK/permissions/secret"
+}
+
 # 1. The reported size of a directory is independent of -L.
 check_sizes "--du"
 check_sizes "--du -a" -a
@@ -178,6 +213,9 @@ elif [ "$full_a" != "$hidden_a" ]; then
 else
   pass "data/a reports $full_a bytes with -L 1 (its contents are not displayed)"
 fi
+
+# 5. Unreadable directories below the display limit do not leak into JSON.
+check_hidden_errors
 
 echo
 if [ $failures -eq 0 ]; then
